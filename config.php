@@ -30,6 +30,7 @@ function corecraft_env($key, $default = '')
 }
 
 corecraft_load_env(__DIR__ . '/.env');
+corecraft_load_env(__DIR__ . '/corecraft.env');
 
 define('CORECRAFT_DB_HOST', corecraft_env('CORECRAFT_DB_HOST'));
 define('CORECRAFT_DB_USER', corecraft_env('CORECRAFT_DB_USER'));
@@ -42,3 +43,4 @@ define('CORECRAFT_GEMINI_PERSONA', corecraft_env('CORECRAFT_GEMINI_PERSONA', 'Yo
 define('CORECRAFT_GEMINI_LANGUAGE', corecraft_env('CORECRAFT_GEMINI_LANGUAGE', 'Answer in the same language as the user. Use Filipino or Taglish when the user writes in Filipino or Taglish, otherwise use clear English.'));
 define('CORECRAFT_GOOGLE_CLIENT_ID', corecraft_env('CORECRAFT_GOOGLE_CLIENT_ID'));
 define('CORECRAFT_GOOGLE_MAPS_BROWSER_KEY', corecraft_env('CORECRAFT_GOOGLE_MAPS_BROWSER_KEY', 'PASTE_YOUR_GOOGLE_MAPS_BROWSER_KEY_HERE'));
+

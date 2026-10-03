@@ -1,4 +1,4 @@
-name: Deploy to InfinityFree
+﻿name: Deploy to InfinityFree
 
 on:
   push:
@@ -15,13 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create production .env
+      - name: Create production env file
         run: |
           if [ -z "$PROD_ENV" ]; then
             echo "PROD_ENV is not set (add it as a repository secret or variable)." >&2
             exit 1
           fi
-          printf '%s\n' "$PROD_ENV" > .env
+          printf '%s\n' "$PROD_ENV" > corecraft.env
         env:
           PROD_ENV: ${{ secrets.PROD_ENV || vars.PROD_ENV }}
 
@@ -45,3 +45,4 @@ jobs:
             *.zip
             *.sql
             README.md
+

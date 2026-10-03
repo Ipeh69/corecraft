@@ -1,4 +1,4 @@
-﻿<FilesMatch "^\.env">
+﻿<FilesMatch "^(\.env.*|corecraft\.env)$">
     Require all denied
 </FilesMatch>
 
