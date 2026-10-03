@@ -79,11 +79,18 @@ function initPhilippinesMap(){
   if(!mapEl||!window.L)return;
   philippinesMap=L.map(mapEl,{scrollWheelZoom:false}).setView([12.8797,121.774],5);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    maxZoom:19,
+    maxZoom:15,
     attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(philippinesMap);
   setTimeout(fitPhilippinesMap,50);
   setMapStatus('Showing the Philippines. Search for PC component repair technicians.');
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const {latitude,longitude}=pos.coords;
+      philippinesMap.setView([latitude,longitude],14);
+      setMapStatus('Showing your current location.');
+    },()=>{},{enableHighAccuracy:true,timeout:10000});
+  }
 }
 
 function fitPhilippinesMap(){
