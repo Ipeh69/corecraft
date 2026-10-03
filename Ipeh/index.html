@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CoreCraft — Build Your Dream PC</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0a0c10;--bg2:#1c2030;--bg3:#111827;--bg4:#0f1421;
+      --border:#2a2f3e;--cyan:#00e5ff;--purple:#7c3aed;
+      --orange:#ff6b35;--green:#22c55e;--text:#f0f2f8;--muted:#8892a4;
+    }
+    html{scroll-behavior:smooth}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;-webkit-text-size-adjust:100%;overflow-x:hidden}
+
+    /* NAV */
+    nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:14px 40px;border-bottom:1px solid var(--border);background:rgba(10,12,16,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+    .logo{display:flex;align-items:center;gap:12px;cursor:pointer;text-decoration:none}
+    .logo-icon{width:44px;height:44px;border-radius:16px;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .logo-icon svg{width:26px;height:26px}
+    .login-logo-icon svg{width:36px;height:36px}
+    .logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.6px;color:var(--text)}
+    .logo-text span{color:var(--cyan)}
+    nav ul{display:flex;gap:28px;list-style:none}
+    nav ul a{color:var(--muted);font-size:14px;font-weight:500;text-decoration:none;transition:color .2s, border-color .2s;cursor:pointer;padding-bottom:6px;border-bottom:2px solid transparent}
+    nav ul a:hover{color:var(--text);border-bottom-color:var(--cyan)}
+    .nav-actions{display:flex;align-items:center;gap:10px}
+    .btn-login{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;background:none;border:none;cursor:pointer;transition:all .2s;white-space:nowrap;position:relative}
+    .btn-login:hover{background:#1a1c24;color:var(--text);border-bottom:2px solid var(--cyan)}
+    .btn-start{background:var(--cyan);color:#000;font-size:14px;font-weight:600;padding:8px 22px;border-radius:8px;border:none;cursor:pointer;transition:opacity .2s;white-space:nowrap}
+    .btn-start:hover{opacity:.9}
+    .user-dropdown{position:relative;display:none}
+    .user-dropdown.visible{display:flex;align-items:center}
+    .user-pill{display:flex;align-items:center;gap:8px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:999px;padding:6px 14px 6px 8px;cursor:pointer;transition:all .2s;font-size:14px;font-weight:500;color:var(--cyan);font-family:'DM Sans',sans-serif}
+    .user-pill:hover{background:rgba(0,229,255,.15)}
+    .user-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+    .dropdown-menu{position:absolute;top:calc(100% + 10px);right:0;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:8px;min-width:200px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+    .dropdown-menu.hidden{display:none}
+    .dropdown-header{padding:12px 14px 10px;border-bottom:1px solid var(--border);margin-bottom:6px}
+    .dropdown-name{font-weight:700;font-size:14px;color:var(--text)}
+    .dropdown-email{font-size:12px;color:var(--muted);margin-top:2px}
+    .dropdown-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text);background:none;border:none;width:100%;text-align:left;transition:background .2s;font-family:'DM Sans',sans-serif}
+    .dropdown-item:hover{background:rgba(255,255,255,.06)}
+    .dropdown-item.logout{color:#f87171}
+    .dropdown-item.logout:hover{background:rgba(248,113,113,.08)}
+    .hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:4px}
+    .hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:all .3s}
+    .mobile-menu{display:none;position:fixed;top:61px;left:0;right:0;bottom:0;background:rgba(10,12,16,.98);z-index:49;flex-direction:column;padding:24px;gap:8px;overflow-y:auto}
+    .mobile-menu.open{display:flex}
+    .mobile-menu a{color:var(--text);font-size:18px;font-weight:600;padding:14px 0;border-bottom:1px solid var(--border);text-decoration:none;cursor:pointer}
+    .mobile-menu-actions{display:flex;gap:10px;margin-top:16px;flex-direction:column}
+    .mobile-menu-actions .btn-login{justify-content:center;border:1px solid var(--border);width:100%}
+    .mobile-menu-actions .btn-start{width:100%;text-align:center;padding:14px;font-size:16px}
+    /* Mobile signed-in button (matches desktop pill) */
+    .mobile-signed-btn{display:flex;align-items:center;gap:10px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:999px;padding:8px 12px;color:var(--cyan);font-weight:600;cursor:pointer}
+    .mobile-signed-avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+    /* Mobile account area styles */
+    .mobile-user-header{display:flex;align-items:center;gap:12px;margin:8px 0 14px}
+    .mobile-user-avatar{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0}
+    .mobile-user-name{font-weight:700;color:var(--text);font-size:15px}
+    .mobile-user-sub{font-size:13px;color:var(--muted)}
+    .mobile-user-link{display:block;color:var(--text);font-weight:600;padding:12px 0;border-bottom:1px solid var(--border);text-decoration:none;cursor:pointer}
+
+    /* PAGES */
+    .page{display:none}
+    .page.active{display:block}
+    #page-login{display:none}
+    #page-login.active{display:flex}
+
+    /* FOOTER */
+    footer{border-top:1px solid var(--border);padding:24px 40px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+    footer span{color:var(--muted);font-size:14px}
+    .footer-links{display:flex;gap:20px;flex-wrap:wrap}
+    .footer-links a{color:var(--muted);font-size:14px;text-decoration:none;transition:color .2s}
+    .footer-links a:hover{color:var(--text)}
+
+    /* HELPERS */
+    .label-tag{font-size:12px;font-weight:600;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:10px}
+    .section-title{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;letter-spacing:-1px;margin-bottom:8px}
+    .section-sub{color:var(--muted);font-size:16px;margin-bottom:40px}
+    .back-link{color:var(--cyan);font-size:14px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:color .2s;background:none;border:none;cursor:pointer}
+    .back-link:hover{color:var(--text)}
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;transition:border-color .2s}
+    .card:hover{border-color:rgba(0,229,255,.3)}
+    .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);color:var(--cyan);padding:5px 14px;border-radius:999px;font-size:13px;font-weight:500}
+    .pulse{width:6px;height:6px;background:var(--cyan);border-radius:50%;animation:pulse 1.5s infinite;flex-shrink:0}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .section-wrap{padding:30px 40px 60px;max-width:1100px;margin:0 auto}
+
+    /* HOME */
+    .hero{padding:80px 40px 60px;text-align:center;position:relative;overflow:hidden}
+    .hero-title{font-family:'Syne',sans-serif;font-size:60px;font-weight:800;line-height:1.1;letter-spacing:-2px;margin-bottom:20px}
+    .hero-title .gradient{background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-sub{color:var(--muted);font-size:18px;font-weight:300;max-width:560px;margin:0 auto 36px;line-height:1.7}
+    .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:64px}
+    .btn-primary{background:var(--cyan);color:#000;padding:14px 32px;border-radius:10px;font-weight:700;font-size:15px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:opacity .2s}
+    .btn-primary:hover{opacity:.88}
+    .btn-secondary{background:transparent;color:var(--text);padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px;border:1px solid var(--border);cursor:pointer;transition:all .2s}
+    .btn-secondary:hover{border-color:var(--cyan);color:var(--cyan)}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:800px;margin:0 auto}
+    .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:left}
+    .stat-num{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--cyan)}
+    .stat-label{color:var(--muted);font-size:13px;margin-top:2px}
+    .feature-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px;transition:border-color .2s;text-decoration:none;display:block;color:inherit}
+    .feature-card:hover{border-color:rgba(0,229,255,.3)}
+    .feature-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;flex-shrink:0}
+    .feature-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:8px;color:var(--text)}
+    .feature-desc{color:var(--muted);font-size:14px;line-height:1.6}
+    .cta-box{background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(0,229,255,.08));border:1px solid rgba(0,229,255,.15);border-radius:24px;padding:64px 40px;text-align:center;margin:0 40px 64px}
+    .cta-title{font-family:'Syne',sans-serif;font-size:38px;font-weight:800;letter-spacing:-1px;margin-bottom:14px}
+
+    /* COMPATIBILITY */
+    .compat-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px}
+    .compat-status{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--green);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);padding:6px 14px;border-radius:999px}
+    .comp-card{background:#181b22;border:1px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;transition:all .2s}
+    .comp-card.compatible{border-color:var(--cyan);background:rgba(0,229,255,.06)}
+    .comp-card.warning{border-color:var(--orange);background:rgba(255,107,53,.05)}
+    .comp-card:hover{background:rgba(0,229,255,.04)}
+    .comp-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:10px}
+    .comp-name{font-size:13px;color:var(--muted);margin-bottom:4px}
+    .comp-value{font-size:13px;font-weight:600}
+    .comp-tag{font-size:11px;font-weight:500;margin-top:4px}
+    .comp-tag.ok{color:var(--green)}.comp-tag.warn{color:var(--orange)}.comp-tag.empty{color:var(--muted)}
+    .compat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px}
+    .compat-field{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:20px;transition:transform .2s,background .2s}
+    .compat-field:hover{transform:translateY(-1px);background:rgba(255,255,255,.05)}
+    .compat-label{display:block;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+    .compat-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+    .compat-row input{flex:1 1 0;min-width:0;width:100%;min-height:52px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:14px 16px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
+    .compat-row input:focus{border-color:var(--cyan)}
+    .compat-row .compat-btn{white-space:nowrap;flex:0 0 auto;min-width:130px}
+    .compat-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+    .compat-actions button{width:100%}
+    .compat-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px}
+    @media(max-width:900px){.compat-actions{grid-template-columns:repeat(2,minmax(140px,1fr))}}
+    @media(max-width:580px){.compat-row{flex-direction:column;align-items:stretch}.compat-row .compat-btn{width:100%;white-space:normal}.compat-actions{grid-template-columns:1fr}}
+    .btn-gradient{width:100%;background:linear-gradient(90deg,var(--purple),var(--cyan));color:white;border:none;padding:14px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;transition:opacity .2s;margin-top:8px;font-family:'DM Sans',sans-serif}
+    .btn-gradient:hover{opacity:.9}
+    .budget-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);gap:8px}
+    .budget-row:last-of-type{border-bottom:none}
+    .budget-item-icon{width:36px;height:36px;border-radius:8px;background:#181b22;display:flex;align-items:center;justify-content:center;font-size:16px;margin-right:14px;flex-shrink:0}
+    .budget-item-name{font-size:14px;font-weight:500}
+    .budget-item-detail{font-size:12px;color:var(--muted);margin-top:2px}
+    .budget-price{font-size:15px;font-weight:700;color:var(--cyan);white-space:nowrap}
+    .budget-total{display:flex;justify-content:space-between;align-items:center;padding-top:20px;border-top:1px solid var(--border);margin-top:8px;gap:8px}
+    .budget-total-label{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
+    .budget-total-price{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--cyan)}
+
+    /* BUILD RECOMMENDATION */
+    .build-tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}
+    .build-tab{padding:10px 20px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+    .build-tab.active{background:var(--cyan);color:#000;border-color:var(--cyan)}
+    .build-tab:hover:not(.active){border-color:var(--cyan);color:var(--cyan)}
+    .build-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px;margin-bottom:20px}
+    .build-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+    .build-card-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
+    .build-price-tag{background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.25);color:var(--cyan);padding:6px 16px;border-radius:999px;font-size:14px;font-weight:700}
+    .build-parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+    .idea-card{background:var(--bg3);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:16px}
+    .idea-card-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:6px}
+    .idea-card-meta{font-size:13px;color:var(--muted);margin-bottom:12px}
+    .idea-card-desc{font-size:14px;line-height:1.7;color:var(--text)}
+    .build-part{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px}
+    .build-part-icon{font-size:20px;flex-shrink:0}
+    .build-part-cat{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px}
+    .build-part-name{font-size:13px;font-weight:600;margin-top:2px}
+    .build-part-price{font-size:12px;color:var(--cyan);margin-top:2px}
+    .build-use-btn{background:linear-gradient(90deg,var(--purple),var(--cyan));color:white;border:none;padding:12px 24px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;transition:opacity .2s;font-family:'DM Sans',sans-serif}
+    .build-use-btn:hover{opacity:.9}
+    .compat-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .compat-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .compat-row input{flex:1 1 200px;min-width:0}
+    .compat-row .compat-btn{white-space:nowrap;flex:0 0 auto}
+    @media(max-width:768px){
+      .compat-grid{grid-template-columns:1fr}
+      .compat-row{flex-direction:column;align-items:stretch}
+      .compat-row .compat-btn{width:100%;white-space:normal}
+    }
+    .perf-bars{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+    .perf-row{display:flex;align-items:center;gap:12px}
+    .perf-label{font-size:12px;color:var(--muted);width:80px;flex-shrink:0}
+    .perf-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+    .perf-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--purple),var(--cyan));transition:width .5s ease}
+    .perf-val{font-size:12px;color:var(--cyan);font-weight:600;width:36px;text-align:right;flex-shrink:0}
+
+    /* AI CHAT (shared) */
+    .ai-page-wrap{max-width:900px;margin:0 auto}
+    .chat-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+    .chat-messages{height:420px;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+    .chat-messages::-webkit-scrollbar{width:4px}
+    .chat-messages::-webkit-scrollbar-track{background:transparent}
+    .chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+    .msg{display:flex;max-width:85%}
+    .msg.user{align-self:flex-end}.msg.ai,.msg.other{align-self:flex-start}
+    .msg-bubble{border-radius:14px;padding:12px 16px;font-size:14px;line-height:1.6;white-space:pre-line}
+    .msg.user .msg-bubble{background:linear-gradient(135deg,var(--purple),var(--cyan));color:white}
+    .msg.ai .msg-bubble,.msg.other .msg-bubble{background:var(--bg3);color:var(--text)}
+    .ai-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+    .ai-avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+    .ai-label{font-size:12px;color:var(--muted);font-weight:600}
+    .typing-dots{display:flex;gap:4px;align-items:center;padding:4px 0}
+    .dot{width:8px;height:8px;background:var(--cyan);border-radius:50%;animation:bounce .8s infinite}
+    .dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+    @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+    .quick-bar{padding:12px 20px;border-top:1px solid var(--border);background:var(--bg3)}
+    .quick-label{font-size:12px;color:var(--muted);font-weight:600;margin-bottom:8px}
+    .quick-btns{display:flex;gap:8px;flex-wrap:wrap}
+    .quick-btn{padding:6px 12px;background:#0f1421;border:1px solid var(--border);border-radius:999px;font-size:12px;font-weight:500;color:var(--cyan);cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+    .quick-btn:hover{background:#1e2d4a}
+    .chat-input-wrap{padding:14px;border-top:1px solid var(--border);background:var(--bg4)}
+    .chat-row{display:flex;gap:10px;align-items:flex-end}
+    .chat-textarea{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;resize:none;font-family:'DM Sans',sans-serif;transition:border-color .2s;outline:none}
+    .chat-textarea:focus{border-color:var(--cyan)}
+    .chat-textarea::placeholder{color:var(--muted)}
+    /* Build idea chat card styles */
+    .idea-card-chat{max-width:520px}
+    .idea-card-chat .comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;border-top:1px solid rgba(255,255,255,0.12);padding-top:10px}
+    .idea-card-chat .comp-item{font-size:13px;color:rgba(255,255,255,0.95);padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.08)}
+    .idea-card-chat .comp-item strong{display:block;font-size:12px;color:rgba(255,255,255,0.8);font-weight:700;margin-bottom:6px}
+    .idea-card-chat .comp-grid .comp-item:nth-child(odd){border-right:1px solid rgba(255,255,255,0.16);padding-right:14px}
+    .idea-card-chat .idea-votes{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+    .idea-card-chat .idea-bullet-list{margin-top:10px;padding-left:18px;color:rgba(255,255,255,0.95);font-size:14px;line-height:1.6}
+    .idea-card-chat .idea-bullet-list li{margin-bottom:6px;list-style:disc inside}
+    @media(max-width:600px){.idea-card-chat .comp-grid{grid-template-columns:1fr}.idea-card-chat .comp-grid .comp-item:nth-child(odd){border-right:none;padding-right:8px}}
+    .msg.user .msg-bubble{margin-left:auto}
+    .idea-card-chat{margin:8px 6px}
+    .idea-card-chat .comp-grid{column-gap:12px}
+    .idea-card-chat .comp-item.empty{background:transparent;border:none;padding:6px 8px;opacity:0}
+    .send-btn{background:linear-gradient(135deg,var(--purple),var(--cyan));color:white;padding:10px 20px;border-radius:10px;border:none;font-weight:700;font-size:14px;cursor:pointer;transition:opacity .2s;white-space:nowrap;font-family:'DM Sans',sans-serif}
+    .send-btn:disabled{opacity:.4;cursor:not-allowed}
+    .send-btn:not(:disabled):hover{opacity:.9}
+    .ai-info-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
+    .ai-info-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center}
+    .ai-info-emoji{font-size:24px;margin-bottom:8px}
+    .ai-info-num{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--cyan)}
+    .ai-info-sub{font-size:12px;color:var(--muted)}
+
+    /* MODAL */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;padding:16px}
+    .modal-overlay.open{display:flex}
+    .modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto}
+
+    /* Responsive tweaks for Build Idea modal and cards */
+    .idea-components-grid select,.idea-components-grid input{width:100%;box-sizing:border-box}
+    .idea-components-grid{grid-template-columns:1fr 1fr;gap:10px}
+    .idea-card{padding:18px}
+    .idea-badge{font-size:12px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--muted);font-weight:700}
+    .idea-card-title{font-size:16px}
+    @media(max-width:600px){
+      .idea-components-grid{grid-template-columns:1fr}
+      .modal-box{padding:18px;margin:12px}
+      .idea-card{padding:14px}
+      .idea-card-title{font-size:15px}
+      .idea-card-desc{font-size:13px}
+      .chat-textarea{font-size:14px;padding:10px}
+    }
+    .modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:16px}
+    .modal-result-ok{color:var(--green)}.modal-result-warn{color:var(--orange)}
+    .modal-item{padding:10px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:14px;flex-wrap:wrap}
+    .modal-item:last-child{border-bottom:none}
+    .modal-close{margin-top:20px;width:100%;padding:12px;border-radius:10px;background:var(--cyan);color:#000;font-weight:700;border:none;cursor:pointer;font-size:15px;font-family:'DM Sans',sans-serif}
+
+    /* LOGIN */
+    #page-login{background:#0a0a0f;min-height:100vh;align-items:center;justify-content:center;padding:48px 16px;position:relative;overflow:hidden}
+    .login-bg-blob{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none}
+    .blob1{width:380px;height:380px;background:rgba(0,229,255,.08);top:80px;left:40px;animation:pulse 3s infinite}
+    .blob2{width:380px;height:380px;background:rgba(124,58,237,.1);bottom:80px;right:40px;animation:pulse 3s 1s infinite}
+    .login-grid{position:absolute;inset:0;opacity:.15;background-image:linear-gradient(rgba(6,182,212,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(6,182,212,.1) 1px,transparent 1px);background-size:50px 50px;pointer-events:none}
+    .login-card-wrap{position:relative;z-index:10;width:100%;max-width:440px}
+    .login-brand{text-align:center;margin-bottom:32px}
+    .login-logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:12px}
+    .login-logo-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--cyan));flex-shrink:0}
+    .login-logo-icon svg{width:34px;height:34px}
+    .login-logo-text{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .login-tagline{color:#9ca3af;font-size:14px}
+    .login-box{background:linear-gradient(135deg,rgba(17,24,39,.9),rgba(3,7,18,.9));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:16px;border:1px solid rgba(0,229,255,.2);box-shadow:0 25px 60px rgba(0,0,0,.5);overflow:hidden}
+    .login-tabs{display:flex;border-bottom:1px solid #1f2937}
+    .login-tab{flex:1;padding:16px;font-size:14px;font-weight:500;border:none;background:none;cursor:pointer;transition:all .2s;color:#6b7280;font-family:'DM Sans',sans-serif}
+    .login-tab.active-tab{color:var(--cyan);background:rgba(0,229,255,.08);border-bottom:2px solid var(--cyan)}
+    .login-tab.active-signup{color:#c084fc;background:rgba(192,132,252,.08);border-bottom:2px solid #c084fc}
+    .login-form{padding:28px}
+    .form-group{margin-bottom:18px}
+    .form-label{display:block;font-size:14px;font-weight:500;color:#d1d5db;margin-bottom:8px}
+    .input-wrap{position:relative}
+    .input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:#6b7280;pointer-events:none}
+    .form-input{width:100%;padding:12px 16px 12px 40px;background:rgba(3,7,18,.5);border:1px solid #374151;border-radius:8px;color:white;font-size:16px;font-family:'DM Sans',sans-serif;outline:none;transition:all .2s}
+    .form-input::placeholder{color:#6b7280}
+    .form-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,255,.1)}
+    .form-input.signup-focus:focus{border-color:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.1)}
+    .pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;font-size:16px;transition:color .2s;padding:4px}
+    .pw-toggle:hover{color:#d1d5db}
+    .remember-row{display:flex;justify-content:space-between;align-items:center;font-size:14px;margin-bottom:18px;flex-wrap:wrap;gap:8px}
+    .remember-label{display:flex;align-items:center;gap:8px;cursor:pointer;color:#9ca3af}
+    .forgot-btn{background:none;border:none;color:var(--cyan);cursor:pointer;font-size:14px;transition:color .2s}
+    .forgot-btn:hover{color:#67e8f9}
+    .submit-btn{width:100%;padding:14px;border-radius:8px;border:none;font-weight:600;font-size:16px;color:white;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+    .submit-login{background:linear-gradient(90deg,#0891b2,#2563eb);box-shadow:0 4px 20px rgba(0,229,255,.25)}
+    .submit-login:hover{box-shadow:0 4px 30px rgba(0,229,255,.4)}
+    .submit-signup{background:linear-gradient(90deg,#9333ea,#db2777);box-shadow:0 4px 20px rgba(147,51,234,.25)}
+    .submit-signup:hover{box-shadow:0 4px 30px rgba(147,51,234,.4)}
+    .divider{display:flex;align-items:center;gap:16px;margin:20px 0}
+    .divider-line{flex:1;height:1px;background:#1f2937}
+    .divider-text{color:#6b7280;font-size:13px;white-space:nowrap}
+    .social-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .social-btn{padding:10px 16px;background:rgba(3,7,18,.5);border:1px solid #374151;border-radius:8px;color:#d1d5db;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;font-family:'DM Sans',sans-serif}
+    .social-btn:hover{background:#111827;border-color:#4b5563}
+    .login-footer{text-align:center;margin-top:24px;font-size:14px}
+    .login-status{margin-top:14px;padding:10px 12px;border-radius:8px;font-size:13px;display:none}
+    .login-status.error{display:block;background:rgba(248,113,113,.12);color:#fecaca;border:1px solid rgba(248,113,113,.25)}
+    .login-status.success{display:block;background:rgba(34,197,94,.12);color:#bbf7d0;border:1px solid rgba(34,197,94,.25)}
+    .security-note{margin-top:12px;font-size:12px;color:#9ca3af;text-align:center}
+    .form-input.invalid{border-color:#f87171;box-shadow:0 0 0 3px rgba(248,113,113,.12)}
+    .hidden-field{display:none}
+
+    /* RESPONSIVE */
+    @media(max-width:768px){
+      nav{padding:14px 20px}
+      nav ul,.nav-actions{display:none}
+      .hamburger{display:flex}
+      .hero{padding:50px 20px 40px}
+      .hero-title{font-size:38px;letter-spacing:-1px}
+      .hero-sub{font-size:16px}
+      .hero-actions{margin-bottom:40px}
+      .btn-primary,.btn-secondary{width:100%;justify-content:center}
+      .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+      .stat-card{padding:14px 12px}
+      .stat-num{font-size:20px}
+      .section-wrap{padding:24px 20px 48px}
+      .section-title{font-size:26px}
+      .section-sub{font-size:15px;margin-bottom:28px}
+      .grid-2{grid-template-columns:1fr}
+      .grid-3{grid-template-columns:1fr 1fr}
+      .cta-box{margin:0 20px 48px;padding:40px 24px}
+      .cta-title{font-size:28px}
+      footer{padding:20px;flex-direction:column;align-items:flex-start}
+      .chat-messages{height:300px}
+      .ai-info-cards{grid-template-columns:1fr 1fr}
+      .build-parts{grid-template-columns:1fr}
+      #page-login{padding:30px 16px}
+      .login-logo-text{font-size:26px}
+      .login-form{padding:20px}
+    }
+    @media(max-width:480px){
+      .hero-title{font-size:30px}
+      .stats-grid{grid-template-columns:1fr 1fr}
+      .stat-num{font-size:18px}
+      .grid-3{grid-template-columns:1fr 1fr}
+      .ai-info-cards{grid-template-columns:1fr}
+      #components-grid{grid-template-columns:1fr!important}
+      .social-grid{grid-template-columns:1fr}
+      .cta-title{font-size:24px}
+      .chat-row{flex-direction:column;align-items:stretch}
+      .send-btn{width:100%}
+    }
+    @media(max-width:360px){
+      .hero-title{font-size:26px}
+      nav{padding:12px 14px}
+      .logo-text{font-size:17px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" onclick="showPage('home')">
+    <div class="logo-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00e5ff"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs><circle cx="32" cy="32" r="26" fill="rgba(0,229,255,.08)"/><circle cx="32" cy="32" r="18" fill="rgba(255,255,255,.05)" stroke="white" stroke-width="1.6"/><path d="M32 6v8M32 50v8M6 32h8M50 32h8M16.97 16.97l5.66 5.66M41.37 41.37l5.66 5.66M16.97 47.03l5.66-5.66M41.37 22.63l5.66-5.66" stroke="url(#logoGrad)" stroke-width="1.8" stroke-linecap="round"/><rect x="22" y="22" width="20" height="20" rx="4" fill="rgba(0,229,255,.15)" stroke="white" stroke-width="1.6"/><path d="M28 28h8v8h-8z" fill="url(#logoGrad)" opacity=".7"/><path d="M32 24c-3 0-4 1.5-4 4s1.5 4 4 4 4-1.5 4-4-1-4-4-4z" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M31 30h4" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+    <div class="logo-text">Core<span>Craft</span></div>
+  </a>
+  <ul>
+    <li><a onclick="showPage('build')">Build Recs</a></li>
+    <li><a onclick="showPage('pricing')">Part Pricing</a></li>
+    <li><a onclick="showPage('troubleshoot')">Troubleshoot</a></li>
+    <li><a onclick="showPage('PHchat')">PHChat</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="btn-login" id="nav-login-btn" onclick="showPage('login')">👤 Login</button>
+    <div class="user-dropdown" id="user-dropdown">
+      <button class="user-pill" onclick="toggleDropdown()" id="user-pill">
+        <div class="user-avatar" id="user-avatar">J</div>
+        <span id="user-displayname">Juan</span> ▾
+      </button>
+      <div class="dropdown-menu hidden" id="dropdown-menu">
+        <div class="dropdown-header">
+          <div class="dropdown-name" id="dropdown-name">Juan Dela Cruz</div>
+          <div class="dropdown-email" id="dropdown-email">juan@example.com</div>
+        </div>
+        <button class="dropdown-item" onclick="showPage('profile');closeDropdown()">👤 My Profile</button>
+        <button class="dropdown-item logout" onclick="handleLogout()">🚪 Log Out</button>
+      </div>
+    </div>
+    <button class="btn-start" onclick="showPage('compatibility')">Start Building</button>
+  </div>
+  <button class="hamburger" onclick="toggleMenu()" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Mobile Menu -->
+<div class="mobile-menu" id="mobile-menu">
+  <a onclick="showPage('build');closeMenu()">💡 Build Recommendations</a>
+  <a onclick="showPage('pricing');closeMenu()">📍 Part Pricing by Location</a>
+  <a onclick="showPage('troubleshoot');closeMenu()">🛠️ Troubleshooting</a>
+  <a onclick="showPage('PHchat');closeMenu()">🌐 PHChat</a>
+  <div class="mobile-menu-actions">
+    <button class="btn-login" onclick="showPage('login');closeMenu()">👤 Login</button>
+    <button class="btn-start" onclick="showPage('compatibility');closeMenu()">⚡ Start Building</button>
+  </div>
+</div>
+<!-- ===== HOME ===== -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="badge" style="margin-bottom:28px;"><span class="pulse"></span> Built for Filipino PC Builders</div>
+    <h1 class="hero-title">Build Your<br><span class="gradient">Dream PC</span><br>Without Mistakes</h1>
+    <p class="hero-sub">CoreCraft checks compatibility, recommends builds, finds local prices, and helps troubleshoot — so beginners can build with confidence.</p>
+  </div>
+
+  <div class="section-wrap" style="padding-top:0">
+    <div class="label-tag">5 Core Features</div>
+    <div class="section-title">Everything You Need to Build</div>
+    <div class="section-sub">Tools designed specifically for first-time PC builders in the Philippines.</div>
+    <div class="grid-2">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(0,229,255,.1)">🔍</div>
+        <div class="feature-title">Compatibility Checker</div>
+        <div class="feature-desc">Select your CPU, motherboard, RAM, GPU, storage, and PSU — instantly see if they all work together with a full compatibility report.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(124,58,237,.12)">💡</div>
+        <div class="feature-title">Build Recommendations</div>
+        <div class="feature-desc">Choose your budget and use case — gaming, office, or workstation — and get a fully curated parts list optimized for your needs.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(255,107,53,.1)">📍</div>
+        <div class="feature-title">Pricing by Location (AI)</div>
+        <div class="feature-desc">Ask our AI assistant for real component prices from stores near you — Manila, Cebu, Davao, and more cities across the Philippines.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(34,197,94,.1)">🛠️</div>
+        <div class="feature-title">Troubleshooting (AI)</div>
+        <div class="feature-desc">PC not booting? Crashes? Overheating? Describe your problem to our AI and get step-by-step diagnosis and fixes instantly.</div>
+      </div>
+      <div class="feature-card" style="grid-column:1/-1;justify-self:center;max-width:520px">
+        <div class="feature-icon" style="background:rgba(99,102,241,.12)">🌐</div>
+        <div class="feature-title">PHChat</div>
+        <div class="feature-desc">Chat with builders across the Philippines for parts advice, local pricing tips, and instant support from the community.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-box">
+    <div class="cta-title">Ready to Build<br>Your First PC?</div>
+    <p style="color:var(--muted);margin-bottom:32px;">Join thousands of beginners who built successfully with CoreCraft.</p>
+    <button class="btn-primary" onclick="showPage('compatibility')">⚡ Start Building</button>
+  </div>
+
+  <footer>
+    <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
+    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
+  </footer>
+</div>
+
+<!-- ===== COMPATIBILITY ===== -->
+<div id="page-compatibility" class="page">
+  <div class="section-wrap" style="padding-top:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:28px">
+      <button class="back-link" onclick="showPage('home')">← Back to Home</button>
+      <div style="background:linear-gradient(135deg,#00e5ff,#7c3aed);color:white;padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600">Powered by Claude AI</div>
+    </div>
+    <div style="margin-bottom:32px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#00e5ff,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:20px">🤖</div>
+        <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800">AI Compatibility Checker</div>
+      </div>
+      <p style="color:var(--muted);font-size:15px;line-height:1.6;margin-top:12px">Enter your PC parts below — the AI will analyze socket compatibility, power requirements, RAM support, and suggest fixes if anything's wrong.</p>
+    </div>
+
+    <div class="card" style="padding:32px;margin-bottom:24px">
+        <div class="compat-grid" style="margin-bottom:20px">
+        <div class="compat-field">
+          <label class="compat-label">CPU</label>
+          <div class="compat-row">
+            <input type="text" id="compat-cpu" placeholder="e.g. Intel Core i5-13400F, AMD Ryzen 5 7600X" onkeydown="if(event.key==='Enter')runCompatCheck()" />
+            <button type="button" class="btn-secondary compat-btn" onclick="openComponentSelector('cpu')">Pick CPU</button>
+          </div>
+        </div>
+        <div class="compat-field">
+          <label class="compat-label">Motherboard</label>
+          <div class="compat-row">
+            <input type="text" id="compat-mb" placeholder="e.g. MSI B760M Mortar, ASUS ROG Strix B650-A" onkeydown="if(event.key==='Enter')runCompatCheck()" />
+            <button type="button" class="btn-secondary compat-btn" onclick="openComponentSelector('motherboard')">Pick MB</button>
+          </div>
+        </div>
+        <div class="compat-field">
+          <label class="compat-label">RAM</label>
+          <div class="compat-row">
+            <input type="text" id="compat-ram" placeholder="e.g. 16GB DDR5 5200MHz, 32GB DDR4 3600MHz" onkeydown="if(event.key==='Enter')runCompatCheck()" />
+            <button type="button" class="btn-secondary compat-btn" onclick="openComponentSelector('ram')">Pick RAM</button>
+          </div>
+        </div>
+        <div class="compat-field">
+          <label class="compat-label">GPU</label>
+          <div class="compat-row">
+            <input type="text" id="compat-gpu" placeholder="e.g. RTX 4060, RX 7600, or None (iGPU)" onkeydown="if(event.key==='Enter')runCompatCheck()" />
+            <button type="button" class="btn-secondary compat-btn" onclick="openComponentSelector('gpu')">Pick GPU</button>
+          </div>
+        </div>
+        <div class="compat-field">
+          <label class="compat-label">Storage</label>
+          <div class="compat-row">
+            <input type="text" id="compat-storage" placeholder="e.g. 1TB NVMe Gen4 SSD, 2TB HDD" onkeydown="if(event.key==='Enter')runCompatCheck()" />
+            <button type="button" class="btn-secondary compat-btn" onclick="openComponentSelector('storage')">Pick Storage</button>
+          </div>
+        </div>
+        <div class="compat-field">
+          <label class="compat-label">PSU</label>
+          <div class="compat-row">
+            <input type="text" id="compat-psu" placeholder="e.g. Corsair 650W 80+ Gold, Seasonic 750W" onkeydown="if(event.key==='Enter')runCompatCheck()" />
+            <button type="button" class="btn-secondary compat-btn" onclick="openComponentSelector('psu')">Pick PSU</button>
+          </div>
+        </div>
+        <div class="compat-field" style="grid-column:1/-1">
+          <label class="compat-label">PC Case (Optional)</label>
+          <div class="compat-row">
+            <input type="text" id="compat-case" placeholder="e.g. Lian Li Lancool 216, NZXT H510" onkeydown="if(event.key==='Enter')runCompatCheck()" />
+          </div>
+        </div>
+      </div>
+      <div class="compat-actions">
+        <button class="btn-gradient" onclick="runCompatCheck()">🤖 Check with AI</button>
+        <button class="btn-secondary" onclick="saveCurrentBuild()">💾 Save Build</button>
+        <button class="btn-secondary" onclick="openLoadBuildsModal()">📂 Saved Builds</button>
+      </div>
+      <div class="compat-header" style="margin-top:24px">
+        <div class="compat-status" id="compat-status">✓ 0 of 6 Parts Compatible</div>
+      </div>
+      <div id="components-grid" class="grid-3" style="margin-top:24px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));"></div>
+      <div id="budget-list" style="margin-top:20px"></div>
+    </div>
+
+    <div class="label-tag">AI Compatibility Assistant</div>
+    <div class="section-title" style="font-size:24px">Ask About Your Build</div>
+    <div class="section-sub">Get AI-powered recommendations, compatibility explanations, and part suggestions.</div>
+    <div class="ai-page-wrap">
+      <div class="chat-wrap">
+        <div class="chat-messages" id="compat-messages"></div>
+        <div class="quick-bar">
+          <div class="quick-label">Quick Questions:</div>
+          <div class="quick-btns">
+            <button class="quick-btn" onclick="setInput('compat','What CPU is compatible with my motherboard?')">CPU Socket Guide</button>
+            <button class="quick-btn" onclick="setInput('compat','What RAM type do I need?')">RAM Type Guide</button>
+            <button class="quick-btn" onclick="setInput('compat','What PSU wattage should I get?')">PSU Sizing</button>
+            <button class="quick-btn" onclick="setInput('compat','Is my GPU power requirement OK?')">GPU Power Check</button>
+            <button class="quick-btn" onclick="setInput('compat','Recommend a compatible build')">Recommend a build</button>
+          </div>
+        </div>
+        <div class="chat-input-wrap">
+          <div class="chat-row">
+            <textarea id="compat-input" class="chat-textarea" rows="2" placeholder="Ask about compatibility, recommendations, or your build..." onkeydown="handleKey(event,'compat')"></textarea>
+            <button class="send-btn" id="compat-send" onclick="sendChat('compat')">Send</button>
+          </div>
+        </div>
+      </div>
+      <div class="ai-info-cards">
+        <div class="ai-info-card"><div class="ai-info-emoji">🔍</div><div class="ai-info-num">Analysis</div><div class="ai-info-sub">Deep compatibility checks</div></div>
+        <div class="ai-info-card"><div class="ai-info-emoji">💡</div><div class="ai-info-num">Suggestions</div><div class="ai-info-sub">Smart recommendations</div></div>
+        <div class="ai-info-card"><div class="ai-info-emoji">⚡</div><div class="ai-info-num">Instant</div><div class="ai-info-sub">AI answers fast</div></div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
+    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
+  </footer>
+</div>
+
+<!-- ===== BUILD RECOMMENDATIONS ===== -->
+<div id="page-build" class="page">
+  <div class="section-wrap" style="padding-top:20px">
+    <button class="back-link" onclick="showPage('home')" style="margin-bottom:28px">← Back to Home</button>
+    <div class="label-tag">Feature 2</div>
+    <div class="section-title">Build Recommendations</div>
+    <div class="section-sub">Curated PC builds for every budget and purpose. Click a category to explore builds.</div>
+
+    <div class="build-tabs">
+      <button class="build-tab active" onclick="switchBuild('gaming',this)">🎮 Gaming</button>
+      <button class="build-tab" onclick="switchBuild('office',this)">💼 Office</button>
+      <button class="build-tab" onclick="switchBuild('workstation',this)">🖥️ Workstation</button>
+    </div>
+
+    <div id="build-content"></div>
+
+    <!-- User-contributed build ideas removed per request -->
+  </div>
+  <footer>
+    <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
+    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
+  </footer>
+</div>
+
+<!-- ===== PRICING AI ===== -->
+<div id="page-pricing" class="page">
+  <div class="section-wrap" style="padding-top:20px">
+    <button class="back-link" onclick="showPage('home')" style="margin-bottom:28px">← Back to Home</button>
+    <div class="label-tag">Feature 3 · AI Powered</div>
+    <div class="section-title">Component Pricing by Location</div>
+    <div class="section-sub">Ask our AI for real prices from stores near you across the Philippines.</div>
+    <div class="ai-page-wrap">
+      <div class="chat-wrap">
+        <div class="chat-messages" id="pricing-messages"></div>
+        <div class="quick-bar">
+          <div class="quick-label">Quick Questions:</div>
+          <div class="quick-btns">
+            <button class="quick-btn" onclick="setInput('pricing','RTX 4060 price in Manila')">RTX 4060 in Manila</button>
+            <button class="quick-btn" onclick="setInput('pricing','Ryzen 5 5600 price Cebu')">Ryzen 5 5600 in Cebu</button>
+            <button class="quick-btn" onclick="setInput('pricing','16GB DDR4 RAM price Davao')">RAM price in Davao</button>
+            <button class="quick-btn" onclick="setInput('pricing','Best GPU deals near me')">Best GPU deals</button>
+            <button class="quick-btn" onclick="setInput('pricing','Budget gaming PC parts price list')">Budget parts list</button>
+          </div>
+        </div>
+        <div class="chat-input-wrap">
+          <div class="chat-row" style="flex-direction:column;align-items:stretch">
+            <input id="pricing-location" class="chat-textarea" type="text" placeholder="Your shopping location (e.g. Manila, Cebu, Davao)" />
+            <div class="chat-row" style="margin-top:10px">
+              <textarea id="pricing-input" class="chat-textarea" rows="2" placeholder="Ask about component prices... e.g. 'RTX 4060 price'" onkeydown="handleKey(event,'pricing')"></textarea>
+              <button class="send-btn" id="pricing-send" onclick="sendChat('pricing')">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ai-info-cards">
+        <div class="ai-info-card"><div class="ai-info-emoji">📍</div><div class="ai-info-num">All Cities</div><div class="ai-info-sub">Manila, Cebu, Davao+</div></div>
+        <div class="ai-info-card"><div class="ai-info-emoji">💰</div><div class="ai-info-num">Real Prices</div><div class="ai-info-sub">Local store pricing</div></div>
+        <div class="ai-info-card"><div class="ai-info-emoji">🏪</div><div class="ai-info-num">50+ Stores</div><div class="ai-info-sub">Trusted nationwide</div></div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
+    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
+  </footer>
+</div>
+
+<!-- ===== TROUBLESHOOT AI ===== -->
+<div id="page-troubleshoot" class="page">
+  <div class="section-wrap" style="padding-top:20px">
+    <button class="back-link" onclick="showPage('home')" style="margin-bottom:28px">← Back to Home</button>
+    <div class="label-tag">Feature 4 · AI Powered</div>
+    <div class="section-title">Troubleshooting Bot</div>
+    <div class="section-sub">Tell the bot your PC problem and get step-by-step repair guidance to fix it.</div>
+    <div class="ai-page-wrap">
+      <div class="chat-wrap">
+        <div class="chat-messages" id="trouble-messages"></div>
+        <div class="quick-bar">
+          <div class="quick-label">Troubleshooting Bot:</div>
+          <div class="quick-btns">
+            <button class="quick-btn" onclick="setInput('trouble','My PC won\'t turn on at all')">PC won't turn on</button>
+            <button class="quick-btn" onclick="setInput('trouble','No display or black screen on boot')">No display / black screen</button>
+            <button class="quick-btn" onclick="setInput('trouble','PC keeps restarting randomly')">Random restarts</button>
+            <button class="quick-btn" onclick="setInput('trouble','PC is overheating and shutting down')">Overheating</button>
+            <button class="quick-btn" onclick="setInput('trouble','Blue screen of death BSOD error')">BSOD blue screen</button>
+            <button class="quick-btn" onclick="setInput('trouble','PC is very slow and lagging')">PC slow / lagging</button>
+          </div>
+        </div>
+        <div class="chat-input-wrap">
+          <div class="chat-row">
+            <textarea id="trouble-input" class="chat-textarea" rows="2" placeholder="Describe your PC problem and I will help you fix it..." onkeydown="handleKey(event,'trouble')"></textarea>
+            <button class="send-btn" id="trouble-send" onclick="sendChat('trouble')">Send</button>
+          </div>
+        </div>
+      </div>
+      <div class="ai-info-cards">
+        <div class="ai-info-card"><div class="ai-info-emoji">🔍</div><div class="ai-info-num">Diagnosis</div><div class="ai-info-sub">Identify root cause</div></div>
+        <div class="ai-info-card"><div class="ai-info-emoji">🛠️</div><div class="ai-info-num">Step-by-step</div><div class="ai-info-sub">Clear fix instructions</div></div>
+        <div class="ai-info-card"><div class="ai-info-emoji">⚡</div><div class="ai-info-num">Instant</div><div class="ai-info-sub">AI answers fast</div></div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
+    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
+  </footer>
+</div>
+
+<!-- ===== PHCHAT ===== -->
+<div id="page-PHchat" class="page">
+  <div class="section-wrap" style="padding-top:20px">
+    <button class="back-link" onclick="showPage('home')" style="margin-bottom:28px">← Back to Home</button>
+    <div class="label-tag">Feature 5 · Community Chat</div>
+    <div class="section-title">PHChat</div>
+    <div class="section-sub">Join the PH community and chat with other builders from around the world.</div>
+    <div class="chat-page-wrap" style="display:grid;grid-template-columns:1fr;gap:20px;align-items:start;">
+      <div class="chat-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 220px);min-height:520px;">
+        <div class="chat-header" style="padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;">
+          <div class="chat-avatar" id="worldchat-avatar">PH</div>
+          <div>
+            <div style="font-weight:700" id="worldchat-user-name">PH Lounge</div>
+            <div style="font-size:12px;color:var(--muted)">Chat with the PH community about builds, prices, and PC advice.</div>
+          </div>
+        </div>
+        <div class="chat-messages" id="worldchat-messages" style="flex:1;min-height:280px"></div>
+        <div class="chat-input-wrap">
+          <div class="chat-row" style="flex-direction:column;align-items:stretch;gap:10px;">
+            <button class="quick-btn" onclick="openAddBuildIdea()">Build Idea</button>
+            <div class="chat-row">
+              <textarea id="worldchat-input" class="chat-textarea" rows="2" placeholder="Type to chat with the PH community..." onkeydown="handleKey(event,'worldchat')"></textarea>
+              <button class="send-btn" id="worldchat-send" onclick="sendChat('worldchat')">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
+    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
+  </footer>
+</div>
+
+<!-- ===== LOGIN ===== -->
+<div id="page-login" class="page">
+  <div class="login-bg-blob blob1"></div>
+  <div class="login-bg-blob blob2"></div>
+  <div class="login-grid"></div>
+  <div class="login-card-wrap">
+    <div class="login-brand">
+      <div class="login-logo"><span class="login-logo-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="loginGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00e5ff"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs><circle cx="32" cy="32" r="26" fill="rgba(0,229,255,.08)"/><circle cx="32" cy="32" r="18" fill="rgba(255,255,255,.05)" stroke="white" stroke-width="1.6"/><path d="M32 6v8M32 50v8M6 32h8M50 32h8M16.97 16.97l5.66 5.66M41.37 41.37l5.66 5.66M16.97 47.03l5.66-5.66M41.37 22.63l5.66-5.66" stroke="url(#loginGrad)" stroke-width="1.8" stroke-linecap="round"/><rect x="22" y="22" width="20" height="20" rx="4" fill="rgba(0,229,255,.15)" stroke="white" stroke-width="1.6"/><path d="M28 28h8v8h-8z" fill="url(#loginGrad)" opacity=".7"/><path d="M32 24c-3 0-4 1.5-4 4s1.5 4 4 4 4-1.5 4-4-1-4-4-4z" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M31 30h4" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="login-logo-text">CoreCraft</span></div>
+      <p class="login-tagline" id="login-tagline">Welcome back, PC Builder!</p>
+    </div>
+    <div class="login-box">
+      <div class="login-tabs">
+        <button class="login-tab active-tab" id="tab-login" onclick="switchTab('login')">Login</button>
+        <button class="login-tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+      <div class="login-form">
+        <div class="hidden-field form-group" id="field-name">
+          <label class="form-label">Full Name</label>
+          <div class="input-wrap"><span class="input-icon">👤</span><input class="form-input signup-focus" id="name-input" type="text" autocomplete="name" placeholder="Juan Dela Cruz"/></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <div class="input-wrap"><span class="input-icon">✉️</span><input class="form-input" id="email-input" type="email" autocomplete="email" placeholder="juan@example.com"/></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input class="form-input" type="password" id="pw-input" autocomplete="current-password" placeholder="••••••••"/>
+            <button class="pw-toggle" onclick="togglePw()" id="pw-eye" type="button">👁</button>
+          </div>
+        </div>
+        <div class="hidden-field form-group" id="field-confirm">
+          <label class="form-label">Confirm Password</label>
+          <div class="input-wrap"><span class="input-icon">🔒</span><input class="form-input signup-focus" id="confirm-input" type="password" autocomplete="new-password" placeholder="••••••••"/></div>
+        </div>
+        <div class="remember-row" id="remember-row">
+          <label class="remember-label"><input id="remember-input" type="checkbox" style="accent-color:var(--cyan)"/> Remember me</label>
+          <button class="forgot-btn" type="button">Forgot password?</button>
+        </div>
+        <button class="submit-btn submit-login" id="submit-btn" onclick="handleLogin()" type="button">Login</button>
+        <div class="login-status" id="login-status" role="status" aria-live="polite"></div>
+        <div class="security-note">Passwords are salted and hashed in your browser before being stored.</div>
+        <div class="divider"><div class="divider-line"></div><span class="divider-text">or continue with</span><div class="divider-line"></div></div>
+        <div class="social-grid">
+          <button class="social-btn"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Google</button>
+          <button class="social-btn"><svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg> GitHub</button>
+        </div>
+      </div>
+    </div>
+    <div class="login-footer"><button class="back-link" onclick="showPage('home')">← Back to Home</button></div>
+  </div>
+</div>
+
+<!-- ===== USER PROFILE ===== -->
+<div id="page-profile" class="page">
+  <div class="section-wrap" style="padding-top:24px;max-width:860px">
+    <button class="back-link" onclick="showPage('home')" style="margin-bottom:28px">← Back to Home</button>
+
+    <!-- Profile Header Card -->
+    <div style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(0,229,255,.08));border:1px solid rgba(0,229,255,.2);border-radius:24px;padding:36px;margin-bottom:24px;display:flex;align-items:center;gap:28px;flex-wrap:wrap">
+      <div id="profile-avatar-big" style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 0 0 4px rgba(0,229,255,.2)">J</div>
+      <div style="flex:1;min-width:200px">
+        <div id="profile-name-big" style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px">Juan Dela Cruz</div>
+        <div id="profile-email-big" style="color:var(--muted);font-size:14px;margin-bottom:12px">juan@example.com</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="badge"><span class="pulse"></span> Active Builder</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);color:#a78bfa;padding:5px 14px;border-radius:999px;font-size:13px;font-weight:500">🏅 Member since 2026</span>
+        </div>
+      </div>
+      <button onclick="toggleEditMode()" id="edit-profile-btn" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;white-space:nowrap" onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">✏️ Edit Profile</button>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:24px">
+      <!-- Account Info -->
+      <div class="card" style="padding:28px" id="info-view-panel">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px">👤 Account Info</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div>
+            <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Full Name</div>
+            <div id="view-name" style="font-size:15px;font-weight:500">Juan Dela Cruz</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Email</div>
+            <div id="view-email" style="font-size:15px;font-weight:500">juan@example.com</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Location</div>
+            <div id="view-location" style="font-size:15px;font-weight:500">📍 Manila, Philippines</div>
+          </div>
+          <div>
+            <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Build Experience</div>
+            <div id="view-experience" style="font-size:15px;font-weight:500">🌱 Beginner</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Form (hidden by default) -->
+      <div class="card" style="padding:28px;display:none" id="info-edit-panel">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px">✏️ Edit Profile</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div>
+            <label style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px">Full Name</label>
+            <input id="edit-name" class="chat-textarea" style="width:100%;resize:none;border-radius:8px;padding:10px 14px" placeholder="Your name"/>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px">Email</label>
+            <input id="edit-email" class="chat-textarea" type="email" style="width:100%;resize:none;border-radius:8px;padding:10px 14px" placeholder="your@email.com"/>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px">Location</label>
+            <select id="edit-location" class="chat-textarea" style="width:100%;resize:none;border-radius:8px;padding:10px 14px;cursor:pointer">
+              <option>📍 Manila, Philippines</option>
+              <option>📍 Cebu, Philippines</option>
+              <option>📍 Davao, Philippines</option>
+              <option>📍 Quezon City, Philippines</option>
+              <option>📍 Other</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px">Build Experience</label>
+            <select id="edit-experience" class="chat-textarea" style="width:100%;resize:none;border-radius:8px;padding:10px 14px;cursor:pointer">
+              <option>🌱 Beginner</option>
+              <option>⚙️ Intermediate</option>
+              <option>🚀 Advanced</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px">
+            <button onclick="saveProfile()" style="flex:1;background:var(--cyan);color:#000;border:none;padding:11px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif">Save Changes</button>
+            <button onclick="toggleEditMode()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);padding:11px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Card -->
+      <div class="card" style="padding:28px" id="stats-card">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px">📊 My Stats</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="background:#111827;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--cyan)">3</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Builds Checked</div>
+          </div>
+          <div style="background:#111827;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--purple)">7</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">AI Chats</div>
+          </div>
+          <div style="background:#111827;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--green)">₱54K</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Build Value</div>
+          </div>
+          <div style="background:#111827;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
+            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--orange)">12</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Parts Searched</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card" style="padding:28px;margin-bottom:24px">
+      <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px">🕒 Recent Activity</div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <div class="budget-row">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(0,229,255,.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🔍</div>
+            <div><div style="font-size:14px;font-weight:500">Ran compatibility check</div><div style="font-size:12px;color:var(--muted)">Ryzen 5 5600X + ASUS B550-F + RTX 3070</div></div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);white-space:nowrap">2 hrs ago</div>
+        </div>
+        <div class="budget-row">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,107,53,.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">📍</div>
+            <div><div style="font-size:14px;font-weight:500">Checked RTX 4060 price in Manila</div><div style="font-size:12px;color:var(--muted)">Found best deal at Dynaquest Gilmore — ₱21,500</div></div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);white-space:nowrap">Yesterday</div>
+        </div>
+        <div class="budget-row">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">💡</div>
+            <div><div style="font-size:14px;font-weight:500">Viewed Mid-Range Gaming build</div><div style="font-size:12px;color:var(--muted)">₱65,000 — Ryzen 5 7600X + RTX 4060 Ti</div></div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);white-space:nowrap">2 days ago</div>
+        </div>
+        <div class="budget-row" style="border-bottom:none">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(34,197,94,.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🛠️</div>
+            <div><div style="font-size:14px;font-weight:500">Asked troubleshooting AI</div><div style="font-size:12px;color:var(--muted)">PC won't turn on — fixed 24-pin connector</div></div>
+          </div>
+          <div style="font-size:12px;color:var(--muted);white-space:nowrap">3 days ago</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div style="background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.2);border-radius:16px;padding:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:#f87171;margin-bottom:4px">Log Out</div>
+        <div style="font-size:13px;color:var(--muted)">Sign out of your CoreCraft account on this device.</div>
+      </div>
+      <button onclick="handleLogout()" style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:#f87171;padding:10px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='rgba(248,113,113,.22)'" onmouseout="this.style.background='rgba(248,113,113,.12)'">🚪 Log Out</button>
+    </div>
+  </div>
+  <footer>
+    <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
+    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
+  </footer>
+</div>
+
+<!-- Compatibility Modal -->
+<div class="modal-overlay" id="compat-modal">
+  <div class="modal-box">
+    <div class="modal-title">🔍 Compatibility Report</div>
+    <div id="modal-content"></div>
+    <button class="modal-close" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="component-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="component-modal-title">Select Component</div>
+    <div id="component-list" style="max-height:400px;overflow-y:auto;margin:20px 0;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="modal-close" style="flex:1" onclick="closeComponentModal()">Cancel</button>
+      <button class="modal-close" style="flex:1;background:var(--cyan);color:#000;border-color:var(--cyan)" onclick="selectComponent()">Select</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="build-idea-modal">
+  <div class="modal-box">
+    <div class="modal-title">💡 Add a Build Idea</div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <input id="idea-title" class="chat-textarea" type="text" placeholder="Build name e.g. 1080p Gaming" />
+      <select id="idea-category" class="chat-textarea" style="max-width:260px">
+        <option value="gaming">🎮 Gaming</option>
+        <option value="office">💼 Office</option>
+        <option value="workstation">🖥️ Workstation</option>
+        <option value="other">🔖 Other</option>
+      </select>
+      <div class="idea-components-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <input id="idea-cpu" class="chat-textarea" type="text" placeholder="CPU (optional) e.g. Ryzen 5 5600X" />
+        <input id="idea-motherboard" class="chat-textarea" type="text" placeholder="Motherboard (optional) e.g. B550-F" />
+        <input id="idea-ram" class="chat-textarea" type="text" placeholder="RAM (optional) e.g. 16GB DDR4 3200" />
+        <input id="idea-gpu" class="chat-textarea" type="text" placeholder="GPU (optional) e.g. RTX 4060" />
+        <input id="idea-storage" class="chat-textarea" type="text" placeholder="Storage (optional) e.g. 1TB NVMe" />
+        <input id="idea-psu" class="chat-textarea" type="text" placeholder="PSU (optional) e.g. 650W 80+ Gold" />
+        <input id="idea-case" class="chat-textarea" type="text" placeholder="PC Case (optional) e.g. Lian Li Lancool 216" />
+      </div>
+      <textarea id="idea-description" class="chat-textarea" rows="4" placeholder="Describe your build idea and goals..."></textarea>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-gradient" style="flex:1;min-width:140px" onclick="saveBuildIdea()">Send</button>
+        <button class="btn-secondary" style="flex:1;min-width:140px" onclick="closeBuildIdeaModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="saved-builds-modal">
+  <div class="modal-box">
+    <div class="modal-title">📂 Saved Builds</div>
+    <div id="saved-builds-modal-list" style="max-height:400px;overflow-y:auto;margin:20px 0;"></div>
+    <button class="modal-close" style="width:100%" onclick="closeSavedBuildsModal()">Close</button>
+  </div>
+</div>
+
+<script>
+// ——— MOBILE MENU ———
+function toggleMenu(){document.getElementById('mobile-menu').classList.toggle('open')}
+function closeMenu(){document.getElementById('mobile-menu').classList.remove('open')}
+
+// ——— AUTH ———
+let isLoggedIn=false,pendingPage=null,PHchatInit=false,activePHChat=null;
+const protected_=['compatibility','build','pricing','troubleshoot','profile','PHchat'];
+
+function showPage(name){
+  if(protected_.includes(name)&&!isLoggedIn){pendingPage=name;showPage('login');return}
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el=document.getElementById('page-'+name);
+  if(el)el.classList.add('active');
+  window.scrollTo(0,0);
+  closeMenu();
+  if(name==='pricing'&&!pricingInit)initChat('pricing');
+  if(name==='troubleshoot'&&!troubleInit)initChat('trouble');
+  if(name==='compatibility'&&!compatInit)initChat('compat');
+  if(name==='build'&&!buildaiInit)initChat('buildai');
+  if((name==='worldchat'||name==='PHchat')&&!PHchatInit)initPHChat();
+  if(name==='build'){updateSavedBuildsList();renderBuildIdeas();}
+}
+
+// ——— COMPONENTS DATA ———
+const componentData = {
+  motherboard: [
+    {id: 'mb1', name: 'ASUS B550-F', socket: 'AM4', formFactor: 'ATX', ramType: 'DDR4', price: 8500},
+    {id: 'mb2', name: 'MSI B450 Tomahawk', socket: 'AM4', formFactor: 'ATX', ramType: 'DDR4', price: 7200},
+    {id: 'mb3', name: 'Gigabyte B650 Aorus Elite', socket: 'AM5', formFactor: 'ATX', ramType: 'DDR5', price: 12000},
+    {id: 'mb4', name: 'ASRock B550M Pro4', socket: 'AM4', formFactor: 'mATX', ramType: 'DDR4', price: 6500},
+    {id: 'mb5', name: 'ASUS Prime Z690-A', socket: 'LGA1700', formFactor: 'ATX', ramType: 'DDR5', price: 15000}
+  ],
+  cpu: [
+    {id: 'cpu1', name: 'Ryzen 5 5600X', socket: 'AM4', cores: 6, price: 9200},
+    {id: 'cpu2', name: 'Ryzen 7 5700X', socket: 'AM4', cores: 8, price: 12500},
+    {id: 'cpu3', name: 'Intel Core i5-12400F', socket: 'LGA1700', cores: 6, price: 8800},
+    {id: 'cpu4', name: 'Ryzen 5 7600X', socket: 'AM5', cores: 6, price: 15500},
+    {id: 'cpu5', name: 'Intel Core i7-12700K', socket: 'LGA1700', cores: 12, price: 18500}
+  ],
+  ram: [
+    {id: 'ram1', name: 'Corsair Vengeance 16GB DDR4 3200', type: 'DDR4', speed: 3200, capacity: 16, price: 3400},
+    {id: 'ram2', name: 'G.Skill Ripjaws 32GB DDR4 3600', type: 'DDR4', speed: 3600, capacity: 32, price: 5800},
+    {id: 'ram3', name: 'Corsair Dominator 16GB DDR5 5200', type: 'DDR5', speed: 5200, capacity: 16, price: 4500},
+    {id: 'ram4', name: 'Kingston HyperX 8GB DDR4 2666', type: 'DDR4', speed: 2666, capacity: 8, price: 1500},
+    {id: 'ram5', name: 'TeamGroup T-Force 64GB DDR4 3200', type: 'DDR4', speed: 3200, capacity: 64, price: 12000}
+  ],
+  gpu: [
+    {id: 'gpu1', name: 'RTX 3060', vram: 12, power: 550, price: 25000},
+    {id: 'gpu2', name: 'RTX 3070', vram: 8, power: 650, price: 28000},
+    {id: 'gpu3', name: 'RTX 4060', vram: 8, power: 550, price: 22000},
+    {id: 'gpu4', name: 'RX 7600', vram: 8, power: 550, price: 23000},
+    {id: 'gpu5', name: 'RTX 4070', vram: 12, power: 700, price: 42000}
+  ],
+  storage: [
+    {id: 'ssd1', name: 'Samsung 970 EVO 1TB NVMe', type: 'NVMe', capacity: 1000, price: 5800},
+    {id: 'ssd2', name: 'WD Blue 500GB SATA', type: 'SATA', capacity: 500, price: 2800},
+    {id: 'ssd3', name: 'Crucial P5 Plus 2TB NVMe', type: 'NVMe', capacity: 2000, price: 9500},
+    {id: 'ssd4', name: 'Seagate Barracuda 2TB HDD', type: 'HDD', capacity: 2000, price: 3200},
+    {id: 'ssd5', name: 'Kingston A2000 250GB NVMe', type: 'NVMe', capacity: 250, price: 1800}
+  ],
+  psu: [
+    {id: 'psu1', name: 'Corsair RM550x 550W 80+ Gold', wattage: 550, efficiency: 'Gold', price: 4200},
+    {id: 'psu2', name: 'EVGA 600 W1 600W 80+ White', wattage: 600, efficiency: 'White', price: 2800},
+    {id: 'psu3', name: 'Seasonic Focus GX-650 650W 80+ Gold', wattage: 650, efficiency: 'Gold', price: 5500},
+    {id: 'psu4', name: 'Cooler Master MWE 500W 80+ Bronze', wattage: 500, efficiency: 'Bronze', price: 2200},
+    {id: 'psu5', name: 'be quiet! Straight Power 11 750W 80+ Platinum', wattage: 750, efficiency: 'Platinum', price: 7200}
+  ]
+};
+
+const components=[
+  {id:'1',name:'Motherboard',type:'motherboard',value:'Not Selected',price:0,icon:'🔲',tag:'○ Select Motherboard',status:'empty',detail:''},
+  {id:'2',name:'CPU',type:'cpu',value:'Not Selected',price:0,icon:'🧠',tag:'○ Select CPU',status:'empty',detail:''},
+  {id:'3',name:'RAM',type:'ram',value:'Not Selected',price:0,icon:'💾',tag:'○ Select RAM',status:'empty',detail:''},
+  {id:'4',name:'GPU',type:'gpu',value:'Not Selected',price:0,icon:'🎮',tag:'○ Select GPU',status:'empty',detail:''},
+  {id:'5',name:'Storage',type:'storage',value:'Not Selected',price:0,icon:'💿',tag:'○ Select Storage',status:'empty',detail:''},
+  {id:'6',name:'PSU',type:'psu',value:'Not Selected',price:0,icon:'🔌',tag:'○ Select PSU',status:'empty',detail:''}
+];
+
+function getAllMotherboards() {
+  return componentData.motherboard;
+}
+
+function getAllCPUs() {
+  return componentData.cpu;
+}
+
+function getAllRAM() {
+  return componentData.ram;
+}
+
+function getAllGPUs() {
+  return componentData.gpu;
+}
+
+function getAllStorage() {
+  return componentData.storage;
+}
+
+function getAllPSUs() {
+  return componentData.psu;
+}
+
+function getComponentsByType(type) {
+  switch(type) {
+    case 'motherboard': return getAllMotherboards();
+    case 'cpu': return getAllCPUs();
+    case 'ram': return getAllRAM();
+    case 'gpu': return getAllGPUs();
+    case 'storage': return getAllStorage();
+    case 'psu': return getAllPSUs();
+    default: return [];
+  }
+}
+function renderComponents(){
+  checkCompatibility();
+  const compat=components.filter(c=>c.status==='compatible').length;
+  const compatStatusEl=document.getElementById('compat-status');
+  if(compatStatusEl){
+    compatStatusEl.textContent=`✓ ${compat} of 6 Parts Compatible`;
+  }
+  const gridEl=document.getElementById('components-grid');
+  if(gridEl){
+    gridEl.innerHTML=components.map(c=>`
+      <div class="comp-card ${c.status!=='empty'?c.status:''}" onclick="openComponentSelector('${c.type}')">
+        <div class="comp-icon">${c.icon}</div>
+        <div class="comp-name">${c.name}</div>
+        <div class="comp-value" style="color:${c.status==='empty'?'var(--muted)':'var(--text)'}">${c.value}</div>
+        <div class="comp-tag ${c.status==='warning'?'warn':c.status==='empty'?'empty':'ok'}">${c.tag}</div>
+      </div>`).join('');
+  }
+  const items=components.filter(c=>c.price>0);
+  const total=items.reduce((s,c)=>s+c.price,0);
+  const budgetEl=document.getElementById('budget-list');
+  if(budgetEl){
+    budgetEl.innerHTML=items.map(c=>`
+      <div class="budget-row">
+        <div style="display:flex;align-items:center;">
+          <div class="budget-item-icon">${c.icon}</div>
+          <div><div class="budget-item-name">${c.value}</div><div class="budget-item-detail">${c.detail}</div></div>
+        </div>
+        <div class="budget-price">₱${c.price.toLocaleString()}</div>
+      </div>`).join('')+`
+      <div class="budget-total">
+        <div class="budget-total-label">Estimated Total</div>
+        <div class="budget-total-price">₱${total.toLocaleString()}</div>
+      </div>`;
+  }
+}
+renderComponents();
+
+function runCompatCheck(){
+  if(!compatInit)initChat('compat');
+  syncComponentsFromFields();
+  const cpu=document.getElementById('compat-cpu').value.trim();
+  const mb=document.getElementById('compat-mb').value.trim();
+  const ram=document.getElementById('compat-ram').value.trim();
+  const gpu=document.getElementById('compat-gpu').value.trim();
+  const storage=document.getElementById('compat-storage').value.trim();
+  const psu=document.getElementById('compat-psu').value.trim();
+  const pccase=document.getElementById('compat-case').value.trim();
+  if(!cpu||!mb||!ram||!psu){
+    alert('Please fill in CPU, Motherboard, RAM, and PSU to run the AI compatibility check.');
+    return;
+  }
+  const text=`Check my build compatibility:\nCPU: ${cpu}\nMotherboard: ${mb}\nRAM: ${ram}\nGPU: ${gpu||'None (iGPU)'}\nStorage: ${storage||'Not specified'}\nPSU: ${psu}\nCase: ${pccase||'Not specified'}`;
+  addMsg('compat','user',text);
+  addTyping('compat');
+  document.getElementById('compat-send').disabled=true;
+  setTimeout(()=>{
+    removeTyping('compat');
+    addMsg('compat','ai',getAICompatAnalysis(cpu,mb,ram,gpu,storage,psu,pccase));
+    document.getElementById('compat-send').disabled=false;
+  },1000+Math.random()*800);
+}
+
+function getAICompatAnalysis(cpu,mb,ram,gpu,storage,psu,pccase){
+  const cpuL=cpu.toLowerCase();
+  const mbL=mb.toLowerCase();
+  const ramL=ram.toLowerCase();
+  const gpuL=gpu.toLowerCase();
+  const psuL=psu.toLowerCase();
+  let issues=[];
+  let notes=[];
+  let cpuSocket='Unknown';
+  if(cpuL.includes('ryzen')){
+    if(cpuL.includes('7600')||cpuL.includes('7700')||cpuL.includes('7800')||cpuL.includes('7900')||cpuL.includes('7900x')||cpuL.includes('7950')) cpuSocket='AM5';
+    else cpuSocket='AM4';
+  } else if(cpuL.includes('intel')||cpuL.includes('core i')){
+    cpuSocket='LGA1700';
+  }
+  let mbSocket='Unknown';
+  if(mbL.includes('b650')||mbL.includes('x670')||mbL.includes('am5')) mbSocket='AM5';
+  else if(mbL.includes('b550')||mbL.includes('b450')||mbL.includes('am4')) mbSocket='AM4';
+  else if(mbL.includes('z690')||mbL.includes('b760')||mbL.includes('lga1700')||mbL.includes('z790')) mbSocket='LGA1700';
+  let ramType='Unknown';
+  if(ramL.includes('ddr5')) ramType='DDR5';
+  else if(ramL.includes('ddr4')) ramType='DDR4';
+  let mbRamType='Unknown';
+  if(mbSocket==='AM5'||mbSocket==='LGA1700') mbRamType='DDR5';
+  else if(mbSocket==='AM4') mbRamType='DDR4';
+  if(cpuSocket!=='Unknown'&&mbSocket!=='Unknown'&&cpuSocket!==mbSocket){
+    issues.push(`⚠️ **Socket mismatch** — CPU is ${cpuSocket} but motherboard is ${mbSocket}. Use a matching CPU or motherboard.`);
+  } else if(cpuSocket!=='Unknown'&&mbSocket!=='Unknown'){
+    notes.push(`✅ CPU and motherboard are likely compatible with ${cpuSocket}.`);
+  }
+  if(ramType!=='Unknown'&&mbRamType!=='Unknown'&&ramType!==mbRamType){
+    issues.push(`⚠️ **RAM type mismatch** — build uses ${ramType} but motherboard likely supports ${mbRamType}. Choose matching RAM.`);
+  } else if(ramType!=='Unknown'&&mbRamType!=='Unknown'){
+    notes.push(`✅ RAM type ${ramType} matches the motherboard's expected memory.`);
+  }
+  let psuWatt=0;
+  const match=psuL.match(/(\d+)\s?w/);
+  if(match) psuWatt=parseInt(match[1],10);
+  let gpuRequirement=0;
+  if(gpuL.includes('4090')) gpuRequirement=850;
+  else if(gpuL.includes('4080')) gpuRequirement=750;
+  else if(gpuL.includes('4070')) gpuRequirement=700;
+  else if(gpuL.includes('4060')) gpuRequirement=550;
+  else if(gpuL.includes('rx 7600')||gpuL.includes('6600')||gpuL.includes('rtx 3060')) gpuRequirement=550;
+  if(gpuRequirement>0 && psuWatt>0 && psuWatt < gpuRequirement){
+    issues.push(`⚠️ **PSU too weak** — your GPU needs about ${gpuRequirement}W but your PSU is ${psuWatt}W. Upgrade to ${gpuRequirement}W+ for stability.`);
+  } else if(gpuRequirement>0 && psuWatt>0){
+    notes.push(`✅ PSU wattage looks sufficient for the listed GPU.`);
+  }
+  if(!gpu){
+    notes.push(`💻 No GPU detected. If your CPU has integrated graphics, the system can still display output.`);
+  }
+  if(issues.length===0){
+    issues.push('✅ No major compatibility issues detected from the entered parts.');
+  }
+  let response='🤖 **AI Compatibility Analysis**\n\n';
+  issues.forEach(i=>response+=`${i}\n`);
+  if(notes.length){
+    response+=`\n📋 Notes:\n`;
+    notes.forEach(n=>response+=`${n}\n`);
+  }
+  response+=`\nAsk me for details if you want to verify sockets, RAM type, PSU sizing, or GPU compatibility.`;
+  return response;
+}
+
+function getCompatibilityNotes() {
+  const warnings = components.filter(c => c.status === 'warning');
+  const missing = components.filter(c => c.status === 'empty');
+  
+  let notes = [];
+  if (missing.length > 0) {
+    notes.push(`⚠️ ${missing.length} component(s) not selected`);
+  }
+  if (warnings.length > 0) {
+    notes.push(`⚠️ ${warnings.length} compatibility issue(s) found`);
+  }
+  if (notes.length === 0) {
+    notes.push('✅ All selected components are compatible!');
+  }
+  return notes.join('<br>');
+}
+function closeModal(){document.getElementById('compat-modal').classList.remove('open')}
+
+let selectedComponentType = null;
+let selectedComponentId = null;
+
+function openComponentSelector(type) {
+  selectedComponentType = type;
+  selectedComponentId = null;
+  const componentList = getComponentsByType(type);
+  const typeName = type.charAt(0).toUpperCase() + type.slice(1);
+  
+  document.getElementById('component-modal-title').textContent = `Select ${typeName}`;
+  document.getElementById('component-list').innerHTML = `
+    <div style="margin-bottom:15px;padding:10px;background:var(--bg3);border-radius:8px;cursor:pointer;border:2px solid transparent" onclick="selectComponentItem(null)">
+      <div style="font-weight:600;color:var(--muted)">Not Selected</div>
+      <div style="font-size:12px;color:var(--muted)">Clear selection</div>
+    </div>
+    ${componentList.map(comp => `
+      <div style="margin-bottom:10px;padding:15px;background:var(--bg3);border-radius:8px;cursor:pointer;border:2px solid transparent;transition:border-color .2s" onclick="selectComponentItem('${comp.id}')">
+        <div style="font-weight:600;margin-bottom:5px">${comp.name}</div>
+        <div style="font-size:13px;color:var(--cyan);margin-bottom:5px">₱${comp.price.toLocaleString()}</div>
+        <div style="font-size:12px;color:var(--muted)">${getComponentDetails(comp, type)}</div>
+      </div>
+    `).join('')}
+  `;
+  document.getElementById('component-modal').classList.add('open');
+}
+
+function getComponentDetails(comp, type) {
+  switch(type) {
+    case 'motherboard': return `${comp.socket} Socket / ${comp.formFactor} / ${comp.ramType}`;
+    case 'cpu': return `${comp.socket} / ${comp.cores} Cores`;
+    case 'ram': return `${comp.capacity}GB ${comp.type} ${comp.speed}MHz`;
+    case 'gpu': return `${comp.vram}GB VRAM / ${comp.power}W Power`;
+    case 'storage': return `${comp.capacity}GB ${comp.type}`;
+    case 'psu': return `${comp.wattage}W / ${comp.efficiency} Efficiency`;
+    default: return '';
+  }
+}
+
+function setCompatInputForType(type, value) {
+  const fieldMap = {motherboard:'compat-mb', cpu:'compat-cpu', ram:'compat-ram', gpu:'compat-gpu', storage:'compat-storage', psu:'compat-psu'};
+  const input = document.getElementById(fieldMap[type]);
+  if (input) input.value = value;
+}
+
+function syncComponentsFromFields() {
+  const fieldMap = {motherboard:'compat-mb', cpu:'compat-cpu', ram:'compat-ram', gpu:'compat-gpu', storage:'compat-storage', psu:'compat-psu'};
+  components.forEach(c => {
+    const input = document.getElementById(fieldMap[c.type]);
+    if (!input) return;
+    const value = input.value.trim();
+    if (!value) {
+      c.value = `Not Selected`;
+      c.price = 0;
+      c.tag = `○ Select ${c.name}`;
+      c.status = 'empty';
+      c.detail = '';
+    } else {
+      c.value = value;
+      if (c.status === 'empty') c.status = 'compatible';
+      c.tag = '✓ Selected';
+      c.detail = '';
+    }
+  });
+}
+
+function selectComponentItem(id) {
+  selectedComponentId = id;
+  const items = document.querySelectorAll('#component-list > div');
+  items.forEach((item, index) => {
+    if (index === 0 && id === null) {
+      item.style.borderColor = 'var(--cyan)';
+    } else if (index > 0 && componentData[selectedComponentType][index-1].id === id) {
+      item.style.borderColor = 'var(--cyan)';
+    } else {
+      item.style.borderColor = 'transparent';
+    }
+  });
+}
+
+function selectComponent() {
+  if (selectedComponentType && selectedComponentId !== undefined) {
+    const componentIndex = components.findIndex(c => c.type === selectedComponentType);
+    if (componentIndex !== -1) {
+      if (selectedComponentId === null) {
+        // Clear selection
+        components[componentIndex] = {
+          ...components[componentIndex],
+          value: 'Not Selected',
+          price: 0,
+          tag: `○ Select ${components[componentIndex].name}`,
+          status: 'empty',
+          detail: ''
+        };
+        setCompatInputForType(selectedComponentType, '');
+      } else {
+        const selectedComp = componentData[selectedComponentType].find(c => c.id === selectedComponentId);
+        if (selectedComp) {
+          components[componentIndex] = {
+            ...components[componentIndex],
+            value: selectedComp.name,
+            price: selectedComp.price,
+            tag: '✓ Selected',
+            status: 'compatible',
+            detail: getComponentDetails(selectedComp, selectedComponentType)
+          };
+          setCompatInputForType(selectedComponentType, selectedComp.name);
+        }
+      }
+      checkCompatibility();
+      renderComponents();
+    }
+  }
+  closeComponentModal();
+}
+
+function closeComponentModal() {
+  document.getElementById('component-modal').classList.remove('open');
+}
+
+function checkCompatibility() {
+  // Reset selected component statuses before running checks
+  components.forEach(c => {
+    if (c.status !== 'empty') {
+      c.status = 'compatible';
+      c.tag = '✓ Selected';
+    }
+  });
+
+  // Basic compatibility checks
+  const mb = components.find(c => c.type === 'motherboard');
+  const cpu = components.find(c => c.type === 'cpu');
+  const ram = components.find(c => c.type === 'ram');
+  const gpu = components.find(c => c.type === 'gpu');
+  const psu = components.find(c => c.type === 'psu');
+
+  // CPU-Motherboard socket compatibility
+  if (cpu.status === 'compatible' && mb.status === 'compatible') {
+    const cpuData = componentData.cpu.find(c => c.name === cpu.value);
+    const mbData = componentData.motherboard.find(c => c.name === mb.value);
+    if (cpuData && mbData && cpuData.socket !== mbData.socket) {
+      cpu.status = 'warning';
+      cpu.tag = '⚠ Socket Mismatch';
+      mb.status = 'warning';
+      mb.tag = '⚠ Socket Mismatch';
+    }
+  }
+
+  // RAM-Motherboard compatibility
+  if (ram.status === 'compatible' && mb.status === 'compatible') {
+    const ramData = componentData.ram.find(c => c.name === ram.value);
+    const mbData = componentData.motherboard.find(c => c.name === mb.value);
+    if (ramData && mbData && ramData.type !== mbData.ramType) {
+      ram.status = 'warning';
+      ram.tag = '⚠ RAM Type Mismatch';
+      mb.status = 'warning';
+      mb.tag = '⚠ RAM Type Mismatch';
+    }
+  }
+
+  // PSU-GPU power requirement
+  if (gpu.status === 'compatible' && psu.status === 'compatible') {
+    const gpuData = componentData.gpu.find(c => c.name === gpu.value);
+    const psuData = componentData.psu.find(c => c.name === psu.value);
+    if (gpuData && psuData && psuData.wattage < gpuData.power) {
+      psu.status = 'warning';
+      psu.tag = `⚠ Need ${gpuData.power}W+`;
+    }
+  }
+}
+
+function getCompatResponse(msg) {
+  const lower = msg.toLowerCase();
+  if (lower.includes('socket') || lower.includes('cpu') || lower.includes('motherboard')) {
+    return `🔌 **CPU & Motherboard Compatibility Guide**\n\n• AMD Ryzen 7000/9000 series = AM5\n• AMD Ryzen 3000/5000 series = AM4\n• Intel 12th/13th gen = LGA1700\n\nYour CPU socket must match your motherboard socket exactly. If they differ, the CPU will not fit and the build will fail.`;
+  }
+  if (lower.includes('ram') || lower.includes('memory') || lower.includes('ddr')) {
+    return `💾 **RAM Compatibility Guide**\n\n• DDR5 is for AM5 and newer Intel LGA1700 boards\n• DDR4 is for AM4 and older Intel platforms\n\nYour motherboard only supports one RAM type. Match the RAM type to the motherboard or it will not boot.`;
+  }
+  if (lower.includes('gpu') || lower.includes('power') || lower.includes('wattage')) {
+    return `🎮 **GPU & PSU Guidance**\n\nCommon GPU power requirements:\n• RTX 4060 / RX 7600 — 550W minimum\n• RTX 4070 — 700W recommended\n• RTX 4080 — 750W+ required\n• RTX 4090 — 850W+ required\n\nAlways choose a PSU with at least 20% headroom above the GPU's requirement.`;
+  }
+  if (lower.includes('psu') || lower.includes('power supply')) {
+    return `⚡ **PSU Size Guide**\n\n• Budget gaming: 550-650W 80+ Bronze/Gold\n• Mid-range: 750-850W 80+ Gold\n• High-end: 850-1000W 80+ Platinum\n\nIf you have a high-end GPU or multiple drives, choose a higher wattage PSU for stable power delivery.`;
+  }
+  if (lower.includes('recommend') || lower.includes('suggest') || lower.includes('build')) {
+    return `💡 **Build Recommendation Help**\n\nTell me your budget and use case, for example:\n• "₱50,000 gaming PC for 1080p"\n• "₱120,000 video editing workstation"\n• "Office PC for ₱25,000"\n\nI can suggest the best parts for your goals.`;
+  }
+  return `❓ **Ask me about compatibility:**\n• "What CPU is compatible with my motherboard?"\n• "Do I need DDR4 or DDR5 RAM?"\n• "Is my PSU strong enough for my GPU?"\n• "Recommend a compatible build for ₱60K"`;
+}
+
+// ——— BUILD RECOMMENDATIONS ———
+const builds={
+  gaming:[
+    {label:'Budget Gaming',price:'₱35,000',perf:{Gaming:72,Productivity:60,Value:88},parts:[
+      {icon:'🧠',cat:'CPU',name:'Ryzen 5 5600',price:'₱9,200'},{icon:'🔲',cat:'Motherboard',name:'B550M DS3H',price:'₱7,500'},
+      {icon:'💾',cat:'RAM',name:'16GB DDR4 3200',price:'₱3,400'},{icon:'🎮',cat:'GPU',name:'GTX 1660 Super',price:'₱18,500'},
+      {icon:'💿',cat:'Storage',name:'500GB NVMe',price:'₱2,800'},{icon:'🔌',cat:'PSU',name:'550W Bronze',price:'₱3,200'}
+    ]},
+    {label:'Mid-Range Gaming',price:'₱65,000',perf:{Gaming:88,Productivity:75,Value:80},parts:[
+      {icon:'🧠',cat:'CPU',name:'Ryzen 5 7600X',price:'₱15,500'},{icon:'🔲',cat:'Motherboard',name:'B650 Carbon',price:'₱14,000'},
+      {icon:'💾',cat:'RAM',name:'32GB DDR5 5200',price:'₱8,500'},{icon:'🎮',cat:'GPU',name:'RTX 4060 Ti',price:'₱32,000'},
+      {icon:'💿',cat:'Storage',name:'1TB NVMe Gen4',price:'₱5,800'},{icon:'🔌',cat:'PSU',name:'750W Gold',price:'₱5,500'}
+    ]}
+  ],
+  office:[
+    {label:'Office Essentials',price:'₱20,000',perf:{Gaming:30,Productivity:85,Value:95},parts:[
+      {icon:'🧠',cat:'CPU',name:'Ryzen 3 4100',price:'₱5,200'},{icon:'🔲',cat:'Motherboard',name:'A520M',price:'₱3,800'},
+      {icon:'💾',cat:'RAM',name:'8GB DDR4',price:'₱1,500'},{icon:'💿',cat:'Storage',name:'500GB SSD',price:'₱2,200'},
+      {icon:'🔌',cat:'PSU',name:'450W Bronze',price:'₱1,800'},{icon:'📦',cat:'Case',name:'mATX Case',price:'₱1,500'}
+    ]}
+  ],
+  workstation:[
+    {label:'Creative Workstation',price:'₱120,000',perf:{Gaming:70,Productivity:98,Value:75},parts:[
+      {icon:'🧠',cat:'CPU',name:'Ryzen 9 7900X',price:'₱32,000'},{icon:'🔲',cat:'Motherboard',name:'X670E Taichi',price:'₱28,000'},
+      {icon:'💾',cat:'RAM',name:'64GB DDR5 6000',price:'₱22,000'},{icon:'🎮',cat:'GPU',name:'RTX 4070 Ti',price:'₱65,000'},
+      {icon:'💿',cat:'Storage',name:'2TB NVMe Gen4',price:'₱9,500'},{icon:'🔌',cat:'PSU',name:'1000W Platinum',price:'₱9,000'}
+    ]}
+  ]
+};
+function switchBuild(type,btn){
+  document.querySelectorAll('.build-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBuilds(type);
+}
+function useBuildRecommendation(encodedBuild){
+  let build = null;
+  try {
+    build = JSON.parse(decodeURIComponent(encodedBuild));
+  } catch (e) {
+    build = null;
+  }
+  if (!build || !Array.isArray(build.parts)) return;
+
+  const fieldMap = {
+    cpu: 'compat-cpu',
+    motherboard: 'compat-mb',
+    ram: 'compat-ram',
+    gpu: 'compat-gpu',
+    storage: 'compat-storage',
+    psu: 'compat-psu'
+  };
+
+  Object.values(fieldMap).forEach(id => {
+    const input = document.getElementById(id);
+    if (input) input.value = '';
+  });
+
+  build.parts.forEach(part => {
+    const cat = (part.cat || '').toLowerCase();
+    let type = null;
+    if (cat.includes('cpu')) type = 'cpu';
+    else if (cat.includes('motherboard') || cat.includes('mb')) type = 'motherboard';
+    else if (cat.includes('ram')) type = 'ram';
+    else if (cat.includes('gpu')) type = 'gpu';
+    else if (cat.includes('storage') || cat.includes('ssd') || cat.includes('hdd')) type = 'storage';
+    else if (cat.includes('psu')) type = 'psu';
+
+    if (type && fieldMap[type]) {
+      const input = document.getElementById(fieldMap[type]);
+      if (input) input.value = part.name;
+    }
+  });
+
+  syncComponentsFromFields();
+  checkCompatibility();
+  renderComponents();
+  showPage('compatibility');
+
+  const cpu = document.getElementById('compat-cpu')?.value.trim() || '';
+  const mb = document.getElementById('compat-mb')?.value.trim() || '';
+  const ram = document.getElementById('compat-ram')?.value.trim() || '';
+  const psu = document.getElementById('compat-psu')?.value.trim() || '';
+  if (cpu && mb && ram && psu) {
+    setTimeout(() => runCompatCheck(), 220);
+  }
+}
+function renderBuilds(type){
+  document.getElementById('build-content').innerHTML=builds[type].map(b=>`
+    <div class="build-card">
+      <div class="build-card-header">
+        <div class="build-card-title">${b.label}</div>
+      </div>
+      <div class="build-parts">
+        ${b.parts.map(p=>`<div class="build-part"><div class="build-part-icon">${p.icon}</div><div class="build-part-info"><div class="build-part-cat">${p.cat}</div><div class="build-part-name">${p.name}</div></div></div>`).join('')}
+      </div>
+      <div class="perf-bars">
+        ${Object.entries(b.perf).filter(([k])=>k!=='Value').map(([k,v])=>`<div class="perf-row"><div class="perf-label">${k}</div><div class="perf-track"><div class="perf-fill" style="width:${v}%"></div></div><div class="perf-val">${v}%</div></div>`).join('')}
+      </div>
+      <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
+        <button class="build-use-btn" onclick="useBuildRecommendation('${encodeURIComponent(JSON.stringify(b))}')">Use This Build →</button>
+        <button class="build-use-btn" style="background:transparent;border:1px solid var(--border);color:var(--text)" onclick="showPage('pricing')">Check Local Prices</button>
+      </div>
+    </div>`).join('');
+}
+renderBuilds('gaming');
+renderBuildIdeas();
+
+// ——— AI CHAT (shared engine) ———
+let pricingInit=false,troubleInit=false,compatInit=false,buildaiInit=false;
+function initChat(id){
+  if(id==='pricing'){pricingInit=true;addMsg('pricing','ai',`Hi! I'm CoreCraft's Pricing AI. I can find component prices from stores across the Philippines.\n\nTry asking:\n• "RTX 4060 price in Manila"\n• "Ryzen 5 5600 cheapest in Cebu"\n• "Budget PC parts price list"`)}
+  if(id==='trouble'){troubleInit=true;addMsg('trouble','ai',`Hi! I'm CoreCraft's Troubleshooting AI Bot. Tell me your PC problem and I will guide you step-by-step to fix it.\n\nDescribe what's happening — e.g.:\n• "PC won't boot, no display"\n• "Keeps restarting randomly"\n• "Very slow after Windows update"`)}
+  if(id==='compat'){compatInit=true;addMsg('compat','ai',`Hi! I'm your Compatibility AI. Enter your PC parts in the fields above and I will analyze socket compatibility, RAM type, PSU wattage, and GPU fitment for your system.\n\nTry:\n• "Check my build compatibility"\n• "Why is my RAM incompatible?"\n• "What PSU do I need for my GPU?"`)}
+  if(id==='buildai'){buildaiInit=true;addMsg('buildai','ai',`Hi! I'm CoreCraft's AI Build Recommendation Engine.\n\nTell me your requirements:\n• Budget (e.g. ₱50,000)
+• Purpose (gaming, work, streaming, editing)
+• Performance target (1080p, 1440p, 4K, etc.)
+\nExample: "Gaming PC for ₱50K, want 1440p 60fps"`)}
+}
+function addMsg(id,type,text){
+  const wrap=document.getElementById(id+'-messages');
+  const div=document.createElement('div');
+  div.className='msg '+type;
+  if(type==='ai'&&id!=='PHchat'){
+    div.innerHTML=`<div class="msg-bubble"><div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">CoreCraft AI</span></div><div>${text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div></div>`;
+  }else{div.innerHTML=`<div class="msg-bubble">${text}</div>`}
+  wrap.appendChild(div);wrap.scrollTop=wrap.scrollHeight;
+}
+function addTyping(id){
+  const wrap=document.getElementById(id+'-messages');
+  const div=document.createElement('div');
+  div.className='msg ai';div.id=id+'-typing';
+  div.innerHTML=`<div class="msg-bubble"><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div></div>`;
+  wrap.appendChild(div);wrap.scrollTop=wrap.scrollHeight;
+}
+function removeTyping(id){const el=document.getElementById(id+'-typing');if(el)el.remove()}
+function setInput(id,text){document.getElementById(id+'-input').value=text}
+function handleKey(e,id){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat(id)}}
+function sendChat(id){
+  const inp=document.getElementById(id+'-input');
+  const text=inp.value.trim();if(!text)return;
+  addMsg(id,'user',text);inp.value='';
+  document.getElementById(id+'-send').disabled=true;
+  addTyping(id);
+  setTimeout(()=>{
+    removeTyping(id);
+    let reply = '';
+    if(id==='pricing') reply = getPricingResponse(buildPricingQuery(text));
+    else if(id==='trouble') reply = getTroubleResponse(text);
+    else if(id==='compat') reply = getCompatResponse(text);
+    else if(id==='buildai') reply = getBuildAIResponse(text);
+    else if(id==='PHchat') reply = getPHChatResponse(text);
+    addMsg(id,id==='PHchat'?'other':'ai',reply);
+    document.getElementById(id+'-send').disabled=false;
+  },800+Math.random()*700);
+}
+
+function initPHChat(){
+  const wrap=document.getElementById('PHchat-messages')||document.getElementById('PHChat-messages')||document.getElementById('phchat-messages');
+  const avatar=document.getElementById('PHchat-avatar')||document.getElementById('PHChat-avatar')||document.getElementById('phchat-avatar');
+  const userName=document.getElementById('PHchat-user-name')||document.getElementById('PHChat-user-name')||document.getElementById('phchat-user-name');
+  if(!wrap){
+    console.error('PHChat messages container not found. Check the element id in the PHChat page markup.');
+    return;
+  }
+  PHchatInit=true;
+  wrap.innerHTML='';
+  if(avatar) avatar.textContent='PH';
+  if(userName) userName.textContent='PH Chat';
+  addMsg('PHchat','other','Welcome to PHChat! Chat with builders from everywhere about PC builds, prices, and ideas.');
+}
+
+function getPHChatResponse(text){
+  const nameEl = document.getElementById('PHchat-user-name')||document.getElementById('PHChat-user-name')||document.getElementById('phchat-user-name');
+  const name = nameEl ? (nameEl.textContent.split(' ')[0] || 'Friend') : 'Friend';
+  const lower=text.toLowerCase();
+  if(lower.includes('hello')||lower.includes('hi')||lower.includes('hey')){
+    return `Hey! Good to meet you. What part are you looking for help with today?`;
+  }
+  if(lower.includes('price')||lower.includes('buy')||lower.includes('store')){
+    return `I know a few local sellers. Try checking parts in your city first, then compare online prices. Where are you located?`;
+  }
+  if(lower.includes('build')||lower.includes('gaming')||lower.includes('pc')){
+    return `I recently built a mid-range gaming PC with Ryzen 5 and an RTX 4060. It works great for 1080p and is easy to upgrade later.`;
+  }
+  if(lower.includes('thanks')||lower.includes('thank')){
+    return `You\'re welcome! If you want, I can share a sample parts list or recommend a good case.`;
+  }
+  return `Nice! Tell me more about what you want to build or what part you need help with.`;
+}
+
+function buildPricingQuery(msg){
+  const locationInput = document.getElementById('pricing-location');
+  if(!locationInput) return msg;
+  const location = locationInput.value.trim();
+  if(!location) return msg;
+  const lower = msg.toLowerCase();
+  if(lower.includes(location.toLowerCase())) return msg;
+  return `${msg} in ${location}`;
+}
+
+function getPricingResponse(msg){
+  const m=msg.toLowerCase();
+  if(m.includes('manila')||m.includes('metro')){
+    return `📍 **Component Prices in Metro Manila:**\n\n**GPU — RTX 4060:**\n• PC Corner (MOA): ₱22,000\n• Dynaquest (Gilmore): ₱21,500\n• PC Hub (Gilmore): ₱21,800\n\n**CPU — Ryzen 5 5600:**\n• Easy PC: ₱9,200\n• Villman (Greenhills): ₱9,400\n• PC Express: ₱9,100\n\n💡 **Tip:** Gilmore, Quezon City has the most competitive prices in Metro Manila. Visit on weekdays to avoid crowds.`;
+  }
+  if(m.includes('cebu')){
+    return `📍 **Component Prices in Cebu:**\n\n**GPU — RTX 4060:**\n• PC Express (SM Cebu): ₱22,500\n• Mindpro Computer (IT Park): ₱22,200\n• Ayala Computer Center: ₱23,000\n\n**CPU — Ryzen 5 5600:**\n• Mindpro Computer: ₱9,500\n• PC Express Cebu: ₱9,300\n\n💡 **Tip:** IT Park Cebu has the best selection. Prices in Cebu are typically 2-5% higher than Manila.`;
+  }
+  if(m.includes('davao')){
+    return `📍 **Component Prices in Davao:**\n\n**GPU — RTX 4060:**\n• Octagon (Victoria Plaza): ₱22,800\n• Silicon Valley (Gaisano): ₱23,100\n\n**CPU — Ryzen 5 5600:**\n• Octagon Superstore: ₱9,600\n• Silicon Valley: ₱9,700\n\n💡 **Tip:** Octagon in Victoria Plaza has the widest selection in Davao.`;
+  }
+  if(m.includes('rtx')||m.includes('gpu')||m.includes('graphics')){
+    return `🎮 **GPU Price List (Philippines):**\n\n**Budget:**\n• GTX 1660 Super — ₱17,500–₱19,000\n• RX 6600 — ₱20,000–₱22,000\n\n**Mid-Range:**\n• RTX 4060 — ₱21,500–₱23,500\n• RTX 4060 Ti — ₱30,000–₱33,000\n• RX 7600 — ₱22,000–₱24,000\n\n**High-End:**\n• RTX 4070 — ₱42,000–₱46,000\n• RTX 4070 Super — ₱48,000–₱52,000\n• RTX 4080 — ₱78,000–₱85,000\n\nTell me your city and I'll find the closest store prices!`;
+  }
+  if(m.includes('ryzen')||m.includes('cpu')||m.includes('processor')){
+    return `🧠 **CPU Price List (Philippines):**\n\n**Budget (AM4):**\n• Ryzen 3 4100 — ₱5,000–₱5,500\n• Ryzen 5 4500 — ₱7,500–₱8,000\n• Ryzen 5 5600 — ₱9,000–₱9,800\n\n**Mid-Range (AM5):**\n• Ryzen 5 7600 — ₱14,500–₱16,000\n• Ryzen 7 7700X — ₱21,000–₱24,000\n\n**High-End:**\n• Ryzen 9 7900X — ₱30,000–₱34,000\n• Ryzen 9 7950X — ₱52,000–₱58,000\n\nWhich city are you shopping in?`;
+  }
+  if(m.includes('ram')||m.includes('memory')){
+    return `💾 **RAM Price List (Philippines):**\n\n**DDR4:**\n• 8GB 3200MHz — ₱1,200–₱1,600\n• 16GB (2×8) 3200 — ₱2,800–₱3,600\n• 32GB (2×16) 3600 — ₱5,000–₱6,500\n\n**DDR5:**\n• 16GB 4800MHz — ₱3,500–₱4,500\n• 32GB 5200MHz — ₱7,500–₱9,500\n• 64GB 6000MHz — ₱18,000–₱24,000\n\n💡 DDR4 still offers the best price-to-performance for most builds!`;
+  }
+  if(m.includes('budget')||m.includes('cheap')||m.includes('list')){
+    return `💰 **Budget Gaming PC Price List (₱35,000):**\n\n• Ryzen 5 5600 (CPU) — ₱9,200\n• B550M Motherboard — ₱7,500\n• 16GB DDR4 3200 RAM — ₱3,400\n• GTX 1660 Super (GPU) — ₱18,500\n• 500GB NVMe SSD — ₱2,800\n• 550W PSU — ₱3,200\n• mATX Case — ₱1,500\n──────────────────\n**Total: ≈₱46,100**\n\n📍 Best places to buy:\n• Manila (Gilmore, QC) — cheapest\n• Cebu (IT Park) — good selection\n• Davao (Octagon) — reliable`;
+  }
+  return `I can find prices for any PC component in your city! Try:\n\n• "RTX 4060 price in [your city]"\n• "CPU prices in Cebu"\n• "Cheapest RAM in Manila"\n• "Budget PC parts list"\n\nWhich component or city are you looking for?`;
+}
+
+// ——— SAVE & LOAD BUILDS ———
+function saveCurrentBuild(){
+  syncComponentsFromFields();
+  const buildName=prompt('Name this build:','My PC Build');
+  if(!buildName)return;
+  const selected=components.filter(c=>c.status!=='empty').map(c=>({type:c.type,value:c.value}));
+  if(selected.length===0){alert('Please select at least one component');return}
+  const builds_local=JSON.parse(localStorage.getItem('saved_builds')||'{}');
+  builds_local[buildName]={timestamp:new Date().toLocaleString(),components:selected};
+  localStorage.setItem('saved_builds',JSON.stringify(builds_local));
+  alert(`✅ Build "${buildName}" saved!`);
+  updateSavedBuildsList();
+}
+function openLoadBuildsModal(){
+  const builds_local=JSON.parse(localStorage.getItem('saved_builds')||'{}');
+  const list=Object.entries(builds_local);
+  if(list.length===0){alert('No saved builds yet. Save your first build!');return}
+  const html=list.map(([name,data])=>`
+    <div style="padding:15px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="font-weight:600;margin-bottom:4px">${name}</div>
+        <div style="font-size:12px;color:var(--muted)">${data.timestamp} • ${data.components.length} parts</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="quick-btn" style="background:var(--cyan);color:#000;padding:8px 14px;font-size:12px;border:none;cursor:pointer" onclick="loadBuild('${name}');closeSavedBuildsModal()">Load</button>
+        <button class="quick-btn" style="background:#ef4444;color:white;padding:8px 14px;font-size:12px;border:none;cursor:pointer" onclick="deleteBuild('${name}')">Delete</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('saved-builds-modal-list').innerHTML=html;
+  document.getElementById('saved-builds-modal').classList.add('open');
+}
+function closeSavedBuildsModal(){
+  document.getElementById('saved-builds-modal').classList.remove('open');
+}
+function updateSavedBuildsList(){
+  const listContainer=document.getElementById('saved-builds-list');
+  const contentContainer=document.getElementById('saved-builds-content');
+  if(!listContainer||!contentContainer) return;
+  const builds_local=JSON.parse(localStorage.getItem('saved_builds')||'{}');
+  const list=Object.entries(builds_local);
+  if(list.length===0){listContainer.style.display='none';return}
+  listContainer.style.display='block';
+  contentContainer.innerHTML=list.map(([name,data])=>`
+    <div class="build-card" style="padding:16px">
+      <div style="font-weight:600;margin-bottom:8px">${name}</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">${data.timestamp}<br>${data.components.length} parts selected</div>
+      <button class="btn-gradient" style="width:100%;background:var(--cyan);color:#000;border:none;cursor:pointer" onclick="loadBuild('${name}')">Load Build</button>
+    </div>`).join('');
+}
+function openAddBuildIdea(){
+  document.getElementById('idea-title').value='';
+  document.getElementById('idea-description').value='';
+  const ideaCase=document.getElementById('idea-case'); if(ideaCase) ideaCase.value='';
+  ['idea-cpu','idea-motherboard','idea-ram','idea-gpu','idea-storage','idea-psu'].forEach(id=>{
+    const input=document.getElementById(id);
+    if(input) input.value='';
+  });
+  // default category
+  const cat=document.getElementById('idea-category'); if(cat) cat.value='gaming';
+  document.getElementById('build-idea-modal').classList.add('open');
+}
+function closeBuildIdeaModal(){
+  document.getElementById('build-idea-modal').classList.remove('open');
+}
+function saveBuildIdea(){
+  const title=document.getElementById('idea-title').value.trim();
+  const description=document.getElementById('idea-description').value.trim();
+  if(!title||!description){
+    alert('Please enter a build name and description.');
+    return;
+  }
+  // prepare idea object from inputs
+  const category=document.getElementById('idea-category')?document.getElementById('idea-category').value:'other';
+  const idea={
+    id: Date.now(),
+    title,description,category,timestamp:new Date().toLocaleString(),components:{}
+  };
+  ['cpu','motherboard','ram','gpu','storage','psu','case'].forEach(k=>{
+    const v=document.getElementById('idea-'+k);
+    if(v && v.value) idea.components[k]=v.value;
+  });
+  // send the idea to PHChat instead of saving locally
+  sendIdeaToChat(idea);
+  closeBuildIdeaModal();
+}
+
+function sendIdeaToChat(idea){
+  const comps=idea.components||{};
+  const compItems=['cpu','motherboard','ram','gpu','storage','psu','case'].map(k=>{
+    const label = k.charAt(0).toUpperCase() + k.slice(1);
+    if(!comps[k]) return '';
+    return `<li><strong>${label}:</strong> ${comps[k]}</li>`;
+  }).filter(Boolean).join('');
+  const categoryLabel = idea.category==='gaming' ? '🎮 Gaming' : idea.category==='office' ? '💼 Office' : idea.category==='workstation' ? '🖥️ Workstation' : '🔖 Other';
+  const compHtml = compItems ? `<ul class="idea-bullet-list">${compItems}</ul>` : '';
+  const innerHtml = `
+    <div id="idea-msg-${idea.id}" class="idea-card-chat" style="max-width:520px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <div style="font-weight:900;font-size:18px;line-height:1.2">${idea.title}</div>
+            <div style="background:rgba(255,255,255,0.14);padding:4px 10px;border-radius:999px;font-size:12px;color:#fff;white-space:nowrap">${categoryLabel}</div>
+          </div>
+          <div style="margin-top:8px;font-size:14px;line-height:1.5;color:rgba(255,255,255,0.95)">${idea.description}</div>
+          ${compHtml}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button class="quick-btn" onclick="voteIdea(${idea.id},1)" style="background:rgba(255,255,255,0.08);color:white">👍 <span id="idea-likes-${idea.id}">0</span></button>
+        <button class="quick-btn" onclick="voteIdea(${idea.id},-1)" style="background:rgba(255,255,255,0.04);color:white">👎 <span id="idea-unlikes-${idea.id}">0</span></button>
+      </div>
+    </div>
+  `;
+  // insert as a right-aligned user message with blue bubble
+  const wrap = document.getElementById('worldchat-messages');
+  if(wrap){
+    const msgEl = document.createElement('div');
+    msgEl.className = 'msg user';
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.style.background = 'linear-gradient(90deg,#60a5fa,#0369a1)';
+    bubble.style.color = 'white';
+    bubble.style.borderRadius = '14px';
+    bubble.style.padding = '12px 16px';
+    bubble.innerHTML = innerHtml;
+    msgEl.appendChild(bubble);
+    wrap.appendChild(msgEl);
+    wrap.scrollTop = wrap.scrollHeight;
+  } else {
+    addMsg('worldchat','user',innerHtml);
+  }
+  // ensure votes entry exists
+  const votes=JSON.parse(localStorage.getItem('idea_votes')||'{}');
+  if(!votes[idea.id]) votes[idea.id]={likes:0,unlikes:0};
+  localStorage.setItem('idea_votes',JSON.stringify(votes));
+  // update displays after DOM insertion
+  setTimeout(()=>updateIdeaVotesDisplay(idea.id),50);
+}
+
+function voteIdea(id,delta){
+  const votes=JSON.parse(localStorage.getItem('idea_votes')||'{}');
+  if(!votes[id]) votes[id]={likes:0,unlikes:0};
+  if(delta===1) votes[id].likes = (votes[id].likes||0) + 1;
+  else votes[id].unlikes = (votes[id].unlikes||0) + 1;
+  localStorage.setItem('idea_votes',JSON.stringify(votes));
+  updateIdeaVotesDisplay(id);
+}
+
+function updateIdeaVotesDisplay(id){
+  const votes=JSON.parse(localStorage.getItem('idea_votes')||'{}');
+  const v = votes[id] || {likes:0,unlikes:0};
+  const elLike=document.getElementById('idea-likes-'+id);
+  const elUn=document.getElementById('idea-unlikes-'+id);
+  if(elLike) elLike.textContent = v.likes;
+  if(elUn) elUn.textContent = v.unlikes;
+}
+function renderBuildIdeas(){
+  const ideas=JSON.parse(localStorage.getItem('build_ideas')||'[]');
+  const container=document.getElementById('build-ideas-list');
+  if(!container) return;
+  if(ideas.length===0){
+    container.innerHTML=`<div class="idea-card"><div class="idea-card-title">No ideas yet</div><div class="idea-card-desc">Share your build idea — budget, use case, and goals — and it will appear here for easy reference.</div></div>`;
+    return;
+  }
+  container.innerHTML=ideas.map(idea=>{
+    const comps=idea.components||{};
+    const compHtml=['cpu','motherboard','ram','gpu','storage','psu'].map(k=>{
+      if(!comps[k]) return '';
+      return `<div style="font-size:13px;color:var(--muted);margin-top:6px"><strong>${k.toUpperCase()}:</strong> ${escapeHtml(comps[k])}</div>`;
+    }).join('');
+    const catLabel = idea.category==='gaming'? '🎮 Gaming' : idea.category==='office'? '💼 Office' : idea.category==='workstation'? '🖥️ Workstation' : '🔖 Other';
+    return `
+    <div class="idea-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="idea-card-title">${escapeHtml(idea.title)}</div>
+            <div class="idea-badge">${escapeHtml(catLabel)}</div>
+          </div>
+          <div class="idea-card-meta">${escapeHtml(idea.timestamp)}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="quick-btn" style="background:#ef4444;color:white;padding:8px 10px;font-size:12px;border-radius:8px" onclick="deleteBuildIdea(${idea.id})">Delete</button>
+        </div>
+      </div>
+      <div class="idea-card-desc">${escapeHtml(idea.description).replace(/\n/g,'<br>')}</div>
+      ${compHtml}
+    </div>`;
+  }).join('');
+}
+
+
+function deleteBuildIdea(id){
+  if(!confirm('Delete this build idea?')) return;
+  const ideas=JSON.parse(localStorage.getItem('build_ideas')||'[]');
+  const filtered=ideas.filter(i=>i.id!==id);
+  localStorage.setItem('build_ideas',JSON.stringify(filtered));
+  renderBuildIdeas();
+}
+
+function escapeHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function loadBuild(name){
+  const builds_local=JSON.parse(localStorage.getItem('saved_builds')||'{}');
+  const build=builds_local[name];
+  if(!build){alert('Build not found');return}
+  components.forEach(c=>c.status='empty');
+  build.components.forEach(({type,value})=>{
+    const comp=components.find(c=>c.type===type);
+    if(comp){comp.value=value;comp.status='compatible';comp.detail=value}
+  });
+  renderComponents();
+  alert(`✅ "${name}" loaded!`);
+}
+function deleteBuild(name){
+  if(!confirm('Delete this build?'))return;
+  const builds_local=JSON.parse(localStorage.getItem('saved_builds')||'{}');
+  delete builds_local[name];
+  localStorage.setItem('saved_builds',JSON.stringify(builds_local));
+  updateSavedBuildsList();
+  openLoadBuildsModal();
+}
+
+// ——— AI BUILD RECOMMENDATIONS ———
+function getBuildAIResponse(msg){
+  const m=msg.toLowerCase();
+  let budget=0,purpose='gaming',performance='balanced';
+  
+  // Extract budget
+  if(m.match(/(\d+)k|(\d+),?000/i)){const match=m.match(/(\d+)k|(\d+),?000/i);budget=parseInt(match[1]||match[2])*1000}
+  
+  // Detect purpose
+  if(m.includes('gaming')||m.includes('game')||m.includes('fps')){purpose='gaming'}
+  else if(m.includes('work')||m.includes('office')||m.includes('productivity')){purpose='office'}
+  else if(m.includes('stream')||m.includes('content')||m.includes('edit')||m.includes('video')||m.includes('3d')){purpose='workstation'}
+  
+  if(m.includes('high')||m.includes('4k')||m.includes('ultra')){performance='high'}
+  else if(m.includes('budget')||m.includes('low')||m.includes('compact')){performance='budget'}
+  
+  // Budget-based recommendation
+  let rec={};
+  if(budget===0||!m.match(/\d+k/i)){
+    return `🤖 **AI Build Recommendation**\n\nPlease mention your budget! Examples:\n• "₱35,000 gaming PC"\n• "₱80,000 streaming build"\n• "₱120,000 workstation"\n\nAlso helpful: What's the main purpose?\n• Gaming (1080p, 1440p, 4K?)\n• Work/Office\n• Content creation/Video editing\n• Streaming\n• Mini-ITX (compact)\n• Ultra-premium\n\nAsk me something like: "Build a gaming PC for ₱50K, want 1440p high settings"`;
+  }
+  
+  // Gaming PC recommendations
+  if(purpose==='gaming'){
+    if(budget<=40000){
+      rec={name:'Entry Gaming',price:'₱35K',desc:'1080p 60fps gaming',parts:[
+        {cat:'CPU',name:'Ryzen 5 5600',price:'₱9,200'},{cat:'MB',name:'B550M DS3H',price:'₱7,500'},
+        {cat:'RAM',name:'16GB DDR4 3200',price:'₱3,400'},{cat:'GPU',name:'GTX 1660 Super',price:'₱18,500'},
+        {cat:'PSU',name:'550W Bronze',price:'₱3,200'},{cat:'Storage',name:'500GB NVMe',price:'₱2,800'}
+      ]};
+    }else if(budget<=70000){
+      rec={name:'Mid Gaming',price:'₱65K',desc:'1440p 60fps gaming',parts:[
+        {cat:'CPU',name:'Ryzen 5 7600X',price:'₱15,500'},{cat:'MB',name:'B650 Carbon',price:'₱14,000'},
+        {cat:'RAM',name:'32GB DDR5 5200',price:'₱8,500'},{cat:'GPU',name:'RTX 4060 Ti',price:'₱32,000'},
+        {cat:'PSU',name:'750W Gold',price:'₱5,500'},{cat:'Storage',name:'1TB NVMe',price:'₱5,800'}
+      ]};
+    }else{
+      rec={name:'High-End Gaming',price:'₱100K+',desc:'4K 60fps or 1440p 144fps gaming',parts:[
+        {cat:'CPU',name:'Ryzen 7 7700X',price:'₱21,000'},{cat:'MB',name:'B650E Master',price:'₱16,500'},
+        {cat:'RAM',name:'64GB DDR5 6000',price:'₱22,000'},{cat:'GPU',name:'RTX 4070',price:'₱42,000'},
+        {cat:'PSU',name:'850W Gold',price:'₱8,500'},{cat:'Storage',name:'2TB NVMe',price:'₱9,500'}
+      ]};
+    }
+  }else if(purpose==='office'){
+    if(budget<=30000){
+      rec={name:'Office Essentials',price:'₱20K',desc:'Office work, web browsing',parts:[
+        {cat:'CPU',name:'Ryzen 3 4100',price:'₱5,200'},{cat:'MB',name:'A520M',price:'₱3,800'},
+        {cat:'RAM',name:'8GB DDR4',price:'₱1,500'},{cat:'GPU',name:'iGPU',price:'—'},
+        {cat:'PSU',name:'450W',price:'₱1,800'},{cat:'Storage',name:'500GB SSD',price:'₱2,200'}
+      ]};
+    }else{
+      rec={name:'Power Office',price:'₱50K',desc:'Office + light content creation',parts:[
+        {cat:'CPU',name:'Ryzen 5 5600',price:'₱9,200'},{cat:'MB',name:'B550',price:'₱8,500'},
+        {cat:'RAM',name:'32GB DDR4 3600',price:'₱5,800'},{cat:'GPU',name:'iGPU',price:'—'},
+        {cat:'PSU',name:'550W',price:'₱3,200'},{cat:'Storage',name:'1TB NVMe',price:'₱5,800'}
+      ]};
+    }
+  }else if(purpose==='workstation'){
+    rec={name:'Creative Workstation',price:'₱120K',desc:'Video/3D/Photo editing',parts:[
+      {cat:'CPU',name:'Ryzen 9 7900X',price:'₱32,000'},{cat:'MB',name:'X670E Taichi',price:'₱28,000'},
+      {cat:'RAM',name:'64GB DDR5 6000',price:'₱22,000'},{cat:'GPU',name:'RTX 4070 Ti',price:'₱65,000'},
+      {cat:'PSU',name:'1000W Platinum',price:'₱9,000'},{cat:'Storage',name:'2TB NVMe',price:'₱9,500'}
+    ]};
+  }
+  
+  if(!rec.name){rec={name:'Custom Gaming Build',price:budget?`≈₱${budget.toLocaleString()}`:' ?',desc:'Based on your budget',parts:[]}}
+  
+  let response=`🤖 **AI Recommendation: ${rec.name}**\n\n`;
+  response+=`💰 Budget: ${rec.price}\n📊 Use Case: ${rec.desc}\n\n`;
+  response+=`**Recommended Components:**\n`;
+  rec.parts.forEach(p=>{response+=`• **${p.cat}:** ${p.name} ${p.price?'—'+p.price:''}\n`});
+  response+=`\n✅ This build is optimized for your budget and needs!\n\n💡 **Next Step:** Load this build in the Compatibility Checker to verify compatibility and ask follow-up questions.`;
+  return response;
+}
+
+function getTroubleResponse(msg){
+  const m=msg.toLowerCase();
+  if(m.includes('won\'t turn')||m.includes('wont turn')||m.includes('no power')||m.includes('not turning')){
+    return `🔴 **PC Won't Turn On — Fix Guide:**\n\n**Step 1: Check Power**\n• Ensure PSU switch is ON (rear of PC)\n• Check power cable is firmly plugged in\n• Test the wall outlet with another device\n\n**Step 2: Check Connections**\n• Reseat the 24-pin ATX motherboard connector\n• Reseat the 8-pin CPU power connector\n• Check front panel power button cable on motherboard\n\n**Step 3: Minimal Boot Test**\n• Remove all components except 1 RAM stick\n• Remove GPU, use onboard video if available\n• Try to boot — if it works, add parts one by one\n\n**Step 4: PSU Test**\n• Use a PSU tester, or short the green wire to ground on the 24-pin connector\n\n💡 Most common cause: loose 24-pin or 8-pin connector`;
+  }
+  if(m.includes('no display')||m.includes('black screen')||m.includes('no signal')||m.includes('blank')){
+    return `🖥️ **No Display / Black Screen — Fix Guide:**\n\n**Step 1: Check Cables**\n• Ensure HDMI/DisplayPort cable is firmly connected\n• Connect cable to GPU (not motherboard) if GPU is installed\n• Try a different cable or port\n\n**Step 2: Check RAM**\n• Reseat RAM sticks — most common cause!\n• Try with only 1 stick in slot A2 (or as per manual)\n• Try each stick individually\n\n**Step 3: Check GPU**\n• Reseat the GPU in PCIe slot\n• Ensure GPU power connectors are plugged in\n• Test with another monitor or TV\n\n**Step 4: BIOS**\n• Clear CMOS (remove battery 30 sec or use CLRTC jumper)\n• Check if your CPU has integrated graphics — unplug GPU and test\n\n💡 80% of black screen issues are caused by unseated RAM!`;
+  }
+  if(m.includes('restart')||m.includes('restarting')||m.includes('reboots')||m.includes('random shutdown')){
+    return `🔄 **Random Restarts — Fix Guide:**\n\n**Most Likely Causes:**\n\n**1. Overheating**\n• Check CPU temps using HWMonitor (download free)\n• CPU over 90°C at load = thermal issue\n• Reapply thermal paste if CPU cooler is old\n\n**2. PSU Failing**\n• Insufficient wattage for your components\n• Failing PSU = instability under load\n• Test with a known-good PSU\n\n**3. RAM Issues**\n• Run Windows Memory Diagnostic (search in Start)\n• Or boot MemTest86 from USB — let it run overnight\n\n**4. Windows / Driver Issue**\n• Update GPU drivers (DDU clean uninstall first)\n• Check Event Viewer > Windows Logs > System for errors\n\n5. **Dust buildup** — clean fans and heatsinks with compressed air`;
+  }
+  if(m.includes('overheat')||m.includes('hot')||m.includes('temperature')||m.includes('shutting down')){
+    return `🌡️ **Overheating — Diagnosis & Fix:**\n\n**Check Temps First:**\n• Download HWMonitor or HWiNFO64 (free)\n• Normal CPU idle: 30–50°C\n• Normal CPU load: 65–80°C\n• Danger zone: above 90°C\n\n**Common Fixes:**\n\n**1. Thermal Paste**\n• Remove CPU cooler, clean old paste with isopropyl alcohol\n• Apply small pea-sized amount of new paste\n• Remount cooler firmly\n\n**2. Airflow**\n• Ensure case has front intake + rear exhaust fans\n• Check for cable blockage inside case\n• Minimum: 2 fans for budget builds\n\n**3. CPU Cooler**\n• Stock AMD cooler is okay for non-X CPUs\n• Upgrade to Hyper 212 (₱1,800) for better temps\n\n**4. Case**\n• Avoid placing PC in enclosed spaces\n• Keep 15cm+ space behind PC for exhaust`;
+  }
+  if(m.includes('bsod')||m.includes('blue screen')||m.includes('stop code')){
+    return `💙 **Blue Screen of Death (BSOD) — Fix Guide:**\n\n**Step 1: Note the Stop Code**\n• Read the error code on the blue screen\n• Common codes: MEMORY_MANAGEMENT, IRQL_NOT_LESS_OR_EQUAL, CRITICAL_PROCESS_DIED\n\n**Step 2: Update Drivers**\n• GPU driver issues cause most BSODs\n• Use DDU (Display Driver Uninstaller) to clean uninstall GPU drivers\n• Reinstall latest drivers from NVIDIA/AMD website\n\n**Step 3: Check RAM**\n• Run Windows Memory Diagnostic\n• Run MemTest86 for thorough test\n\n**Step 4: Check Storage**\n• Run CrystalDiskInfo — check SSD/HDD health\n• Run CHKDSK in Command Prompt as admin\n\n**Step 5: Windows Repair**\n• Run: sfc /scannow in admin Command Prompt\n• Run: DISM /Online /Cleanup-Image /RestoreHealth\n\n💡 Check the Windows Event Viewer for the exact error that triggered the crash.`;
+  }
+  if(m.includes('slow')||m.includes('lag')||m.includes('sluggish')||m.includes('freeze')){
+    return `🐌 **PC Running Slow — Fix Plan:**\n\n**Step 1: Check Resource Usage**\n• Open Task Manager (Ctrl+Shift+Esc)\n• Check CPU, RAM, Disk usage\n• If disk is at 100% — this is the #1 cause\n\n**Step 2: Disk Issues**\n• If using HDD — replace with SSD (huge improvement)\n• Check disk health with CrystalDiskInfo\n• Run disk cleanup and defrag (HDD only, not SSD)\n\n**Step 3: RAM**\n• 8GB RAM is minimum for modern use\n• Close unused browser tabs and background apps\n\n**Step 4: Startup Programs**\n• Open Task Manager > Startup tab\n• Disable unnecessary startup programs\n\n**Step 5: Malware Scan**\n• Run Windows Defender full scan\n• Or use Malwarebytes (free)\n\n**Step 6: Thermal Throttling**\n• Check CPU temps — hot CPU slows itself down\n• Clean dust, reapply thermal paste`;
+  }
+  return `🛠️ **Troubleshooting Bot Ready**\n\nTell me your PC problem and I will help fix it step-by-step.\n• When does the problem occur?\n• Any error messages or codes?\n• Did it happen after a change (new part, update)?\n\nOr try one of the common issues:\n• PC won't turn on\n• No display / black screen\n• Random restarts\n• Overheating\n• Blue screen (BSOD)\n• PC running slow`;
+}
+
+// ——— LOGIN ———
+let isSignup=false;
+let authAttempts=0;
+let authLockoutUntil=0;
+const AUTH_USERS_KEY='corecraft_users';
+const AUTH_SESSION_KEY='corecraft_session';
+const MAX_ATTEMPTS=5;
+const LOCKOUT_MS=10*60*1000;
+
+function switchTab(tab){
+  isSignup=(tab==='signup');
+  document.getElementById('tab-login').className='login-tab '+(!isSignup?'active-tab':'');
+  document.getElementById('tab-signup').className='login-tab '+(isSignup?'active-signup':'');
+  document.getElementById('field-name').className=isSignup?'form-group':'hidden-field form-group';
+  document.getElementById('field-confirm').className=isSignup?'form-group':'hidden-field form-group';
+  document.getElementById('remember-row').style.display=isSignup?'none':'flex';
+  const btn=document.getElementById('submit-btn');
+  btn.textContent=isSignup?'Create Account':'Login';
+  btn.className='submit-btn '+(isSignup?'submit-signup':'submit-login');
+  document.getElementById('login-tagline').textContent=isSignup?'Create your account to start building':'Welcome back, PC Builder!';
+  showAuthStatus('');
+}
+function togglePw(){
+  const inp=document.getElementById('pw-input');
+  inp.type=inp.type==='password'?'text':'password';
+  document.getElementById('pw-eye').textContent=inp.type==='password'?'👁':'🙈';
+}
+function showAuthStatus(message,type='error'){
+  const status=document.getElementById('login-status');
+  if(!status)return;
+  status.textContent=message||'';
+  status.className='login-status '+(message?type:'');
+}
+function clearAuthErrors(){
+  document.querySelectorAll('#page-login .form-input').forEach(el=>{
+    el.classList.remove('invalid');
+  });
+  showAuthStatus('');
+}
+function validateEmail(email){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+function validatePassword(password){
+  return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(password);
+}
+function getStoredUsers(){
+  try{const raw=localStorage.getItem(AUTH_USERS_KEY);return raw?JSON.parse(raw):[];}catch{return [];}
+}
+function saveStoredUsers(users){
+  localStorage.setItem(AUTH_USERS_KEY,JSON.stringify(users));
+}
+function generateSalt(length=16){
+  const arr=new Uint8Array(length);
+  crypto.getRandomValues(arr);
+  return Array.from(arr,b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function hashPassword(password,salt){
+  const encoder=new TextEncoder();
+  const baseKey=await crypto.subtle.importKey('raw',encoder.encode(password+':'+salt),'PBKDF2',false,['deriveBits']);
+  const derived=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:encoder.encode(salt),iterations:220000},baseKey,256);
+  return Array.from(new Uint8Array(derived),b=>b.toString(16).padStart(2,'0')).join('');
+}
+function setActiveUser(user, rememberMe=false){
+  const firstName=user.name.split(' ')[0];
+  const initials=user.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  window._user={name:user.name,email:user.email,location:user.location||'📍 Manila, Philippines',experience:user.experience||'🌱 Beginner',initials,firstName};
+  document.getElementById('dropdown-name').textContent=user.name;
+  document.getElementById('dropdown-email').textContent=user.email;
+  document.getElementById('user-displayname').textContent=firstName;
+  document.getElementById('user-avatar').textContent=initials;
+  document.getElementById('nav-login-btn').style.display='none';
+  document.getElementById('user-dropdown').classList.add('visible');
+  syncProfilePage();
+  updateMobileMenu(true,firstName);
+  const storage=rememberMe?localStorage:sessionStorage;
+  storage.setItem(AUTH_SESSION_KEY,JSON.stringify({name:user.name,email:user.email,remember:rememberMe}));
+  isLoggedIn=true;
+}
+function clearActiveUser(){
+  localStorage.removeItem(AUTH_SESSION_KEY);
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
+  window._user=null;
+}
+async function handleLogin(){
+  clearAuthErrors();
+  const now=Date.now();
+  if(now<authLockoutUntil){
+    showAuthStatus(`Too many attempts. Please wait ${Math.ceil((authLockoutUntil-now)/60000)} minute(s).`,'error');
+    return;
+  }
+  const emailInput=document.getElementById('email-input');
+  const passwordInput=document.getElementById('pw-input');
+  const nameInput=document.getElementById('name-input');
+  const confirmInput=document.getElementById('confirm-input');
+  const rememberInput=document.getElementById('remember-input');
+  const rawEmail=(emailInput&&emailInput.value.trim())?emailInput.value.trim():'';
+  const rawPassword=(passwordInput&&passwordInput.value)?passwordInput.value:'';
+  const rawName=(isSignup&&nameInput&&nameInput.value.trim())?nameInput.value.trim():'';
+  const rawConfirm=(isSignup&&confirmInput&&confirmInput.value)?confirmInput.value:'';
+  const normalizedEmail=rawEmail.toLowerCase();
+  if(!normalizedEmail||!validateEmail(normalizedEmail)){
+    emailInput?.classList.add('invalid');showAuthStatus('Please enter a valid email address.','error');return;
+  }
+  if(!rawPassword){
+    passwordInput?.classList.add('invalid');showAuthStatus('Please enter your password.','error');return;
+  }
+  if(isSignup){
+    if(!rawName){nameInput?.classList.add('invalid');showAuthStatus('Please enter your full name.','error');return;}
+    if(!validatePassword(rawPassword)){passwordInput?.classList.add('invalid');showAuthStatus('Use at least 8 characters, including uppercase, lowercase, a number, and a symbol.','error');return;}
+    if(rawPassword!==rawConfirm){confirmInput?.classList.add('invalid');showAuthStatus('Passwords do not match.','error');return;}
+    const users=getStoredUsers();
+    if(users.some(u=>u.email===normalizedEmail)){
+      showAuthStatus('An account with that email already exists. Please sign in instead.','error');return;
+    }
+    const salt=generateSalt();
+    const passwordHash=await hashPassword(rawPassword,salt);
+    users.push({name:rawName,email:normalizedEmail,passwordHash,salt,createdAt:Date.now()});
+    saveStoredUsers(users);
+    setActiveUser({name:rawName,email:normalizedEmail,location:'📍 Manila, Philippines',experience:'🌱 Beginner'},rememberInput?.checked);
+    showAuthStatus('Account created securely. Welcome aboard!','success');
+    const dest=pendingPage||'home';pendingPage=null;showPage(dest);
+    return;
+  }
+  const users=getStoredUsers();
+  const account=users.find(u=>u.email===normalizedEmail);
+  if(!account){
+    authAttempts+=1;if(authAttempts>=MAX_ATTEMPTS){authLockoutUntil=Date.now()+LOCKOUT_MS;}showAuthStatus('No account found for that email.','error');return;
+  }
+  const passwordHash=await hashPassword(rawPassword,account.salt);
+  if(passwordHash!==account.passwordHash){
+    authAttempts+=1;if(authAttempts>=MAX_ATTEMPTS){authLockoutUntil=Date.now()+LOCKOUT_MS;}showAuthStatus('Incorrect password.','error');return;
+  }
+  authAttempts=0;authLockoutUntil=0;setActiveUser({name:account.name,email:account.email,location:'📍 Manila, Philippines',experience:'🌱 Beginner'},rememberInput?.checked);
+  showAuthStatus('Signed in securely.','success');
+  const dest=pendingPage||'home';pendingPage=null;showPage(dest);
+}
+function syncProfilePage(){
+  const u=window._user||{};
+  if(!u.name)return;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('profile-avatar-big',u.initials);
+  set('profile-name-big',u.name);
+  set('profile-email-big',u.email);
+  set('view-name',u.name);
+  set('view-email',u.email);
+  set('view-location',u.location||'📍 Manila, Philippines');
+  set('view-experience',u.experience||'🌱 Beginner');
+}
+function toggleEditMode(){
+  const viewPanel=document.getElementById('info-view-panel');
+  const editPanel=document.getElementById('info-edit-panel');
+  const statsCard=document.getElementById('stats-card');
+  const isEditing=editPanel.style.display!=='none';
+  if(isEditing){
+    viewPanel.style.display='';editPanel.style.display='none';statsCard.style.display='';
+    document.getElementById('edit-profile-btn').textContent='✏️ Edit Profile';
+  }else{
+    const u=window._user||{};
+    document.getElementById('edit-name').value=u.name||'';
+    document.getElementById('edit-email').value=u.email||'';
+    const locSel=document.getElementById('edit-location');
+    const expSel=document.getElementById('edit-experience');
+    for(let o of locSel.options){if(o.value===u.location)o.selected=true;}
+    for(let o of expSel.options){if(o.value===u.experience)o.selected=true;}
+    viewPanel.style.display='none';editPanel.style.display='';statsCard.style.display='none';
+    document.getElementById('edit-profile-btn').textContent='✕ Cancel Edit';
+  }
+}
+function saveProfile(){
+  const newName=document.getElementById('edit-name').value.trim()||window._user.name;
+  const newEmail=document.getElementById('edit-email').value.trim()||window._user.email;
+  const newLoc=document.getElementById('edit-location').value;
+  const newExp=document.getElementById('edit-experience').value;
+  const initials=newName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const firstName=newName.split(' ')[0];
+  window._user={name:newName,email:newEmail,location:newLoc,experience:newExp,initials,firstName};
+  // Update nav
+  document.getElementById('dropdown-name').textContent=newName;
+  document.getElementById('dropdown-email').textContent=newEmail;
+  document.getElementById('user-displayname').textContent=firstName;
+  document.getElementById('user-avatar').textContent=initials;
+  syncProfilePage();
+  toggleEditMode();
+}
+function handleLogout(){
+  isLoggedIn=false;
+  clearActiveUser();
+  closeDropdown();
+  document.getElementById('nav-login-btn').style.display='';
+  document.getElementById('user-dropdown').classList.remove('visible');
+  updateMobileMenu(false,'');
+  showPage('home');
+}
+function toggleDropdown(){
+  document.getElementById('dropdown-menu').classList.toggle('hidden');
+}
+function closeDropdown(){
+  document.getElementById('dropdown-menu').classList.add('hidden');
+}
+function updateMobileMenu(loggedIn,firstName){
+  const actions=document.querySelector('.mobile-menu-actions');
+  if(!actions)return;
+  if(loggedIn){
+    const initials=(firstName||'').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+    actions.innerHTML=`
+      <div style="padding:12px 0;border-top:1px solid var(--border);margin-top:8px">
+        <button class="mobile-signed-btn" onclick="showPage('profile');closeMenu()">
+          <div class="mobile-signed-avatar" style="background:linear-gradient(135deg,var(--purple),var(--cyan))">${initials}</div>
+          <div style="text-align:left"><div style="font-weight:700;color:var(--text)">${firstName}</div><div style="font-size:12px;color:var(--muted)">Signed in</div></div>
+          <div style="margin-left:auto;color:var(--muted);font-weight:700">▾</div>
+        </button>
+        <button class="btn-login" style="justify-content:center;border:1px solid var(--border);background:#ef4444;color:white;width:100%;margin-top:10px" onclick="handleLogout();closeMenu()">🚪 Log Out</button>
+      </div>`;
+  }else{
+    actions.innerHTML=`
+      <button class="btn-login" onclick="showPage('login');closeMenu()">👤 Login</button>
+      <button class="btn-start" onclick="showPage('compatibility');closeMenu()">⚡ Start Building</button>`;
+  }
+}
+// Close dropdown when clicking outside
+document.addEventListener('click',function(e){
+  const dd=document.getElementById('user-dropdown');
+  if(dd&&!dd.contains(e.target)){closeDropdown();}
+});
+
+function restoreSession(){
+  const stored=sessionStorage.getItem(AUTH_SESSION_KEY)||localStorage.getItem(AUTH_SESSION_KEY);
+  if(!stored)return false;
+  try{
+    const parsed=JSON.parse(stored);
+    if(parsed?.email){
+      setActiveUser({name:parsed.name||'Guest User',email:parsed.email,location:'📍 Manila, Philippines',experience:'🌱 Beginner'});
+      return true;
+    }
+  }catch{}
+  return false;
+}
+restoreSession();
+</script>
+</body>
+</html>
