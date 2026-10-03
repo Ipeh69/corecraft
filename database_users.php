@@ -7,8 +7,9 @@ if ($conn_users->connect_error) {
     header("HTTP/1.1 503 Service Unavailable");
     echo json_encode(array(
         "success" => false,
-        "error" => "The account database is unavailable. Start MySQL and make sure the corecraft_db database exists."
+        "error" => "The account database is unavailable. Check the database settings (error code " . (int) $conn_users->connect_errno . ")."
     ));
     exit;
 }
 ?>
+
