@@ -15,6 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create production .env
+        run: printf '%s\n' "$PROD_ENV" > .env
+        env:
+          PROD_ENV: ${{ secrets.PROD_ENV }}
+
       - name: Upload via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -29,6 +34,8 @@ jobs:
             **/.git*
             **/.git*/**
             .github/**
+            .env.example
+            .env.production
             Ipeh/**
             *.zip
             *.sql
