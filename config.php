@@ -1,12 +1,16 @@
 ﻿<?php
 // Loads KEY=VALUE pairs from .env (not committed) into the environment.
+$GLOBALS['corecraft_env_values'] = array();
+
+// Loads KEY=VALUE pairs into a private array (putenv is disabled on some shared hosts).
 function corecraft_load_env($path)
 {
     if (!is_readable($path)) {
         return;
     }
-    foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
-        $line = trim($line);
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line, " \t\r\n\xEF\xBB\xBF");
         if ($line === '' || $line[0] === '#' || strpos($line, '=') === false) {
             continue;
         }
@@ -16,17 +20,20 @@ function corecraft_load_env($path)
         if (strlen($value) >= 2 && ($value[0] === '"' || $value[0] === "'") && substr($value, -1) === $value[0]) {
             $value = substr($value, 1, -1);
         }
-        if (getenv($key) === false) {
-            putenv($key . '=' . $value);
-            $_ENV[$key] = $value;
-        }
+        $GLOBALS['corecraft_env_values'][$key] = $value;
     }
 }
 
 function corecraft_env($key, $default = '')
 {
     $value = getenv($key);
-    return $value === false ? $default : $value;
+    if ($value !== false && $value !== '') {
+        return $value;
+    }
+    if (isset($GLOBALS['corecraft_env_values'][$key]) && $GLOBALS['corecraft_env_values'][$key] !== '') {
+        return $GLOBALS['corecraft_env_values'][$key];
+    }
+    return $default;
 }
 
 corecraft_load_env(__DIR__ . '/.env');
@@ -43,4 +50,5 @@ define('CORECRAFT_GEMINI_PERSONA', corecraft_env('CORECRAFT_GEMINI_PERSONA', 'Yo
 define('CORECRAFT_GEMINI_LANGUAGE', corecraft_env('CORECRAFT_GEMINI_LANGUAGE', 'Answer in the same language as the user. Use Filipino or Taglish when the user writes in Filipino or Taglish, otherwise use clear English.'));
 define('CORECRAFT_GOOGLE_CLIENT_ID', corecraft_env('CORECRAFT_GOOGLE_CLIENT_ID'));
 define('CORECRAFT_GOOGLE_MAPS_BROWSER_KEY', corecraft_env('CORECRAFT_GOOGLE_MAPS_BROWSER_KEY', 'PASTE_YOUR_GOOGLE_MAPS_BROWSER_KEY_HERE'));
+
 
