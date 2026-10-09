@@ -1,7 +1,7 @@
 <!-- NAV -->
 <nav>
   <a class="logo" onclick="showPage('home')">
-    <div class="logo-icon"><img src="Ipeh/corecraft-logo-mark.png" alt=""></div>
+    <div class="logo-icon"><img src="corecraft-logo-mark.png" alt=""></div>
     <div class="logo-text">Core<span>Craft</span></div>
   </a>
   <ul>

@@ -5,7 +5,7 @@
   <div class="login-grid"></div>
   <div class="login-card-wrap">
     <div class="login-brand">
-      <div class="login-logo"><span class="login-logo-icon"><img src="Ipeh/corecraft-logo-mark.png" alt=""></span><span class="login-logo-text">CoreCraft</span></div>
+      <div class="login-logo"><span class="login-logo-icon"><img src="corecraft-logo-mark.png" alt=""></span><span class="login-logo-text">CoreCraft</span></div>
       <p class="login-tagline" id="login-tagline">Welcome back, PC Builder!</p>
     </div>
     <div class="login-box">
