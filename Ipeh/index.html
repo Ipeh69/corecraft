@@ -8,19 +8,18 @@
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{
-      --bg:#0a0c10;--bg2:#1c2030;--bg3:#111827;--bg4:#0f1421;
-      --border:#2a2f3e;--cyan:#00e5ff;--purple:#7c3aed;
+      --bg:#05070b;--bg2:#0b111b;--bg3:#0c1420;--bg4:#09101a;
+      --border:#17283a;--cyan:#00bfff;--blue:#087cff;
       --orange:#ff6b35;--green:#22c55e;--text:#f0f2f8;--muted:#8892a4;
     }
     html{scroll-behavior:smooth}
     body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;-webkit-text-size-adjust:100%;overflow-x:hidden}
 
     /* NAV */
-    nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:14px 40px;border-bottom:1px solid var(--border);background:rgba(10,12,16,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+    nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:14px 40px;border-bottom:1px solid var(--border);background:rgba(5,7,11,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
     .logo{display:flex;align-items:center;gap:12px;cursor:pointer;text-decoration:none}
-    .logo-icon{width:44px;height:44px;border-radius:16px;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;flex-shrink:0}
-    .logo-icon svg{width:26px;height:26px}
-    .login-logo-icon svg{width:36px;height:36px}
+    .logo-icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .logo-icon img{width:44px;height:44px;object-fit:cover;border-radius:12px}
     .logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.6px;color:var(--text)}
     .logo-text span{color:var(--cyan)}
     nav ul{display:flex;gap:28px;list-style:none}
@@ -35,7 +34,7 @@
     .user-dropdown.visible{display:flex;align-items:center}
     .user-pill{display:flex;align-items:center;gap:8px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);border-radius:999px;padding:6px 14px 6px 8px;cursor:pointer;transition:all .2s;font-size:14px;font-weight:500;color:var(--cyan);font-family:'DM Sans',sans-serif}
     .user-pill:hover{background:rgba(0,229,255,.15)}
-    .user-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+    .user-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
     .dropdown-menu{position:absolute;top:calc(100% + 10px);right:0;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:8px;min-width:200px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.4)}
     .dropdown-menu.hidden{display:none}
     .dropdown-header{padding:12px 14px 10px;border-bottom:1px solid var(--border);margin-bottom:6px}
@@ -47,7 +46,7 @@
     .dropdown-item.logout:hover{background:rgba(248,113,113,.08)}
     .hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;background:none;border:none;padding:4px}
     .hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:all .3s}
-    .mobile-menu{display:none;position:fixed;top:61px;left:0;right:0;bottom:0;background:rgba(10,12,16,.98);z-index:49;flex-direction:column;padding:24px;gap:8px;overflow-y:auto}
+    .mobile-menu{display:none;position:fixed;top:61px;left:0;right:0;bottom:0;background:rgba(5,7,11,.98);z-index:49;flex-direction:column;padding:24px;gap:8px;overflow-y:auto}
     .mobile-menu.open{display:flex}
     .mobile-menu a{color:var(--text);font-size:18px;font-weight:600;padding:14px 0;border-bottom:1px solid var(--border);text-decoration:none;cursor:pointer}
     .mobile-menu-actions{display:flex;gap:10px;margin-top:16px;flex-direction:column}
@@ -94,7 +93,7 @@
     /* HOME */
     .hero{padding:80px 40px 60px;text-align:center;position:relative;overflow:hidden}
     .hero-title{font-family:'Syne',sans-serif;font-size:60px;font-weight:800;line-height:1.1;letter-spacing:-2px;margin-bottom:20px}
-    .hero-title .gradient{background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-title .gradient{background:linear-gradient(90deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
     .hero-sub{color:var(--muted);font-size:18px;font-weight:300;max-width:560px;margin:0 auto 36px;line-height:1.7}
     .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:64px}
     .btn-primary{background:var(--cyan);color:#000;padding:14px 32px;border-radius:10px;font-weight:700;font-size:15px;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:opacity .2s}
@@ -110,7 +109,7 @@
     .feature-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;flex-shrink:0}
     .feature-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:8px;color:var(--text)}
     .feature-desc{color:var(--muted);font-size:14px;line-height:1.6}
-    .cta-box{background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(0,229,255,.08));border:1px solid rgba(0,229,255,.15);border-radius:24px;padding:64px 40px;text-align:center;margin:0 40px 64px}
+    .cta-box{background:linear-gradient(135deg,rgba(8,124,255,.15),rgba(0,191,255,.08));border:1px solid rgba(0,191,255,.15);border-radius:24px;padding:64px 40px;text-align:center;margin:0 40px 64px}
     .cta-title{font-family:'Syne',sans-serif;font-size:38px;font-weight:800;letter-spacing:-1px;margin-bottom:14px}
 
     /* COMPATIBILITY */
@@ -138,7 +137,7 @@
     .compat-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:18px}
     @media(max-width:900px){.compat-actions{grid-template-columns:repeat(2,minmax(140px,1fr))}}
     @media(max-width:580px){.compat-row{flex-direction:column;align-items:stretch}.compat-row .compat-btn{width:100%;white-space:normal}.compat-actions{grid-template-columns:1fr}}
-    .btn-gradient{width:100%;background:linear-gradient(90deg,var(--purple),var(--cyan));color:white;border:none;padding:14px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;transition:opacity .2s;margin-top:8px;font-family:'DM Sans',sans-serif}
+    .btn-gradient{width:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));color:white;border:none;padding:14px;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;transition:opacity .2s;margin-top:8px;font-family:'DM Sans',sans-serif}
     .btn-gradient:hover{opacity:.9}
     .budget-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);gap:8px}
     .budget-row:last-of-type{border-bottom:none}
@@ -169,7 +168,7 @@
     .build-part-cat{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px}
     .build-part-name{font-size:13px;font-weight:600;margin-top:2px}
     .build-part-price{font-size:12px;color:var(--cyan);margin-top:2px}
-    .build-use-btn{background:linear-gradient(90deg,var(--purple),var(--cyan));color:white;border:none;padding:12px 24px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;transition:opacity .2s;font-family:'DM Sans',sans-serif}
+    .build-use-btn{background:linear-gradient(90deg,var(--blue),var(--cyan));color:white;border:none;padding:12px 24px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;transition:opacity .2s;font-family:'DM Sans',sans-serif}
     .build-use-btn:hover{opacity:.9}
     .compat-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     .compat-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -184,7 +183,7 @@
     .perf-row{display:flex;align-items:center;gap:12px}
     .perf-label{font-size:12px;color:var(--muted);width:80px;flex-shrink:0}
     .perf-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
-    .perf-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--purple),var(--cyan));transition:width .5s ease}
+    .perf-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--blue),var(--cyan));transition:width .5s ease}
     .perf-val{font-size:12px;color:var(--cyan);font-weight:600;width:36px;text-align:right;flex-shrink:0}
 
     /* AI CHAT (shared) */
@@ -197,10 +196,10 @@
     .msg{display:flex;max-width:85%}
     .msg.user{align-self:flex-end}.msg.ai,.msg.other{align-self:flex-start}
     .msg-bubble{border-radius:14px;padding:12px 16px;font-size:14px;line-height:1.6;white-space:pre-line}
-    .msg.user .msg-bubble{background:linear-gradient(135deg,var(--purple),var(--cyan));color:white}
+    .msg.user .msg-bubble{background:linear-gradient(135deg,var(--blue),var(--cyan));color:white}
     .msg.ai .msg-bubble,.msg.other .msg-bubble{background:var(--bg3);color:var(--text)}
     .ai-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-    .ai-avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+    .ai-avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--blue));display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
     .ai-label{font-size:12px;color:var(--muted);font-weight:600}
     .typing-dots{display:flex;gap:4px;align-items:center;padding:4px 0}
     .dot{width:8px;height:8px;background:var(--cyan);border-radius:50%;animation:bounce .8s infinite}
@@ -230,7 +229,7 @@
     .idea-card-chat{margin:8px 6px}
     .idea-card-chat .comp-grid{column-gap:12px}
     .idea-card-chat .comp-item.empty{background:transparent;border:none;padding:6px 8px;opacity:0}
-    .send-btn{background:linear-gradient(135deg,var(--purple),var(--cyan));color:white;padding:10px 20px;border-radius:10px;border:none;font-weight:700;font-size:14px;cursor:pointer;transition:opacity .2s;white-space:nowrap;font-family:'DM Sans',sans-serif}
+    .send-btn{background:linear-gradient(135deg,var(--blue),var(--cyan));color:white;padding:10px 20px;border-radius:10px;border:none;font-weight:700;font-size:14px;cursor:pointer;transition:opacity .2s;white-space:nowrap;font-family:'DM Sans',sans-serif}
     .send-btn:disabled{opacity:.4;cursor:not-allowed}
     .send-btn:not(:disabled):hover{opacity:.9}
     .ai-info-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
@@ -268,14 +267,14 @@
     #page-login{background:#0a0a0f;min-height:100vh;align-items:center;justify-content:center;padding:48px 16px;position:relative;overflow:hidden}
     .login-bg-blob{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none}
     .blob1{width:380px;height:380px;background:rgba(0,229,255,.08);top:80px;left:40px;animation:pulse 3s infinite}
-    .blob2{width:380px;height:380px;background:rgba(124,58,237,.1);bottom:80px;right:40px;animation:pulse 3s 1s infinite}
+    .blob2{width:380px;height:380px;background:rgba(8,124,255,.1);bottom:80px;right:40px;animation:pulse 3s 1s infinite}
     .login-grid{position:absolute;inset:0;opacity:.15;background-image:linear-gradient(rgba(6,182,212,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(6,182,212,.1) 1px,transparent 1px);background-size:50px 50px;pointer-events:none}
     .login-card-wrap{position:relative;z-index:10;width:100%;max-width:440px}
     .login-brand{text-align:center;margin-bottom:32px}
     .login-logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:12px}
-    .login-logo-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--cyan));flex-shrink:0}
-    .login-logo-icon svg{width:34px;height:34px}
-    .login-logo-text{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .login-logo-icon{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;flex-shrink:0}
+    .login-logo-icon img{width:46px;height:46px;object-fit:cover;border-radius:12px}
+    .login-logo-text{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;background:linear-gradient(90deg,var(--cyan),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
     .login-tagline{color:#9ca3af;font-size:14px}
     .login-box{background:linear-gradient(135deg,rgba(17,24,39,.9),rgba(3,7,18,.9));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-radius:16px;border:1px solid rgba(0,229,255,.2);box-shadow:0 25px 60px rgba(0,0,0,.5);overflow:hidden}
     .login-tabs{display:flex;border-bottom:1px solid #1f2937}
@@ -368,7 +367,7 @@
 <!-- NAV -->
 <nav>
   <a class="logo" onclick="showPage('home')">
-    <div class="logo-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00e5ff"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs><circle cx="32" cy="32" r="26" fill="rgba(0,229,255,.08)"/><circle cx="32" cy="32" r="18" fill="rgba(255,255,255,.05)" stroke="white" stroke-width="1.6"/><path d="M32 6v8M32 50v8M6 32h8M50 32h8M16.97 16.97l5.66 5.66M41.37 41.37l5.66 5.66M16.97 47.03l5.66-5.66M41.37 22.63l5.66-5.66" stroke="url(#logoGrad)" stroke-width="1.8" stroke-linecap="round"/><rect x="22" y="22" width="20" height="20" rx="4" fill="rgba(0,229,255,.15)" stroke="white" stroke-width="1.6"/><path d="M28 28h8v8h-8z" fill="url(#logoGrad)" opacity=".7"/><path d="M32 24c-3 0-4 1.5-4 4s1.5 4 4 4 4-1.5 4-4-1-4-4-4z" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M31 30h4" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+    <div class="logo-icon"><img src="corecraft-logo-mark.png" alt=""></div>
     <div class="logo-text">Core<span>Craft</span></div>
   </a>
   <ul>
@@ -430,7 +429,7 @@
         <div class="feature-desc">Select your CPU, motherboard, RAM, GPU, storage, and PSU — instantly see if they all work together with a full compatibility report.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(124,58,237,.12)">💡</div>
+        <div class="feature-icon" style="background:rgba(8,124,255,.12)">💡</div>
         <div class="feature-title">Build Recommendations</div>
         <div class="feature-desc">Choose your budget and use case — gaming, office, or workstation — and get a fully curated parts list optimized for your needs.</div>
       </div>
@@ -469,11 +468,11 @@
   <div class="section-wrap" style="padding-top:20px">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:28px">
       <button class="back-link" onclick="showPage('home')">← Back to Home</button>
-      <div style="background:linear-gradient(135deg,#00e5ff,#7c3aed);color:white;padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600">Powered by Claude AI</div>
+      <div style="background:linear-gradient(135deg,#00bfff,#087cff);color:white;padding:6px 14px;border-radius:999px;font-size:12px;font-weight:600">Powered by Claude AI</div>
     </div>
     <div style="margin-bottom:32px">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#00e5ff,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:20px">🤖</div>
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#00bfff,#087cff);display:flex;align-items:center;justify-content:center;font-size:20px">🤖</div>
         <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800">AI Compatibility Checker</div>
       </div>
       <p style="color:var(--muted);font-size:15px;line-height:1.6;margin-top:12px">Enter your PC parts below — the AI will analyze socket compatibility, power requirements, RAM support, and suggest fixes if anything's wrong.</p>
@@ -728,7 +727,7 @@
   <div class="login-grid"></div>
   <div class="login-card-wrap">
     <div class="login-brand">
-      <div class="login-logo"><span class="login-logo-icon"><svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="loginGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#00e5ff"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs><circle cx="32" cy="32" r="26" fill="rgba(0,229,255,.08)"/><circle cx="32" cy="32" r="18" fill="rgba(255,255,255,.05)" stroke="white" stroke-width="1.6"/><path d="M32 6v8M32 50v8M6 32h8M50 32h8M16.97 16.97l5.66 5.66M41.37 41.37l5.66 5.66M16.97 47.03l5.66-5.66M41.37 22.63l5.66-5.66" stroke="url(#loginGrad)" stroke-width="1.8" stroke-linecap="round"/><rect x="22" y="22" width="20" height="20" rx="4" fill="rgba(0,229,255,.15)" stroke="white" stroke-width="1.6"/><path d="M28 28h8v8h-8z" fill="url(#loginGrad)" opacity=".7"/><path d="M32 24c-3 0-4 1.5-4 4s1.5 4 4 4 4-1.5 4-4-1-4-4-4z" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M31 30h4" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="login-logo-text">CoreCraft</span></div>
+      <div class="login-logo"><span class="login-logo-icon"><img src="corecraft-logo-mark.png" alt=""></span><span class="login-logo-text">CoreCraft</span></div>
       <p class="login-tagline" id="login-tagline">Welcome back, PC Builder!</p>
     </div>
     <div class="login-box">
@@ -781,14 +780,14 @@
     <button class="back-link" onclick="showPage('home')" style="margin-bottom:28px">← Back to Home</button>
 
     <!-- Profile Header Card -->
-    <div style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(0,229,255,.08));border:1px solid rgba(0,229,255,.2);border-radius:24px;padding:36px;margin-bottom:24px;display:flex;align-items:center;gap:28px;flex-wrap:wrap">
-      <div id="profile-avatar-big" style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 0 0 4px rgba(0,229,255,.2)">J</div>
+    <div style="background:linear-gradient(135deg,rgba(8,124,255,.15),rgba(0,191,255,.08));border:1px solid rgba(0,191,255,.2);border-radius:24px;padding:36px;margin-bottom:24px;display:flex;align-items:center;gap:28px;flex-wrap:wrap">
+      <div id="profile-avatar-big" style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 0 0 4px rgba(0,191,255,.2)">J</div>
       <div style="flex:1;min-width:200px">
         <div id="profile-name-big" style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px">Juan Dela Cruz</div>
         <div id="profile-email-big" style="color:var(--muted);font-size:14px;margin-bottom:12px">juan@example.com</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <span class="badge"><span class="pulse"></span> Active Builder</span>
-          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);color:#a78bfa;padding:5px 14px;border-radius:999px;font-size:13px;font-weight:500">🏅 Member since 2026</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(8,124,255,.12);border:1px solid rgba(8,124,255,.3);color:#70b7ff;padding:5px 14px;border-radius:999px;font-size:13px;font-weight:500">🏅 Member since 2026</span>
         </div>
       </div>
       <button onclick="toggleEditMode()" id="edit-profile-btn" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;white-space:nowrap" onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">✏️ Edit Profile</button>
@@ -864,7 +863,7 @@
             <div style="font-size:12px;color:var(--muted);margin-top:2px">Builds Checked</div>
           </div>
           <div style="background:#111827;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
-            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--purple)">7</div>
+            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--blue)">7</div>
             <div style="font-size:12px;color:var(--muted);margin-top:2px">AI Chats</div>
           </div>
           <div style="background:#111827;border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center">
@@ -899,7 +898,7 @@
         </div>
         <div class="budget-row">
           <div style="display:flex;align-items:center;gap:14px">
-            <div style="width:36px;height:36px;border-radius:10px;background:rgba(124,58,237,.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">💡</div>
+            <div style="width:36px;height:36px;border-radius:10px;background:rgba(8,124,255,.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">💡</div>
             <div><div style="font-size:14px;font-weight:500">Viewed Mid-Range Gaming build</div><div style="font-size:12px;color:var(--muted)">₱65,000 — Ryzen 5 7600X + RTX 4060 Ti</div></div>
           </div>
           <div style="font-size:12px;color:var(--muted);white-space:nowrap">2 days ago</div>
@@ -2190,7 +2189,7 @@ function updateMobileMenu(loggedIn,firstName){
     actions.innerHTML=`
       <div style="padding:12px 0;border-top:1px solid var(--border);margin-top:8px">
         <button class="mobile-signed-btn" onclick="showPage('profile');closeMenu()">
-          <div class="mobile-signed-avatar" style="background:linear-gradient(135deg,var(--purple),var(--cyan))">${initials}</div>
+          <div class="mobile-signed-avatar" style="background:linear-gradient(135deg,var(--blue),var(--cyan))">${initials}</div>
           <div style="text-align:left"><div style="font-weight:700;color:var(--text)">${firstName}</div><div style="font-size:12px;color:var(--muted)">Signed in</div></div>
           <div style="margin-left:auto;color:var(--muted);font-weight:700">▾</div>
         </button>

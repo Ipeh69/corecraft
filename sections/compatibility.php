@@ -6,7 +6,7 @@
     </div>
     <div style="margin-bottom:32px">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#00e5ff,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:20px">🤖</div>
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#00bfff,#087cff);display:flex;align-items:center;justify-content:center;font-size:20px">🤖</div>
         <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800">AI Compatibility Checker</div>
       </div>
       <p style="color:var(--muted);font-size:15px;line-height:1.6;margin-top:12px">Enter your PC parts below to check socket compatibility, RAM support, and power requirements. Any issues will include a clear explanation on the affected component cards.</p>

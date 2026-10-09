@@ -3,14 +3,14 @@
   <div class="section-wrap" style="padding-top:24px;max-width:860px">
     <button class="back-link" onclick="showPage('home')" style="margin-bottom:28px">← Back to Home</button>
     <!-- Profile Header Card -->
-    <div style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(0,229,255,.08));border:1px solid rgba(0,229,255,.2);border-radius:24px;padding:36px;margin-bottom:24px;display:flex;align-items:center;gap:28px;flex-wrap:wrap">
-      <div id="profile-avatar-big" style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 0 0 4px rgba(0,229,255,.2)">J</div>
+    <div style="background:linear-gradient(135deg,rgba(8,124,255,.15),rgba(0,191,255,.08));border:1px solid rgba(0,191,255,.2);border-radius:24px;padding:36px;margin-bottom:24px;display:flex;align-items:center;gap:28px;flex-wrap:wrap">
+      <div id="profile-avatar-big" style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:800;color:#fff;flex-shrink:0;box-shadow:0 0 0 4px rgba(0,191,255,.2)">J</div>
       <div style="flex:1;min-width:200px">
         <div id="profile-name-big" style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px">Juan Dela Cruz</div>
         <div id="profile-email-big" style="color:var(--muted);font-size:14px;margin-bottom:12px">juan@example.com</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <span class="badge"><span class="pulse"></span> Active Builder</span>
-          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);color:#a78bfa;padding:5px 14px;border-radius:999px;font-size:13px;font-weight:500">🏅 Member since 2026</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(8,124,255,.12);border:1px solid rgba(8,124,255,.3);color:#70b7ff;padding:5px 14px;border-radius:999px;font-size:13px;font-weight:500">🏅 Member since 2026</span>
         </div>
       </div>
       <button onclick="toggleEditMode()" id="edit-profile-btn" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;white-space:nowrap" onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">✏️ Edit Profile</button>

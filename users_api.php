@@ -59,19 +59,57 @@ if (!$conn_users->query($token_table_sql)) {
     respond(array("success" => false, "error" => "Failed to prepare account sessions"), 500);
 }
 
+<<<<<<< HEAD
 function issue_auth_token($conn, $email) {
-    try {
-        $token = bin2hex(random_bytes(32));
-    } catch (Exception $error) {
-        $token = hash("sha256", uniqid("corecraft_", true) . mt_rand());
+    $random_bytes = false;
+    if (function_exists("random_bytes")) {
+        try {
+            $random_bytes = random_bytes(32);
+        } catch (Exception $error) {
+            $random_bytes = false;
+        }
     }
+    if ($random_bytes === false && function_exists("openssl_random_pseudo_bytes")) {
+        $crypto_strong = false;
+        $random_bytes = openssl_random_pseudo_bytes(32, $crypto_strong);
+        if ($random_bytes === false || !$crypto_strong) {
+            return false;
+        }
+    }
+    if ($random_bytes === false) {
+        return false;
+    }
+    $token = bin2hex($random_bytes);
+=======
+function generate_auth_token() {
+    if (function_exists("random_bytes")) {
+        try {
+            return bin2hex(random_bytes(32));
+        } catch (Exception $error) {
+        }
+    }
+    if (function_exists("openssl_random_pseudo_bytes")) {
+        $bytes = openssl_random_pseudo_bytes(32, $strong);
+        if ($bytes !== false && $strong) {
+            return bin2hex($bytes);
+        }
+    }
+    return hash("sha256", uniqid("corecraft_", true) . mt_rand() . microtime(true));
+}
+
+function issue_auth_token($conn, $email) {
+    $token = generate_auth_token();
+>>>>>>> 52a3705837c4cfd62d972be84eb26753ad0c5297
     $token_hash = hash("sha256", $token);
     $stmt = $conn->prepare("INSERT INTO auth_tokens (user_email, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))");
     if (!$stmt) {
-        return "";
+        return false;
     }
     $stmt->bind_param("ss", $email, $token_hash);
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        $stmt->close();
+        return false;
+    }
     $stmt->close();
     return $token;
 }
@@ -130,7 +168,11 @@ if ($action === "google") {
     $stmt->bind_result($name, $stored_email);
     if ($stmt->fetch()) {
         $stmt->close();
-        respond(array("success" => true, "user" => array("name" => $name, "email" => $stored_email, "auth_token" => issue_auth_token($conn_users, $stored_email))));
+        $auth_token = issue_auth_token($conn_users, $stored_email);
+        if ($auth_token === false) {
+            respond(array("success" => false, "error" => "Could not create an account session"), 500);
+        }
+        respond(array("success" => true, "user" => array("name" => $name, "email" => $stored_email, "auth_token" => $auth_token)));
     }
     $stmt->close();
     $name = trim(isset($token["name"]) ? $token["name"] : "Google User");
@@ -145,7 +187,11 @@ if ($action === "google") {
         respond(array("success" => false, "error" => "Could not create the Google account"), 500);
     }
     $stmt->close();
-    respond(array("success" => true, "user" => array("name" => $name, "email" => $google_email, "auth_token" => issue_auth_token($conn_users, $google_email))), 201);
+    $auth_token = issue_auth_token($conn_users, $google_email);
+    if ($auth_token === false) {
+        respond(array("success" => false, "error" => "Could not create an account session"), 500);
+    }
+    respond(array("success" => true, "user" => array("name" => $name, "email" => $google_email, "auth_token" => $auth_token)), 201);
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $password === "") {
@@ -170,7 +216,11 @@ if ($action === "register") {
         respond(array("success" => false, "error" => $duplicate ? "An account with that email already exists" : "Registration failed"), $duplicate ? 409 : 500);
     }
     $stmt->close();
-    respond(array("success" => true, "user" => array("name" => $name, "email" => $email, "auth_token" => issue_auth_token($conn_users, $email))), 201);
+    $auth_token = issue_auth_token($conn_users, $email);
+    if ($auth_token === false) {
+        respond(array("success" => false, "error" => "Could not create an account session"), 500);
+    }
+    respond(array("success" => true, "user" => array("name" => $name, "email" => $email, "auth_token" => $auth_token)), 201);
 }
 
 if ($action === "login") {
@@ -187,7 +237,11 @@ if ($action === "login") {
         respond(array("success" => false, "error" => "Invalid email or password"), 401);
     }
     $stmt->close();
-    respond(array("success" => true, "user" => array("name" => $name, "email" => $stored_email, "auth_token" => issue_auth_token($conn_users, $stored_email))));
+    $auth_token = issue_auth_token($conn_users, $stored_email);
+    if ($auth_token === false) {
+        respond(array("success" => false, "error" => "Could not create an account session"), 500);
+    }
+    respond(array("success" => true, "user" => array("name" => $name, "email" => $stored_email, "auth_token" => $auth_token)));
 }
 
 respond(array("success" => false, "error" => "Unsupported action"), 400);
