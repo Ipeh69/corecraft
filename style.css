@@ -114,7 +114,6 @@
     .stat-label{color:var(--muted);font-size:13px;margin-top:2px}
     .feature-card{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:28px;transition:border-color .2s;text-decoration:none;display:block;color:inherit}
     .feature-card:hover{border-color:rgba(0,229,255,.3)}
-    .feature-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;flex-shrink:0}
     .feature-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:8px;color:var(--text)}
     .feature-desc{color:var(--muted);font-size:14px;line-height:1.6}
     .cta-box{background:linear-gradient(135deg,rgba(8,124,255,.15),rgba(0,191,255,.08));border:1px solid rgba(0,191,255,.15);border-radius:24px;padding:64px 40px;text-align:center;margin:0 40px 64px}

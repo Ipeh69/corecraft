@@ -11,27 +11,22 @@
     <div class="section-sub">Tools designed specifically for first-time PC builders in the Philippines.</div>
     <div class="grid-2">
       <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(0,229,255,.1)">🔍</div>
         <div class="feature-title">Compatibility Checker</div>
         <div class="feature-desc">Select your CPU, motherboard, RAM, GPU, storage, and PSU — instantly see if they all work together with a full compatibility report.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(8,124,255,.12)">💡</div>
         <div class="feature-title">Build Recommendations</div>
         <div class="feature-desc">Choose your budget and use case — gaming, office, or students — and get curated build recommendations from database.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(255,107,53,.1)">📍</div>
         <div class="feature-title">Pricing by Location</div>
         <div class="feature-desc">Find PC component shops and repair technicians by Philippine city. Shop locations do not confirm live stock or prices.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(34,197,94,.1)">🛠️</div>
         <div class="feature-title">Basic Troubleshooting</div>
         <div class="feature-desc">AI-powered troubleshooting that diagnoses boot issues, crashes, and overheating, then gives step-by-step fixes instantly.</div>
       </div>
       <div class="feature-card" style="grid-column:1/-1;justify-self:center;max-width:520px">
-        <div class="feature-icon" style="background:rgba(99,102,241,.12)">🌐</div>
         <div class="feature-title">PH Community</div>
         <div class="feature-desc">Chat with builders across the Philippines for parts advice, local pricing tips, and instant support from the community.</div>
       </div>
