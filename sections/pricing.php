@@ -4,34 +4,33 @@
     <button class="back-link" onclick="showPage('home')" style="margin-bottom:28px">← Back to Home</button>
     <div class="label-tag">Feature 3 · AI Powered</div>
     <div class="section-title">Component Pricing by Location</div>
-    <div class="section-sub">Find computer-parts shops across the Philippines, then ask Gemini to interpret stock information you provide.</div>
+    <div class="section-sub">Enter your area and the PC part you need, then search nearby stores, current listings, and prices together.</div>
     <div class="pricing-map-layout">
       <div class="map-panel">
         <div class="map-toolbar">
           <div>
-            <div class="map-panel-title">PC component technicians</div>
-            <div class="map-panel-sub">Only PC repair and computer-service technician listings inside the Philippines are shown. Narrow the search by city if needed.</div>
+            <div class="map-panel-title">Computer parts stores</div>
+            <div class="map-panel-sub">Mapped computer stores that sell PC parts near your selected area. OpenStreetMap coverage varies, so not every business will appear.</div>
           </div>
           <div class="map-search-row">
-            <input id="shop-search" class="chat-textarea" type="text" placeholder="Optional city or area (e.g. Manila, Cebu)" onkeydown="if(event.key==='Enter')searchPhilippinesShops()" />
-            <button class="btn-secondary map-search-btn" type="button" onclick="searchPhilippinesShops()">Find technicians</button>
+            <button class="btn-secondary map-search-btn" type="button" onclick="locateOnMap(true)">Use my location</button>
           </div>
         </div>
-        <div id="philippines-map" class="philippines-map" aria-label="Map of PC component repair technicians in the Philippines"></div>
-        <div class="map-legend"><span class="technician-legend-dot" aria-hidden="true"></span><span>PC component technician</span><span class="map-legend-note">OpenStreetMap listing</span></div>
+        <div id="philippines-map" class="philippines-map" aria-label="Map of computer parts stores in the Philippines"></div>
+        <div class="map-legend"><span class="shop-legend-dot" aria-hidden="true"></span><span>Computer parts store</span><span class="user-location-legend-dot" aria-hidden="true"></span><span>Your location</span><span class="map-legend-note">OpenStreetMap listing</span></div>
         <div id="map-status" class="map-status">Loading Leaflet map of the Philippines...</div>
         <div id="shop-results" class="shop-results" aria-live="polite"></div>
       </div>
       <div class="stock-panel card">
         <div class="map-panel-title">Gemini stock assistant</div>
-        <p class="map-panel-sub">Paste a shop link, listing, or stock message. Gemini will summarize it and mark anything it cannot verify.</p>
+        <p class="map-panel-sub">One search checks the stores on the map against current web listings for the part. Gemini links sources and flags stock that cannot be verified.</p>
         <label class="compat-label" for="stock-part">Part requested</label>
-        <input id="stock-part" class="stock-input" type="text" placeholder="e.g. RTX 4060 8GB" />
-        <label class="compat-label" for="stock-location">Preferred city or shop</label>
-        <input id="stock-location" class="stock-input" type="text" placeholder="e.g. Gilmore, Quezon City" />
-        <label class="compat-label" for="stock-source">Stock information or shop link</label>
-        <textarea id="stock-source" class="stock-input stock-source" rows="5" placeholder="Paste the seller's current listing, message, or URL here..."></textarea>
-        <button id="stock-check-btn" class="btn-gradient" type="button" onclick="checkPartStock()">Ask Gemini to check stock</button>
+        <input id="stock-part" class="stock-input" type="text" placeholder="e.g. RTX 4060 8GB" onkeydown="if(event.key==='Enter')checkPartStock()" />
+        <label class="compat-label" for="stock-location">Your city or area</label>
+        <input id="stock-location" class="stock-input" type="text" placeholder="e.g. Manila, Cebu, or use my location" onkeydown="if(event.key==='Enter')checkPartStock()" />
+        <label class="compat-label" for="stock-source">Retailer product URL (optional)</label>
+        <textarea id="stock-source" class="stock-input stock-source" rows="3" placeholder="Add a store product page to check it alongside web search..."></textarea>
+        <button id="stock-check-btn" class="btn-gradient" type="button" onclick="checkPartStock()">Search stores and part together</button>
         <div id="stock-result" class="stock-result" aria-live="polite"></div>
       </div>
     </div>

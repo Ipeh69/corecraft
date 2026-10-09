@@ -68,7 +68,7 @@ if (strlen($message) > 12000) {
 }
 
 $featurePrompts = array(
-    'pricing' => 'Help the user compare PC component prices and stock information in the Philippines. Never invent live prices, inventory counts, or store availability. Treat Google Places as location information only, not proof that a shop carries a part. When the user supplies a seller listing, message, or URL, summarize only what it supports, label the result VERIFIED FROM PROVIDED SOURCE or UNVERIFIED, and recommend contacting the seller because stock changes quickly. Use Philippine pesos when discussing costs.',
+    'pricing' => 'Help the user compare PC component prices and stock information in the Philippines. Never invent live prices, inventory counts, or store availability. Treat map listings as location information only, not proof that a shop carries a part. For a live-search request, use only current web-search results and retailer pages as evidence. Name a specific store only when a source supports it, link each result to its source, and distinguish a posted online price from a confirmed in-store price. Say STOCK NOT VERIFIED when a source does not explicitly establish current availability, and say NO CURRENT LISTING FOUND when search produces no reliable product listing. Include the current date, exact product/model, Philippine peso price, source publication/update date when available, and direct retailer URL when available. Never infer stock from a search snippet, map marker, generic store page, or old/marketplace listing. Recommend confirming stock and final price directly with the seller. Use Philippine pesos.',
     'trouble' => 'Act as a careful PC troubleshooting assistant. Give safe, numbered diagnostic steps. Warn the user to unplug power before opening the case and never recommend unsafe electrical experiments. Ask for missing details when needed.',
     'compat' => 'You are the authoritative PC compatibility checker. Use the exact user-entered part names and your hardware knowledge, never database assumptions. Give a complete, detailed answer and do not stop after identifying the first issue. Use this exact order: VERDICT: Compatible or VERDICT: Needs Changes; IMMEDIATE CHANGES: all important actions the user must take; WHY: detailed explanation of each issue; OPTIONS: replacement choices; FINAL RECOMMENDATION: one complete working direction; ESTIMATED PHILIPPINES PRICES: every entered part in the format PART | LOW ESTIMATE | HIGH ESTIMATE, followed by TOTAL ESTIMATED BUILD COST. Use realistic current-market ranges in Philippine pesos based on the exact model, never claim an exact live seller price, and label all amounts as estimates that vary by seller and date. Name the actual parts and label each issue CRITICAL, WARNING, or OK. For CPU/motherboard mismatch, provide two complete paths: keep the CPU and name a compatible motherboard, or keep the motherboard and name a compatible CPU. For a weak PSU, state minimum wattage, recommended wattage, quality tier, and connector requirement. Separate true incompatibility from performance bottleneck. If a model is incomplete, mark it UNVERIFIED and state the exact detail needed. Always include IMMEDIATE CHANGES, FINAL RECOMMENDATION, and ESTIMATED PHILIPPINES PRICES before ending.',
     'buildai' => 'Recommend a balanced PC build for the user\'s budget and purpose in the Philippines. Use current component knowledge cautiously, provide approximate prices only when appropriate, and explain trade-offs. Do not claim that prices are live.',
@@ -100,6 +100,15 @@ $requestBody = array(
     )
 );
 
+$useGoogleSearch = $feature === 'pricing'
+    && isset($payload['grounded_search'])
+    && $payload['grounded_search'] === true;
+$searchStartedAt = $useGoogleSearch ? gmdate('c') : null;
+if ($useGoogleSearch) {
+    $systemPrompt .= "\nCurrent date and time for search-result freshness: " . gmdate('Y-m-d H:i') . ' UTC.';
+    $requestBody['tools'] = array(array('google_search' => new stdClass()));
+}
+
 $configuredModels = defined('CORECRAFT_GEMINI_MODELS') ? CORECRAFT_GEMINI_MODELS : 'gemini-2.5-flash,gemini-2.5-flash-lite,gemini-2.0-flash';
 $models = array();
 foreach (explode(',', $configuredModels) as $model) {
@@ -107,6 +116,27 @@ foreach (explode(',', $configuredModels) as $model) {
     if ($model !== '') $models[] = $model;
 }
 if (count($models) === 0) $models = array('gemini-2.5-flash');
+
+// Old bundled PHP/OpenSSL (e.g. WAMP with PHP 5.3) cannot verify modern TLS; use the system curl.exe, which still verifies certificates.
+function geminiPostWithCurlExe($url, $json) {
+    $exe = getenv('SystemRoot') ? getenv('SystemRoot') . '\\System32\\curl.exe' : '';
+    if ($exe === '' || !is_file($exe) || !function_exists('exec')) return null;
+    $bodyFile = tempnam(sys_get_temp_dir(), 'gmb');
+    $configFile = tempnam(sys_get_temp_dir(), 'gmc');
+    if ($bodyFile === false || $configFile === false) return null;
+    file_put_contents($bodyFile, $json);
+    file_put_contents($configFile, 'url = "' . $url . "\"\nheader = \"Content-Type: application/json\"\n");
+    $output = array();
+    $code = 1;
+    exec('"' . $exe . '" -sS -m 90 -K "' . $configFile . '" --data-binary "@' . $bodyFile . '" -w "\n%{http_code}" 2>&1', $output, $code);
+    @unlink($bodyFile);
+    @unlink($configFile);
+    $text = implode("\n", $output);
+    $pos = strrpos($text, "\n");
+    $status = $pos === false ? 0 : (int)substr($text, $pos + 1);
+    if ($status === 0) return null;
+    return array('body' => substr($text, 0, $pos), 'status' => $status);
+}
 
 $response = false;
 $curlError = '';
@@ -123,13 +153,21 @@ foreach ($models as $model) {
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CONNECTTIMEOUT => 20,
         CURLOPT_TIMEOUT => 90,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => 0
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
     ));
     $response = curl_exec($ch);
     $curlError = curl_error($ch);
     $statusCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
+    if ($response === false && preg_match('/ssl|certificate|protocol/i', $curlError)) {
+        $fallback = geminiPostWithCurlExe($url, json_encode($requestBody));
+        if ($fallback !== null) {
+            $response = $fallback['body'];
+            $statusCode = $fallback['status'];
+            $curlError = '';
+        }
+    }
     $gemini = is_string($response) ? json_decode($response, true) : array();
     if ($response !== false && !$curlError && $statusCode >= 200 && $statusCode < 300) break;
     $lastError = isset($gemini['error']['message']) ? $gemini['error']['message'] : ($curlError ? $curlError : 'Model unavailable.');
@@ -143,14 +181,36 @@ if ($response === false || $curlError) {
 
 if ($statusCode < 200 || $statusCode >= 300) {
     setHttpStatus($statusCode === 429 ? 429 : 502);
-    echo json_encode(array('error' => 'All configured Gemini models failed: ' . $lastError));
+    $quotaHint = ($useGoogleSearch && $statusCode === 429)
+        ? ' Live web search (Google Search grounding) needs a Gemini API key on a paid/billing-enabled plan; the free tier has no grounding quota.'
+        : '';
+    echo json_encode(array('error' => 'All configured Gemini models failed: ' . $lastError . $quotaHint));
     exit;
 }
 
 $text = '';
+$sources = array();
+$groundingMetadata = isset($gemini['candidates'][0]['groundingMetadata'])
+    && is_array($gemini['candidates'][0]['groundingMetadata'])
+    ? $gemini['candidates'][0]['groundingMetadata']
+    : array();
 if (isset($gemini['candidates'][0]['content']['parts']) && is_array($gemini['candidates'][0]['content']['parts'])) {
     foreach ($gemini['candidates'][0]['content']['parts'] as $part) {
         if (isset($part['text'])) $text .= $part['text'];
+    }
+}
+if (isset($groundingMetadata['groundingChunks']) && is_array($groundingMetadata['groundingChunks'])) {
+    foreach ($groundingMetadata['groundingChunks'] as $chunk) {
+        $webSource = isset($chunk['web']) && is_array($chunk['web']) ? $chunk['web'] : array();
+        $uri = isset($webSource['uri']) ? trim((string)$webSource['uri']) : '';
+        if ($uri === '' || !filter_var($uri, FILTER_VALIDATE_URL) || strtolower((string)parse_url($uri, PHP_URL_SCHEME)) !== 'https') {
+            continue;
+        }
+        $sources[$uri] = array(
+            'title' => isset($webSource['title']) ? trim((string)$webSource['title']) : '',
+            'url' => $uri
+        );
+        if (count($sources) >= 10) break;
     }
 }
 if ($text === '') {
@@ -159,4 +219,9 @@ if ($text === '') {
     exit;
 }
 
-echo json_encode(array('reply' => $text));
+echo json_encode(array(
+    'reply' => $text,
+    'grounded' => $useGoogleSearch && count($sources) > 0,
+    'sources' => array_values($sources),
+    'searchedAt' => $searchStartedAt
+));
