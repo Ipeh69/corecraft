@@ -16,7 +16,7 @@
         <div class="feature-desc">Select your CPU, motherboard, RAM, GPU, storage, and PSU — instantly see if they all work together with a full compatibility report.</div>
       </div>
       <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(124,58,237,.12)">💡</div>
+        <div class="feature-icon" style="background:rgba(8,124,255,.12)">💡</div>
         <div class="feature-title">Build Recommendations</div>
         <div class="feature-desc">Choose your budget and use case — gaming, office, or students — and get curated build recommendations from database.</div>
       </div>

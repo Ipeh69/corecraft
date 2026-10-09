@@ -24,7 +24,7 @@ include "chat_handler.php";
 <?php include __DIR__ . '/sections/phchat.php'; ?>
 <?php include __DIR__ . '/sections/login.php'; ?>
 <?php include __DIR__ . '/sections/profile.php'; ?>
-S  <script>window.CORECRAFT_GOOGLE_CLIENT_ID=<?php echo json_encode(CORECRAFT_GOOGLE_CLIENT_ID); ?>;</script>
+  <script>window.CORECRAFT_GOOGLE_CLIENT_ID=<?php echo json_encode(CORECRAFT_GOOGLE_CLIENT_ID); ?>;</script>
   <script src="script.js?v=<?php echo filemtime('script.js'); ?>"></script>
 </body>
 </html>

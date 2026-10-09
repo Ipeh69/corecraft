@@ -995,7 +995,7 @@ function switchBuild(type,btn){
   document.querySelectorAll('.build-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderBuilds(type);
-  recordActivity('💡','Viewed '+(btn.textContent||type).replace(/^\S+\s*/, '').trim()+' builds','Exploring recommended PC parts','rgba(124,58,237,.1)');
+  recordActivity('💡','Viewed '+(btn.textContent||type).replace(/^\S+\s*/, '').trim()+' builds','Exploring recommended PC parts','rgba(8,124,255,.1)');
 }
 function useBuildRecommendation(encodedBuild){
   let build = null;
@@ -1005,7 +1005,7 @@ function useBuildRecommendation(encodedBuild){
     build = null;
   }
   if (!build || !Array.isArray(build.parts)) return;
-  recordActivity('🧩','Selected '+(build.label||'recommended build'),build.budget?'₱'+Number(build.budget).toLocaleString()+' build':'Recommended PC parts','rgba(124,58,237,.1)');
+  recordActivity('🧩','Selected '+(build.label||'recommended build'),build.budget?'₱'+Number(build.budget).toLocaleString()+' build':'Recommended PC parts','rgba(8,124,255,.1)');
 
   const fieldMap = {
     cpu: 'compat-cpu',
@@ -1159,7 +1159,7 @@ async function sendChat(id){
 
   if(id==='pricing')recordActivity('📍','Asked pricing AI',text,'rgba(255,107,53,.1)');
   if(id==='trouble')recordActivity('🛠️','Asked troubleshooting AI',text,'rgba(34,197,94,.1)');
-  if(id==='buildai')recordActivity('💡','Asked build recommendation AI',text,'rgba(124,58,237,.1)');
+  if(id==='buildai')recordActivity('💡','Asked build recommendation AI',text,'rgba(8,124,255,.1)');
   addMsg(id,'user',displayText);inp.value='';
   document.getElementById(id+'-send').disabled=true;
   addTyping(id);
@@ -1418,7 +1418,7 @@ async function sendPrivateMessage(){
   try{
     await phCommunityRequest('dm_send',{peer_email:activeDMEmail,message:message});
     input.value='';
-    recordActivity('✉️','Sent a private message','To '+activeDMEmail,'rgba(124,58,237,.1)');
+    recordActivity('✉️','Sent a private message','To '+activeDMEmail,'rgba(8,124,255,.1)');
     await loadPrivateMessages();
     loadDMConversations();
   }catch(error){alert(error.message||'Message could not be sent.');}
@@ -2236,12 +2236,21 @@ async function handleGoogleCredential(response){
   const dest=pendingPage||'home';pendingPage=null;showPage(dest);
 }
 async function authRequest(action,payload){
+  let response;
   try{
-    const response=await fetch('users_api.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action},payload))});
-    const data=await response.json();
+    response=await fetch('users_api.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action},payload))});
+  }catch(error){
+    console.error('Account service request failed.',error);
+    const detail=error&&error.message?error.message:'Network request failed';
+    return {success:false,error:`Could not reach users_api.php (${detail}). Open the app at http://localhost/CoreCraft/ and check that Apache is running.`};
+  }
+  try{
+    const data=JSON.parse(await response.text());
+    if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('Unexpected response format');
     return data;
   }catch(error){
-    return {success:false,error:'Cannot connect to the account service. Start Apache and MySQL, then try again.'};
+    console.error('Account service returned an invalid response.',{status:response.status,error});
+    return {success:false,error:`The account service returned an invalid response (HTTP ${response.status}). Check the Apache/PHP error log.`};
   }
 }
 function syncProfilePage(){
@@ -2306,7 +2315,7 @@ function updateMobileMenu(loggedIn,firstName){
     actions.innerHTML=`
       <div style="padding:12px 0;border-top:1px solid var(--border);margin-top:8px">
         <button class="mobile-signed-btn" onclick="showPage('profile');closeMenu()">
-          <div class="mobile-signed-avatar" style="background:linear-gradient(135deg,var(--purple),var(--cyan))">${initials}</div>
+          <div class="mobile-signed-avatar" style="background:linear-gradient(135deg,var(--blue),var(--cyan))">${initials}</div>
           <div style="text-align:left"><div style="font-weight:700;color:var(--text)">${firstName}</div><div style="font-size:12px;color:var(--muted)">Signed in</div></div>
           <div style="margin-left:auto;color:var(--muted);font-weight:700">▾</div>
         </button>
