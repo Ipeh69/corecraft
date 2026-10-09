@@ -211,24 +211,25 @@
     .map-panel-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700}
     .map-panel-sub{color:var(--muted);font-size:12px;line-height:1.5;margin-top:4px}
     .map-search-row{display:flex;gap:10px;align-items:center}
-    .map-search-row .chat-textarea{min-width:0}
+    .map-search-row .chat-textarea{min-width:0;flex:1}
     .map-search-btn{padding:10px 14px;white-space:nowrap}
     .philippines-map{height:410px;background:#dbe5e8;z-index:1}
     .leaflet-container{font:12px 'DM Sans',sans-serif;color:#1f2937}
     .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#fff;color:#111827}
-    .technician-marker-wrap{background:transparent;border:0}
-    .technician-marker{display:flex;width:34px;height:34px;align-items:center;justify-content:center;border:2px solid white;border-radius:50%;background:#087f8c;color:white;font-size:10px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.38)}
-    .technician-popup-type{margin:3px 0;color:#087f8c;font-size:11px;font-weight:700}
+    .shop-marker-wrap{background:transparent;border:0}
+    .shop-marker{display:flex;width:34px;height:34px;align-items:center;justify-content:center;border:2px solid white;border-radius:50%;background:#087f8c;color:white;font-size:10px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.38)}
+    .shop-popup-type{margin:3px 0;color:#087f8c;font-size:11px;font-weight:700}
     .map-status{padding:10px 18px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--border)}
     .map-legend{display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);color:var(--muted);font-size:11px}
-    .technician-legend-dot{width:12px;height:12px;display:inline-block;border:2px solid white;border-radius:50%;background:#087f8c;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+    .shop-legend-dot{width:12px;height:12px;display:inline-block;border:2px solid white;border-radius:50%;background:#087f8c;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+    .user-location-legend-dot{width:12px;height:12px;display:inline-block;border:2px solid white;border-radius:50%;background:#2563eb;box-shadow:0 1px 4px rgba(0,0,0,.3)}
     .map-legend-note{margin-left:auto}
     .shop-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;padding:14px;max-height:230px;overflow:auto}
     .shop-result{padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:left;color:var(--text);font:inherit}
     .shop-result:hover{border-color:var(--cyan)}
     .shop-result-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
     .shop-result-name{font-weight:700;font-size:13px}
-    .technician-tag{flex:none;padding:3px 6px;border-radius:999px;background:rgba(0,229,255,.1);color:var(--cyan);font-size:9px;font-weight:700;text-transform:uppercase}
+    .shop-type-tag{flex:none;padding:3px 6px;border-radius:999px;background:rgba(0,229,255,.1);color:var(--cyan);font-size:9px;font-weight:700;text-transform:uppercase}
     .shop-result-meta{color:var(--muted);font-size:12px;margin-top:4px;line-height:1.4}
     .stock-panel{padding:20px;height:max-content}
     .stock-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--text);font:inherit;font-size:13px;outline:none;margin-bottom:14px}
@@ -236,6 +237,10 @@
     .stock-source{resize:vertical;min-height:110px}
     .stock-result{margin-top:14px;color:var(--text);font-size:13px;line-height:1.6}
     .stock-result:empty{display:none}
+    .stock-sources{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:12px}
+    .stock-sources ul{margin:6px 0 0;padding-left:18px}
+    .stock-sources a{color:var(--cyan);overflow-wrap:anywhere}
+    .stock-verification-note{color:var(--muted);font-size:11px;margin-top:10px}
     @media(max-width:800px){.pricing-map-layout{grid-template-columns:1fr}.philippines-map{height:340px}}
     @media(max-width:520px){.map-search-row{flex-direction:column;align-items:stretch}.map-search-btn{width:100%}.philippines-map{height:300px}}
     .chat-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:20px;overflow:hidden}
