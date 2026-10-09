@@ -16,23 +16,22 @@
       <div class="login-form">
         <div class="hidden-field form-group" id="field-name">
           <label class="form-label">Full Name</label>
-          <div class="input-wrap"><span class="input-icon">👤</span><input class="form-input signup-focus" id="name-input" type="text" autocomplete="name" placeholder="Juan Dela Cruz"/></div>
+          <div class="input-wrap"><input class="form-input signup-focus" id="name-input" type="text" autocomplete="name" placeholder="Juan Dela Cruz"/></div>
         </div>
         <div class="form-group">
           <label class="form-label">Email Address</label>
-          <div class="input-wrap"><span class="input-icon">✉️</span><input class="form-input" id="email-input" type="email" autocomplete="email" placeholder="juan@example.com"/></div>
+          <div class="input-wrap"><input class="form-input" id="email-input" type="email" autocomplete="email" placeholder="juan@example.com"/></div>
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
           <div class="input-wrap">
-            <span class="input-icon">🔒</span>
-            <input class="form-input" type="password" id="pw-input" autocomplete="current-password" placeholder="••••••••"/>
-            <button class="pw-toggle" onclick="togglePw()" id="pw-eye" type="button">👁</button>
+            <input class="form-input password-input" type="password" id="pw-input" autocomplete="current-password" placeholder="••••••••"/>
+            <button class="pw-toggle" onclick="togglePw()" id="pw-eye" type="button" aria-label="Show password" aria-pressed="false">Show</button>
           </div>
         </div>
         <div class="hidden-field form-group" id="field-confirm">
           <label class="form-label">Confirm Password</label>
-          <div class="input-wrap"><span class="input-icon">🔒</span><input class="form-input signup-focus" id="confirm-input" type="password" autocomplete="new-password" placeholder="••••••••"/></div>
+          <div class="input-wrap"><input class="form-input signup-focus" id="confirm-input" type="password" autocomplete="new-password" placeholder="••••••••"/></div>
         </div>
         <div class="remember-row" id="remember-row">
           <label class="remember-label"><input id="remember-input" type="checkbox" style="accent-color:var(--cyan)"/> Remember me</label>

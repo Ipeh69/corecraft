@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 if ($apiKey === '' || strpos($apiKey, 'YOUR_') === 0 || strpos($apiKey, 'PASTE_') === 0) {
     setHttpStatus(503);
-    echo json_encode(array('error' => 'Gemini is not configured. Upload gemini-config.php one directory above htdocs, or set CORECRAFT_GEMINI_API_KEY on the server, then try again.'));
+    echo json_encode(array('error' => 'Gemini API key is not configured. Add CORECRAFT_GEMINI_API_KEY to the project .env file or set it in the server environment, then try again.'));
     exit;
 }
 
@@ -109,13 +109,13 @@ if ($useGoogleSearch) {
     $requestBody['tools'] = array(array('google_search' => new stdClass()));
 }
 
-$configuredModels = defined('CORECRAFT_GEMINI_MODELS') ? CORECRAFT_GEMINI_MODELS : 'gemini-2.5-flash,gemini-2.5-flash-lite,gemini-2.0-flash';
+$configuredModels = defined('CORECRAFT_GEMINI_MODELS') ? CORECRAFT_GEMINI_MODELS : 'gemini-3.5-flash-lite';
 $models = array();
 foreach (explode(',', $configuredModels) as $model) {
     $model = trim($model);
     if ($model !== '') $models[] = $model;
 }
-if (count($models) === 0) $models = array('gemini-2.5-flash');
+if (count($models) === 0) $models = array('gemini-3.5-flash-lite');
 
 // Old bundled PHP/OpenSSL (e.g. WAMP with PHP 5.3) cannot verify modern TLS; use the system curl.exe, which still verifies certificates.
 function geminiPostWithCurlExe($url, $json) {

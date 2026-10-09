@@ -59,7 +59,6 @@ if (!$conn_users->query($token_table_sql)) {
     respond(array("success" => false, "error" => "Failed to prepare account sessions"), 500);
 }
 
-<<<<<<< HEAD
 function issue_auth_token($conn, $email) {
     $random_bytes = false;
     if (function_exists("random_bytes")) {
@@ -80,26 +79,6 @@ function issue_auth_token($conn, $email) {
         return false;
     }
     $token = bin2hex($random_bytes);
-=======
-function generate_auth_token() {
-    if (function_exists("random_bytes")) {
-        try {
-            return bin2hex(random_bytes(32));
-        } catch (Exception $error) {
-        }
-    }
-    if (function_exists("openssl_random_pseudo_bytes")) {
-        $bytes = openssl_random_pseudo_bytes(32, $strong);
-        if ($bytes !== false && $strong) {
-            return bin2hex($bytes);
-        }
-    }
-    return hash("sha256", uniqid("corecraft_", true) . mt_rand() . microtime(true));
-}
-
-function issue_auth_token($conn, $email) {
-    $token = generate_auth_token();
->>>>>>> 52a3705837c4cfd62d972be84eb26753ad0c5297
     $token_hash = hash("sha256", $token);
     $stmt = $conn->prepare("INSERT INTO auth_tokens (user_email, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))");
     if (!$stmt) {

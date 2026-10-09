@@ -132,7 +132,6 @@
     .status-light.green{background:#22c55e;box-shadow:0 0 10px rgba(34,197,94,.8)}
     .status-light.red{background:#ef4444;box-shadow:0 0 10px rgba(239,68,68,.8)}
     .status-light.gray{background:#64748b;box-shadow:0 0 8px rgba(100,116,139,.7)}
-    .comp-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:10px}
     .comp-name{font-size:13px;color:var(--muted);margin-bottom:4px}
     .comp-value{font-size:13px;font-weight:600}
     .comp-tag{font-size:11px;font-weight:500;margin-top:4px}
@@ -305,7 +304,6 @@
     .phchat-feed-community.active{background:rgba(0,229,255,.1);color:var(--cyan);font-weight:700}
     .phchat-community-delete{width:30px;height:30px;flex:none;border:1px solid rgba(248,113,113,.3);border-radius:6px;background:rgba(248,113,113,.08);color:#f87171;font-size:18px;line-height:1;cursor:pointer}
     .phchat-community-delete:hover{background:rgba(248,113,113,.2);border-color:#f87171}
-    .phchat-community-dot{width:20px;flex:none;text-align:center}
     .phchat-create-community{width:100%;min-height:40px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--text);font:600 12px 'DM Sans',sans-serif;cursor:pointer}
     .phchat-create-community:hover{border-color:var(--cyan);color:var(--cyan)}
     .phchat-hidden-select{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
@@ -399,12 +397,12 @@
     .form-group{margin-bottom:18px}
     .form-label{display:block;font-size:14px;font-weight:500;color:#d1d5db;margin-bottom:8px}
     .input-wrap{position:relative}
-    .input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:#6b7280;pointer-events:none}
-    .form-input{width:100%;padding:12px 16px 12px 40px;background:rgba(3,7,18,.5);border:1px solid #374151;border-radius:8px;color:white;font-size:16px;font-family:'DM Sans',sans-serif;outline:none;transition:all .2s}
+    .form-input{width:100%;padding:12px 16px;background:rgba(3,7,18,.5);border:1px solid #374151;border-radius:8px;color:white;font-size:16px;font-family:'DM Sans',sans-serif;outline:none;transition:all .2s}
+    .form-input.password-input{padding-right:64px}
     .form-input::placeholder{color:#6b7280}
     .form-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,255,.1)}
     .form-input.signup-focus:focus{border-color:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.1)}
-    .pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;font-size:16px;transition:color .2s;padding:4px}
+    .pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;font-size:12px;font-weight:600;transition:color .2s;padding:4px}
     .pw-toggle:hover{color:#d1d5db}
     .remember-row{display:flex;justify-content:space-between;align-items:center;font-size:14px;margin-bottom:18px;flex-wrap:wrap;gap:8px}
     .remember-label{display:flex;align-items:center;gap:8px;cursor:pointer;color:#9ca3af}

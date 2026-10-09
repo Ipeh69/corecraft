@@ -6,7 +6,6 @@
     </div>
     <div style="margin-bottom:32px">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#00bfff,#087cff);display:flex;align-items:center;justify-content:center;font-size:20px">🤖</div>
         <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800">AI Compatibility Checker</div>
       </div>
       <p style="color:var(--muted);font-size:15px;line-height:1.6;margin-top:12px">Enter your PC parts below to check socket compatibility, RAM support, and power requirements. Any issues will include a clear explanation on the affected component cards.</p>
@@ -60,11 +59,6 @@
           <div class="compat-row">
             <input type="text" id="compat-case" placeholder="e.g. Lian Li Lancool 216, NZXT H510" onkeydown="if(event.key==='Enter')runCompatCheck()" />
           </div>
-        </div>
-        <div class="compat-field" style="grid-column:1/-1">
-          <label class="compat-label">Price Store or City (Optional)</label>
-          <input id="compat-price-store" class="chat-textarea" type="text" placeholder="e.g. Dynaquest Gilmore, PC Express Cebu, or Manila" />
-          <div style="font-size:12px;color:var(--muted);margin-top:8px">Gemini will estimate for this store or location. Confirm the current listing before buying.</div>
         </div>
       </div>
       <div class="compat-actions">

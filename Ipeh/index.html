@@ -119,7 +119,6 @@
     .comp-card.compatible{border-color:var(--cyan);background:rgba(0,229,255,.06)}
     .comp-card.warning{border-color:var(--orange);background:rgba(255,107,53,.05)}
     .comp-card:hover{background:rgba(0,229,255,.04)}
-    .comp-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:10px}
     .comp-name{font-size:13px;color:var(--muted);margin-bottom:4px}
     .comp-value{font-size:13px;font-weight:600}
     .comp-tag{font-size:11px;font-weight:500;margin-top:4px}
@@ -285,12 +284,12 @@
     .form-group{margin-bottom:18px}
     .form-label{display:block;font-size:14px;font-weight:500;color:#d1d5db;margin-bottom:8px}
     .input-wrap{position:relative}
-    .input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;color:#6b7280;pointer-events:none}
-    .form-input{width:100%;padding:12px 16px 12px 40px;background:rgba(3,7,18,.5);border:1px solid #374151;border-radius:8px;color:white;font-size:16px;font-family:'DM Sans',sans-serif;outline:none;transition:all .2s}
+    .form-input{width:100%;padding:12px 16px;background:rgba(3,7,18,.5);border:1px solid #374151;border-radius:8px;color:white;font-size:16px;font-family:'DM Sans',sans-serif;outline:none;transition:all .2s}
+    .form-input.password-input{padding-right:64px}
     .form-input::placeholder{color:#6b7280}
     .form-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,229,255,.1)}
     .form-input.signup-focus:focus{border-color:#a855f7;box-shadow:0 0 0 3px rgba(168,85,247,.1)}
-    .pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;font-size:16px;transition:color .2s;padding:4px}
+    .pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;font-size:12px;font-weight:600;transition:color .2s;padding:4px}
     .pw-toggle:hover{color:#d1d5db}
     .remember-row{display:flex;justify-content:space-between;align-items:center;font-size:14px;margin-bottom:18px;flex-wrap:wrap;gap:8px}
     .remember-label{display:flex;align-items:center;gap:8px;cursor:pointer;color:#9ca3af}
@@ -472,7 +471,6 @@
     </div>
     <div style="margin-bottom:32px">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#00bfff,#087cff);display:flex;align-items:center;justify-content:center;font-size:20px">🤖</div>
         <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800">AI Compatibility Checker</div>
       </div>
       <p style="color:var(--muted);font-size:15px;line-height:1.6;margin-top:12px">Enter your PC parts below — the AI will analyze socket compatibility, power requirements, RAM support, and suggest fixes if anything's wrong.</p>
@@ -586,9 +584,9 @@
     <div class="section-sub">Curated PC builds for every budget and purpose. Click a category to explore builds.</div>
 
     <div class="build-tabs">
-      <button class="build-tab active" onclick="switchBuild('gaming',this)">🎮 Gaming</button>
-      <button class="build-tab" onclick="switchBuild('office',this)">💼 Office</button>
-      <button class="build-tab" onclick="switchBuild('workstation',this)">🖥️ Workstation</button>
+      <button class="build-tab active" onclick="switchBuild('gaming',this)">Gaming</button>
+      <button class="build-tab" onclick="switchBuild('office',this)">Office</button>
+      <button class="build-tab" onclick="switchBuild('workstation',this)">Workstation</button>
     </div>
 
     <div id="build-content"></div>
@@ -601,41 +599,15 @@
   </footer>
 </div>
 
-<!-- ===== PRICING AI ===== -->
+<!-- ===== PART PRICING ===== -->
 <div id="page-pricing" class="page">
   <div class="section-wrap" style="padding-top:20px">
     <button class="back-link" onclick="showPage('home')" style="margin-bottom:28px">← Back to Home</button>
-    <div class="label-tag">Feature 3 · AI Powered</div>
+    <div class="label-tag">Feature 3</div>
     <div class="section-title">Component Pricing by Location</div>
-    <div class="section-sub">Ask our AI for real prices from stores near you across the Philippines.</div>
-    <div class="ai-page-wrap">
-      <div class="chat-wrap">
-        <div class="chat-messages" id="pricing-messages"></div>
-        <div class="quick-bar">
-          <div class="quick-label">Quick Questions:</div>
-          <div class="quick-btns">
-            <button class="quick-btn" onclick="setInput('pricing','RTX 4060 price in Manila')">RTX 4060 in Manila</button>
-            <button class="quick-btn" onclick="setInput('pricing','Ryzen 5 5600 price Cebu')">Ryzen 5 5600 in Cebu</button>
-            <button class="quick-btn" onclick="setInput('pricing','16GB DDR4 RAM price Davao')">RAM price in Davao</button>
-            <button class="quick-btn" onclick="setInput('pricing','Best GPU deals near me')">Best GPU deals</button>
-            <button class="quick-btn" onclick="setInput('pricing','Budget gaming PC parts price list')">Budget parts list</button>
-          </div>
-        </div>
-        <div class="chat-input-wrap">
-          <div class="chat-row" style="flex-direction:column;align-items:stretch">
-            <input id="pricing-location" class="chat-textarea" type="text" placeholder="Your shopping location (e.g. Manila, Cebu, Davao)" />
-            <div class="chat-row" style="margin-top:10px">
-              <textarea id="pricing-input" class="chat-textarea" rows="2" placeholder="Ask about component prices... e.g. 'RTX 4060 price'" onkeydown="handleKey(event,'pricing')"></textarea>
-              <button class="send-btn" id="pricing-send" onclick="sendChat('pricing')">Send</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="ai-info-cards">
-        <div class="ai-info-card"><div class="ai-info-emoji">📍</div><div class="ai-info-num">All Cities</div><div class="ai-info-sub">Manila, Cebu, Davao+</div></div>
-        <div class="ai-info-card"><div class="ai-info-emoji">💰</div><div class="ai-info-num">Real Prices</div><div class="ai-info-sub">Local store pricing</div></div>
-        <div class="ai-info-card"><div class="ai-info-emoji">🏪</div><div class="ai-info-num">50+ Stores</div><div class="ai-info-sub">Trusted nationwide</div></div>
-      </div>
+    <div class="section-sub">The legacy pricing chat has been removed. Open the main CoreCraft app for store locations and current part listings.</div>
+    <div class="card" style="padding:24px;max-width:720px">
+      <a class="btn-primary" href="../index.php">Open CoreCraft</a>
     </div>
   </div>
   <footer>
@@ -738,23 +710,22 @@
       <div class="login-form">
         <div class="hidden-field form-group" id="field-name">
           <label class="form-label">Full Name</label>
-          <div class="input-wrap"><span class="input-icon">👤</span><input class="form-input signup-focus" id="name-input" type="text" autocomplete="name" placeholder="Juan Dela Cruz"/></div>
+          <div class="input-wrap"><input class="form-input signup-focus" id="name-input" type="text" autocomplete="name" placeholder="Juan Dela Cruz"/></div>
         </div>
         <div class="form-group">
           <label class="form-label">Email Address</label>
-          <div class="input-wrap"><span class="input-icon">✉️</span><input class="form-input" id="email-input" type="email" autocomplete="email" placeholder="juan@example.com"/></div>
+          <div class="input-wrap"><input class="form-input" id="email-input" type="email" autocomplete="email" placeholder="juan@example.com"/></div>
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
           <div class="input-wrap">
-            <span class="input-icon">🔒</span>
-            <input class="form-input" type="password" id="pw-input" autocomplete="current-password" placeholder="••••••••"/>
-            <button class="pw-toggle" onclick="togglePw()" id="pw-eye" type="button">👁</button>
+            <input class="form-input password-input" type="password" id="pw-input" autocomplete="current-password" placeholder="••••••••"/>
+            <button class="pw-toggle" onclick="togglePw()" id="pw-eye" type="button" aria-label="Show password" aria-pressed="false">Show</button>
           </div>
         </div>
         <div class="hidden-field form-group" id="field-confirm">
           <label class="form-label">Confirm Password</label>
-          <div class="input-wrap"><span class="input-icon">🔒</span><input class="form-input signup-focus" id="confirm-input" type="password" autocomplete="new-password" placeholder="••••••••"/></div>
+          <div class="input-wrap"><input class="form-input signup-focus" id="confirm-input" type="password" autocomplete="new-password" placeholder="••••••••"/></div>
         </div>
         <div class="remember-row" id="remember-row">
           <label class="remember-label"><input id="remember-input" type="checkbox" style="accent-color:var(--cyan)"/> Remember me</label>
@@ -1001,7 +972,6 @@ function showPage(name){
   if(el)el.classList.add('active');
   window.scrollTo(0,0);
   closeMenu();
-  if(name==='pricing'&&!pricingInit)initChat('pricing');
   if(name==='troubleshoot'&&!troubleInit)initChat('trouble');
   if(name==='compatibility'&&!compatInit)initChat('compat');
   if(name==='build'&&!buildaiInit)initChat('buildai');
@@ -1110,7 +1080,6 @@ function renderComponents(){
   if(gridEl){
     gridEl.innerHTML=components.map(c=>`
       <div class="comp-card ${c.status!=='empty'?c.status:''}" onclick="openComponentSelector('${c.type}')">
-        <div class="comp-icon">${c.icon}</div>
         <div class="comp-name">${c.name}</div>
         <div class="comp-value" style="color:${c.status==='empty'?'var(--muted)':'var(--text)'}">${c.value}</div>
         <div class="comp-tag ${c.status==='warning'?'warn':c.status==='empty'?'empty':'ok'}">${c.tag}</div>
@@ -1542,9 +1511,8 @@ renderBuilds('gaming');
 renderBuildIdeas();
 
 // ——— AI CHAT (shared engine) ———
-let pricingInit=false,troubleInit=false,compatInit=false,buildaiInit=false;
+let troubleInit=false,compatInit=false,buildaiInit=false;
 function initChat(id){
-  if(id==='pricing'){pricingInit=true;addMsg('pricing','ai',`Hi! I'm CoreCraft's Pricing AI. I can find component prices from stores across the Philippines.\n\nTry asking:\n• "RTX 4060 price in Manila"\n• "Ryzen 5 5600 cheapest in Cebu"\n• "Budget PC parts price list"`)}
   if(id==='trouble'){troubleInit=true;addMsg('trouble','ai',`Hi! I'm CoreCraft's Troubleshooting AI Bot. Tell me your PC problem and I will guide you step-by-step to fix it.\n\nDescribe what's happening — e.g.:\n• "PC won't boot, no display"\n• "Keeps restarting randomly"\n• "Very slow after Windows update"`)}
   if(id==='compat'){compatInit=true;addMsg('compat','ai',`Hi! I'm your Compatibility AI. Enter your PC parts in the fields above and I will analyze socket compatibility, RAM type, PSU wattage, and GPU fitment for your system.\n\nTry:\n• "Check my build compatibility"\n• "Why is my RAM incompatible?"\n• "What PSU do I need for my GPU?"`)}
   if(id==='buildai'){buildaiInit=true;addMsg('buildai','ai',`Hi! I'm CoreCraft's AI Build Recommendation Engine.\n\nTell me your requirements:\n• Budget (e.g. ₱50,000)
@@ -1580,8 +1548,7 @@ function sendChat(id){
   setTimeout(()=>{
     removeTyping(id);
     let reply = '';
-    if(id==='pricing') reply = getPricingResponse(buildPricingQuery(text));
-    else if(id==='trouble') reply = getTroubleResponse(text);
+    if(id==='trouble') reply = getTroubleResponse(text);
     else if(id==='compat') reply = getCompatResponse(text);
     else if(id==='buildai') reply = getBuildAIResponse(text);
     else if(id==='PHchat') reply = getPHChatResponse(text);
@@ -1622,42 +1589,6 @@ function getPHChatResponse(text){
     return `You\'re welcome! If you want, I can share a sample parts list or recommend a good case.`;
   }
   return `Nice! Tell me more about what you want to build or what part you need help with.`;
-}
-
-function buildPricingQuery(msg){
-  const locationInput = document.getElementById('pricing-location');
-  if(!locationInput) return msg;
-  const location = locationInput.value.trim();
-  if(!location) return msg;
-  const lower = msg.toLowerCase();
-  if(lower.includes(location.toLowerCase())) return msg;
-  return `${msg} in ${location}`;
-}
-
-function getPricingResponse(msg){
-  const m=msg.toLowerCase();
-  if(m.includes('manila')||m.includes('metro')){
-    return `📍 **Component Prices in Metro Manila:**\n\n**GPU — RTX 4060:**\n• PC Corner (MOA): ₱22,000\n• Dynaquest (Gilmore): ₱21,500\n• PC Hub (Gilmore): ₱21,800\n\n**CPU — Ryzen 5 5600:**\n• Easy PC: ₱9,200\n• Villman (Greenhills): ₱9,400\n• PC Express: ₱9,100\n\n💡 **Tip:** Gilmore, Quezon City has the most competitive prices in Metro Manila. Visit on weekdays to avoid crowds.`;
-  }
-  if(m.includes('cebu')){
-    return `📍 **Component Prices in Cebu:**\n\n**GPU — RTX 4060:**\n• PC Express (SM Cebu): ₱22,500\n• Mindpro Computer (IT Park): ₱22,200\n• Ayala Computer Center: ₱23,000\n\n**CPU — Ryzen 5 5600:**\n• Mindpro Computer: ₱9,500\n• PC Express Cebu: ₱9,300\n\n💡 **Tip:** IT Park Cebu has the best selection. Prices in Cebu are typically 2-5% higher than Manila.`;
-  }
-  if(m.includes('davao')){
-    return `📍 **Component Prices in Davao:**\n\n**GPU — RTX 4060:**\n• Octagon (Victoria Plaza): ₱22,800\n• Silicon Valley (Gaisano): ₱23,100\n\n**CPU — Ryzen 5 5600:**\n• Octagon Superstore: ₱9,600\n• Silicon Valley: ₱9,700\n\n💡 **Tip:** Octagon in Victoria Plaza has the widest selection in Davao.`;
-  }
-  if(m.includes('rtx')||m.includes('gpu')||m.includes('graphics')){
-    return `🎮 **GPU Price List (Philippines):**\n\n**Budget:**\n• GTX 1660 Super — ₱17,500–₱19,000\n• RX 6600 — ₱20,000–₱22,000\n\n**Mid-Range:**\n• RTX 4060 — ₱21,500–₱23,500\n• RTX 4060 Ti — ₱30,000–₱33,000\n• RX 7600 — ₱22,000–₱24,000\n\n**High-End:**\n• RTX 4070 — ₱42,000–₱46,000\n• RTX 4070 Super — ₱48,000–₱52,000\n• RTX 4080 — ₱78,000–₱85,000\n\nTell me your city and I'll find the closest store prices!`;
-  }
-  if(m.includes('ryzen')||m.includes('cpu')||m.includes('processor')){
-    return `🧠 **CPU Price List (Philippines):**\n\n**Budget (AM4):**\n• Ryzen 3 4100 — ₱5,000–₱5,500\n• Ryzen 5 4500 — ₱7,500–₱8,000\n• Ryzen 5 5600 — ₱9,000–₱9,800\n\n**Mid-Range (AM5):**\n• Ryzen 5 7600 — ₱14,500–₱16,000\n• Ryzen 7 7700X — ₱21,000–₱24,000\n\n**High-End:**\n• Ryzen 9 7900X — ₱30,000–₱34,000\n• Ryzen 9 7950X — ₱52,000–₱58,000\n\nWhich city are you shopping in?`;
-  }
-  if(m.includes('ram')||m.includes('memory')){
-    return `💾 **RAM Price List (Philippines):**\n\n**DDR4:**\n• 8GB 3200MHz — ₱1,200–₱1,600\n• 16GB (2×8) 3200 — ₱2,800–₱3,600\n• 32GB (2×16) 3600 — ₱5,000–₱6,500\n\n**DDR5:**\n• 16GB 4800MHz — ₱3,500–₱4,500\n• 32GB 5200MHz — ₱7,500–₱9,500\n• 64GB 6000MHz — ₱18,000–₱24,000\n\n💡 DDR4 still offers the best price-to-performance for most builds!`;
-  }
-  if(m.includes('budget')||m.includes('cheap')||m.includes('list')){
-    return `💰 **Budget Gaming PC Price List (₱35,000):**\n\n• Ryzen 5 5600 (CPU) — ₱9,200\n• B550M Motherboard — ₱7,500\n• 16GB DDR4 3200 RAM — ₱3,400\n• GTX 1660 Super (GPU) — ₱18,500\n• 500GB NVMe SSD — ₱2,800\n• 550W PSU — ₱3,200\n• mATX Case — ₱1,500\n──────────────────\n**Total: ≈₱46,100**\n\n📍 Best places to buy:\n• Manila (Gilmore, QC) — cheapest\n• Cebu (IT Park) — good selection\n• Davao (Octagon) — reliable`;
-  }
-  return `I can find prices for any PC component in your city! Try:\n\n• "RTX 4060 price in [your city]"\n• "CPU prices in Cebu"\n• "Cheapest RAM in Manila"\n• "Budget PC parts list"\n\nWhich component or city are you looking for?`;
 }
 
 // ——— SAVE & LOAD BUILDS ———
@@ -2007,7 +1938,11 @@ function switchTab(tab){
 function togglePw(){
   const inp=document.getElementById('pw-input');
   inp.type=inp.type==='password'?'text':'password';
-  document.getElementById('pw-eye').textContent=inp.type==='password'?'👁':'🙈';
+  const toggle=document.getElementById('pw-eye');
+  const isVisible=inp.type==='text';
+  toggle.textContent=isVisible?'Hide':'Show';
+  toggle.setAttribute('aria-label',isVisible?'Hide password':'Show password');
+  toggle.setAttribute('aria-pressed',String(isVisible));
 }
 function showAuthStatus(message,type='error'){
   const status=document.getElementById('login-status');

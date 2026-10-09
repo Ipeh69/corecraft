@@ -21,7 +21,6 @@ function showPage(name){
     if(el)el.classList.add('active');
   window.scrollTo(0,0);
   closeMenu();
-  if(name==='pricing'&&!pricingInit)initChat('pricing');
   if(name==='pricing'){
     if(window.L&&!philippinesMap)initPhilippinesMap();
     else if(window.L&&philippinesMap)setTimeout(()=>philippinesMap.invalidateSize(),50);
@@ -538,7 +537,6 @@ function renderComponents(){
     gridEl.innerHTML=components.map(c=>`
       <div class="comp-card ${c.status!=='empty'?c.status:''}" onclick="highlightCompatCard(this)">
         <div class="status-light ${c.status==='compatible'?'green':c.status==='warning'?'red':'gray'}"></div>
-        <div class="comp-icon">${c.icon}</div>
         <div class="comp-name">${c.name}</div>
         <div class="comp-value" style="color:${c.status==='empty'?'var(--muted)':'var(--text)'}">${c.value}</div>
         <div class="comp-tag ${c.status==='warning'?'warn':c.status==='empty'?'empty':'ok'}">${c.tag}</div>
@@ -563,7 +561,7 @@ function highlightCompatCard(cardEl){
   cardEl.classList.add('active-card');
 }
 
-function applyAiPriceEstimates(text,priceSource){
+function applyAiPriceEstimates(text){
   const categories={cpu:'cpu',motherboard:'motherboard',mb:'motherboard',ram:'ram',memory:'ram',gpu:'gpu',graphics:'gpu',storage:'storage',ssd:'storage',hdd:'storage',psu:'psu',power:'psu'};
   String(text||'').split(/\r?\n/).forEach(function(line){
     const normalized=line.toLowerCase();
@@ -586,7 +584,6 @@ function applyAiPriceEstimates(text,priceSource){
     const component=components.find(function(item){return item.type===type;});
     if(component){
       component.aiPrice=display;
-      component.aiPriceSource=priceSource||'';
     }
   });
   renderComponents();
@@ -603,7 +600,6 @@ async function runCompatCheck(){
   const storage=document.getElementById('compat-storage').value.trim();
   const psu=document.getElementById('compat-psu').value.trim();
   const pccase=document.getElementById('compat-case').value.trim();
-  const priceStore=(document.getElementById('compat-price-store')?.value||'').trim();
   if(!cpu||!mb||!ram||!psu){
     alert('Please fill in CPU, Motherboard, RAM, and PSU to run the AI compatibility check.');
     return;
@@ -624,17 +620,17 @@ async function runCompatCheck(){
     result.style.display='block';
     result.innerHTML='<strong>🤖 Gemini is analyzing your complete build...</strong>';
   }
-  const buildContext=`CPU: ${cpu}\nMotherboard: ${mb}\nRAM: ${ram}\nGPU: ${gpu||'Not selected'}\nStorage: ${storage||'Not selected'}\nPSU: ${psu}\nCase: ${pccase||'Not selected'}\nPrice store or city: ${priceStore||'Not specified'}`;
+  const buildContext=`CPU: ${cpu}\nMotherboard: ${mb}\nRAM: ${ram}\nGPU: ${gpu||'Not selected'}\nStorage: ${storage||'Not selected'}\nPSU: ${psu}\nCase: ${pccase||'Not selected'}`;
   try{
     const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       feature:'compat',
-      message:'Give a complete engineering review of this build. Put IMMEDIATE CHANGES directly after the verdict, explain why each change is needed, provide replacement options, and finish with FINAL RECOMMENDATION. Do not stop after the first issue. Distinguish physical incompatibility from a performance bottleneck. After FINAL RECOMMENDATION, add a section titled ESTIMATED PHILIPPINES PRICES. List every entered part using this exact format: PART | LOW ESTIMATE | HIGH ESTIMATE. Use Philippine pesos and realistic current-market ranges based on the exact model. If a price store or city is provided in context, tailor the range to that store or city and name it; do not invent an exact live seller price or claim stock. Add TOTAL ESTIMATED BUILD COST with a low and high total. Label these as estimates, state that prices vary by seller and date, and recommend checking the current listing before buying.',
+      message:'Give a complete engineering review of this build. Put IMMEDIATE CHANGES directly after the verdict, explain why each change is needed, provide replacement options, and finish with FINAL RECOMMENDATION. Do not stop after the first issue. Distinguish physical incompatibility from a performance bottleneck. After FINAL RECOMMENDATION, add a section titled ESTIMATED PHILIPPINES PRICES. List every entered part using this exact format: PART | LOW ESTIMATE | HIGH ESTIMATE. Use Philippine pesos and realistic current-market ranges based on the exact model; do not invent an exact live seller price or claim stock. Add TOTAL ESTIMATED BUILD COST with a low and high total. Label these as estimates, state that prices vary by seller and date, and recommend checking the current listing before buying.',
       context:buildContext
     })});
     const data=await response.json();
     if(!response.ok||!data.reply)throw new Error(data.error||'Gemini request failed');
     const aiText=data.reply;
-    applyAiPriceEstimates(aiText,priceStore);
+    applyAiPriceEstimates(aiText);
     const status=document.getElementById('compat-status');
     const needsChanges=/needs changes|not compatible|incompatible|mismatch|cannot work|does not support|too weak/i.test(aiText);
     if(status)status.textContent=needsChanges?'⚠ AI verdict: Needs Changes':'✓ AI verdict: Compatible';
@@ -1249,9 +1245,8 @@ loadRecommendedBuilds();
 renderBuildIdeas();
 
 // ——— AI CHAT (shared engine) ———
-let pricingInit=false,troubleInit=false,compatInit=false,buildaiInit=false;
+let troubleInit=false,compatInit=false,buildaiInit=false;
 function initChat(id){
-  if(id==='pricing'){pricingInit=true;addMsg('pricing','ai',`Hi! I'm CoreCraft's Pricing AI. I can find component prices from stores across the Philippines.\n\nTry asking:\n• "RTX 4060 price in Manila"\n• "Ryzen 5 5600 cheapest in Cebu"\n• "Budget PC parts price list"`)}
   if(id==='trouble'){troubleInit=true;addMsg('trouble','ai',`Hi! I'm CoreCraft's Troubleshooting AI Bot. Tell me your PC problem and I will guide you step-by-step to fix it.\n\nDescribe what's happening — e.g.:\n• "PC won't boot, no display"\n• "Keeps restarting randomly"\n• "Very slow after Windows update"`)}
   if(id==='compat'){compatInit=true;addMsg('compat','ai',`Hi! I'm your Compatibility AI. Enter your PC parts in the fields above and I will analyze socket compatibility, RAM type, PSU wattage, and GPU fitment for your system.\n\nTry:\n• "Check my build compatibility"\n• "Why is my RAM incompatible?"\n• "What PSU do I need for my GPU?"`)}
   if(id==='buildai'){buildaiInit=true;addMsg('buildai','ai',`Hi! I'm CoreCraft's AI Build Recommendation Engine.\n\nTell me your requirements:\n• Budget (e.g. ₱50,000)
@@ -1294,8 +1289,7 @@ function getGeminiContext(id){
 async function askGemini(id,text){
   if(id==='PHchat') return getPHChatResponse(text);
   const feature=id==='PHchat'?'phchat':id;
-  const message=id==='pricing'?buildPricingQuery(text):text;
-  const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({feature,message,context:getGeminiContext(id)})});
+  const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({feature,message:text,context:getGeminiContext(id)})});
   const data=await response.json();
   if(!response.ok||!data.reply)throw new Error(data.error||'Gemini request failed');
   return data.reply;
@@ -1315,7 +1309,6 @@ async function sendChat(id){
     return;
   }
 
-  if(id==='pricing')recordActivity('📍','Asked pricing AI',text,'rgba(255,107,53,.1)');
   if(id==='trouble')recordActivity('🛠️','Asked troubleshooting AI',text,'rgba(34,197,94,.1)');
   if(id==='buildai')recordActivity('💡','Asked build recommendation AI',text,'rgba(8,124,255,.1)');
   addMsg(id,'user',displayText);inp.value='';
@@ -1328,8 +1321,7 @@ async function sendChat(id){
   }catch(error){
     removeTyping(id);
     let reply = '';
-    if(id==='pricing') reply = getPricingResponse(buildPricingQuery(text));
-    else if(id==='trouble') reply = getTroubleResponse(text);
+    if(id==='trouble') reply = getTroubleResponse(text);
     else if(id==='compat') reply = getCompatResponse(text);
     else if(id==='buildai') reply = getBuildAIResponse(text);
     addMsg(id,'ai',reply);
@@ -1368,7 +1360,7 @@ async function loadPHChatCommunities(){
   try{
     const data=await phCommunityRequest('community_list');
     if(Array.isArray(data.communities)&&data.communities.length){
-      PHCHAT_COMMUNITIES=data.communities.map(function(item){return {id:item.name,icon:'💬',description:item.description||'Community discussion',createdBy:item.created_by||''};});
+      PHCHAT_COMMUNITIES=data.communities.map(function(item){return {id:item.name,description:item.description||'Community discussion',createdBy:item.created_by||''};});
       if(!PHCHAT_COMMUNITIES.some(function(item){return item.id===activePHChat;}))activePHChat=PHCHAT_COMMUNITIES[0].id;
     }
   }catch(error){
@@ -1385,7 +1377,7 @@ async function refreshPHChatCommunities(){
     const data=await phCommunityRequest('community_list');
     if(!Array.isArray(data.communities)||!data.communities.length)return;
     const nextCommunities=data.communities.map(function(item){
-      return {id:item.name,icon:'💬',description:item.description||'Community discussion',createdBy:item.created_by||''};
+      return {id:item.name,description:item.description||'Community discussion',createdBy:item.created_by||''};
     });
     const currentSignature=PHCHAT_COMMUNITIES.map(function(item){return item.id+'|'+item.createdBy;}).join('||');
     const nextSignature=nextCommunities.map(function(item){return item.id+'|'+item.createdBy;}).join('||');
@@ -1415,7 +1407,7 @@ function renderPHChatFeedCommunities(){
   container.innerHTML=PHCHAT_COMMUNITIES.map(function(item){
     const active=feedCommunityName()===item.id;
     const canDelete=window._user&&item.createdBy&&item.createdBy.toLowerCase()===window._user.email.toLowerCase();
-    return `<div class="phchat-feed-community-row"><button type="button" class="phchat-feed-community ${active?'active':''}" onclick="selectFeedCommunity(decodeURIComponent('${encodeURIComponent(item.id)}'))"><span class="phchat-community-dot">${escapeHtml(item.icon||'•')}</span><span>${escapeHtml(item.id)}</span></button>${canDelete?`<button type="button" class="phchat-community-delete" title="Delete your community" aria-label="Delete ${escapeHtml(item.id)}" onclick="deletePHCommunity(decodeURIComponent('${encodeURIComponent(item.id)}'))">×</button>`:''}</div>`;
+    return `<div class="phchat-feed-community-row"><button type="button" class="phchat-feed-community ${active?'active':''}" onclick="selectFeedCommunity(decodeURIComponent('${encodeURIComponent(item.id)}'))"><span>${escapeHtml(item.id)}</span></button>${canDelete?`<button type="button" class="phchat-community-delete" title="Delete your community" aria-label="Delete ${escapeHtml(item.id)}" onclick="deletePHCommunity(decodeURIComponent('${encodeURIComponent(item.id)}'))">×</button>`:''}</div>`;
   }).join('');
 }
 
@@ -1621,7 +1613,7 @@ async function submitCreateCommunity(){
     if(status)status.textContent='Creating community...';
     const data=await phCommunityRequest('community_create',{name:name,description:description});
     const created=data.community;
-    PHCHAT_COMMUNITIES.push({id:created.name,icon:'💬',description:created.description,createdBy:created.created_by||window._user.email});
+    PHCHAT_COMMUNITIES.push({id:created.name,description:created.description,createdBy:created.created_by||window._user.email});
     activePHChat=created.name;
     localStorage.setItem('corecraft_active_phchat',activePHChat);
     syncFeedCommunitySelect();
@@ -1752,42 +1744,6 @@ function getPHChatResponse(text){
     return `For parts, I’d first check compatibility and budget. A balanced combo is better than buying the most expensive stuff.`;
   }
   return `Nice! Share the part or build you’re working on and someone here can give you a better suggestion.`;
-}
-
-function buildPricingQuery(msg){
-  const locationInput = document.getElementById('pricing-location');
-  if(!locationInput) return msg;
-  const location = locationInput.value.trim();
-  if(!location) return msg;
-  const lower = msg.toLowerCase();
-  if(lower.includes(location.toLowerCase())) return msg;
-  return `${msg} in ${location}`;
-}
-
-function getPricingResponse(msg){
-  const m=msg.toLowerCase();
-  if(m.includes('manila')||m.includes('metro')){
-    return `📍 **Component Prices in Metro Manila:**\n\n**GPU — RTX 4060:**\n• PC Corner (MOA): ₱22,000\n• Dynaquest (Gilmore): ₱21,500\n• PC Hub (Gilmore): ₱21,800\n\n**CPU — Ryzen 5 5600:**\n• Easy PC: ₱9,200\n• Villman (Greenhills): ₱9,400\n• PC Express: ₱9,100\n\n💡 **Tip:** Gilmore, Quezon City has the most competitive prices in Metro Manila. Visit on weekdays to avoid crowds.`;
-  }
-  if(m.includes('cebu')){
-    return `📍 **Component Prices in Cebu:**\n\n**GPU — RTX 4060:**\n• PC Express (SM Cebu): ₱22,500\n• Mindpro Computer (IT Park): ₱22,200\n• Ayala Computer Center: ₱23,000\n\n**CPU — Ryzen 5 5600:**\n• Mindpro Computer: ₱9,500\n• PC Express Cebu: ₱9,300\n\n💡 **Tip:** IT Park Cebu has the best selection. Prices in Cebu are typically 2-5% higher than Manila.`;
-  }
-  if(m.includes('davao')){
-    return `📍 **Component Prices in Davao:**\n\n**GPU — RTX 4060:**\n• Octagon (Victoria Plaza): ₱22,800\n• Silicon Valley (Gaisano): ₱23,100\n\n**CPU — Ryzen 5 5600:**\n• Octagon Superstore: ₱9,600\n• Silicon Valley: ₱9,700\n\n💡 **Tip:** Octagon in Victoria Plaza has the widest selection in Davao.`;
-  }
-  if(m.includes('rtx')||m.includes('gpu')||m.includes('graphics')){
-    return `🎮 **GPU Price List (Philippines):**\n\n**Budget:**\n• GTX 1660 Super — ₱17,500–₱19,000\n• RX 6600 — ₱20,000–₱22,000\n\n**Mid-Range:**\n• RTX 4060 — ₱21,500–₱23,500\n• RTX 4060 Ti — ₱30,000–₱33,000\n• RX 7600 — ₱22,000–₱24,000\n\n**High-End:**\n• RTX 4070 — ₱42,000–₱46,000\n• RTX 4070 Super — ₱48,000–₱52,000\n• RTX 4080 — ₱78,000–₱85,000\n\nTell me your city and I'll find the closest store prices!`;
-  }
-  if(m.includes('ryzen')||m.includes('cpu')||m.includes('processor')){
-    return `🧠 **CPU Price List (Philippines):**\n\n**Budget (AM4):**\n• Ryzen 3 4100 — ₱5,000–₱5,500\n• Ryzen 5 4500 — ₱7,500–₱8,000\n• Ryzen 5 5600 — ₱9,000–₱9,800\n\n**Mid-Range (AM5):**\n• Ryzen 5 7600 — ₱14,500–₱16,000\n• Ryzen 7 7700X — ₱21,000–₱24,000\n\n**High-End:**\n• Ryzen 9 7900X — ₱30,000–₱34,000\n• Ryzen 9 7950X — ₱52,000–₱58,000\n\nWhich city are you shopping in?`;
-  }
-  if(m.includes('ram')||m.includes('memory')){
-    return `💾 **RAM Price List (Philippines):**\n\n**DDR4:**\n• 8GB 3200MHz — ₱1,200–₱1,600\n• 16GB (2×8) 3200 — ₱2,800–₱3,600\n• 32GB (2×16) 3600 — ₱5,000–₱6,500\n\n**DDR5:**\n• 16GB 4800MHz — ₱3,500–₱4,500\n• 32GB 5200MHz — ₱7,500–₱9,500\n• 64GB 6000MHz — ₱18,000–₱24,000\n\n💡 DDR4 still offers the best price-to-performance for most builds!`;
-  }
-  if(m.includes('budget')||m.includes('cheap')||m.includes('list')){
-    return `💰 **Budget Gaming PC Price List (₱35,000):**\n\n• Ryzen 5 5600 (CPU) — ₱9,200\n• B550M Motherboard — ₱7,500\n• 16GB DDR4 3200 RAM — ₱3,400\n• GTX 1660 Super (GPU) — ₱18,500\n• 500GB NVMe SSD — ₱2,800\n• 550W PSU — ₱3,200\n• mATX Case — ₱1,500\n──────────────────\n**Total: ≈₱46,100**\n\n📍 Best places to buy:\n• Manila (Gilmore, QC) — cheapest\n• Cebu (IT Park) — good selection\n• Davao (Octagon) — reliable`;
-  }
-  return `I can find prices for any PC component in your city! Try:\n\n• "RTX 4060 price in [your city]"\n• "CPU prices in Cebu"\n• "Cheapest RAM in Manila"\n• "Budget PC parts list"\n\nWhich component or city are you looking for?`;
 }
 
 // ——— SAVE & LOAD BUILDS ———
@@ -2268,7 +2224,11 @@ function switchTab(tab){
 function togglePw(){
   const inp=document.getElementById('pw-input');
   inp.type=inp.type==='password'?'text':'password';
-  document.getElementById('pw-eye').textContent=inp.type==='password'?'👁':'🙈';
+  const toggle=document.getElementById('pw-eye');
+  const isVisible=inp.type==='text';
+  toggle.textContent=isVisible?'Hide':'Show';
+  toggle.setAttribute('aria-label',isVisible?'Hide password':'Show password');
+  toggle.setAttribute('aria-pressed',String(isVisible));
 }
 function showAuthStatus(message,type='error'){
   const status=document.getElementById('login-status');
