@@ -77,8 +77,9 @@ function renderRecentActivity(){
 let autoLocateTried=false, philippinesMap=null, philippinesMarkers=[], userLocationMarker=null, hasLocatedUser=false, lastLocatedPosition=null;
 let shopSearchRequest=0,lastGeocodeSearchAt=0;
 const geocodedShopLocations={};
-const pcRetailerPattern=/PC ?Express|PCX |Octagon|Easy ?PC|DynaQuest|Villman|PC ?Worx|PC ?Worth|Gigahertz|JDM Techno|Data ?Blitz|Silicon Valley|PC ?Hub|Complink|Bermor/i;
-const nonRetailPattern=/internet|net ?caf|cafe|café|gaming|e-?games|pisonet|rental|school|college|institute|university|academy|training/i;
+const pcRetailerPattern=/PC ?Express|PCX |Octagon|Easy ?PC|DynaQuest|Villman|PC ?Worx|PC ?Worth|Gigahertz|JDM Techno|Silicon Valley|PC ?Hub|Complink|Bermor|PC Parts|Computer Parts|PC Builders|Computer Builders/i;
+const partsStorePattern=/pc ?(parts|builder|components|hardware|store|shop|center|zone|depot|mart)|computer ?(parts|components|hardware|builder)|hardware|components/i;
+const nonRetailPattern=/repair|service|phone|printer|ink|photocopy|cctv|software|internet|net ?caf|cafe|café|gaming|e-?games|pisonet|rental|school|college|institute|university|academy|training/i;
 const philippinesBounds={south:4.3,west:116.8,north:21.3,east:126.8};
 
 function initPhilippinesMap(){
@@ -230,9 +231,15 @@ async function geocodeShopSearchArea(location){
   }finally{clearTimeout(timeout);}
 }
 
+const SHOP_SEARCH_RADIUS_M=20000;
+function distanceMeters(a,b){
+  const rad=Math.PI/180,dLat=(b.lat-a.lat)*rad,dLng=(b.lng-a.lng)*rad;
+  const h=Math.sin(dLat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLng/2)**2;
+  return 12742000*Math.asin(Math.sqrt(h));
+}
 function getShopListingsQuery(center,radius){
-  const scope=`(around:${radius||30000},${center.lat},${center.lng})`;
-  const listings=`nwr["shop"]["name"~"${pcRetailerPattern.source}",i]${scope};nwr["shop"]["brand"~"${pcRetailerPattern.source}",i]${scope};`;
+  const scope=`(around:${radius||SHOP_SEARCH_RADIUS_M},${center.lat},${center.lng})`;
+  const listings=`nwr["shop"="computer"]${scope};nwr["shop"="electronics"]["name"~"${pcRetailerPattern.source}",i]${scope};nwr["shop"="electronics"]["brand"~"${pcRetailerPattern.source}",i]${scope};`;
   return `[out:json][timeout:12];(${listings});out tags center;`;
 }
 
@@ -310,12 +317,7 @@ async function searchPhilippinesShops(location,nearbyCenter){
     if(requestId!==shopSearchRequest)return [];
     setMapStatus(`Searching OpenStreetMap for computer parts stores ${locationLabel}...`);
     clearPhilippinesMarkers();
-    let elements=[];
-    for(const radius of [25000,80000]){
-      elements=await fetchShopListings(center,radius);
-      if(elements.length||requestId!==shopSearchRequest)break;
-      setMapStatus(`No stores within ${radius/1000} km. Widening the search...`);
-    }
+    const elements=await fetchShopListings(center,SHOP_SEARCH_RADIUS_M);
     if(requestId!==shopSearchRequest)return;
     const seen={};
     const filtered=[];
@@ -337,8 +339,9 @@ async function searchPhilippinesShops(location,nearbyCenter){
       const name=tags.name||tags.brand||tags.operator;
       const label=[tags.name,tags.brand,tags.operator].join(' ');
       const isKnownChain=pcRetailerPattern.test(label);
-      const isComputerStore=isKnownChain&&!nonRetailPattern.test(label);
+      const isComputerStore=isKnownChain||(tags.shop==='computer'&&partsStorePattern.test(label)&&!nonRetailPattern.test(label));
       if(!coordinates||!name||!isComputerStore||!isInsidePhilippines(coordinates))return;
+      if(distanceMeters(center,{lat:coordinates.lat,lng:coordinates.lon})>SHOP_SEARCH_RADIUS_M)return;
       const id=element.type+'/'+element.id;
       if(seen[id])return;
       seen[id]=true;
@@ -348,7 +351,7 @@ async function searchPhilippinesShops(location,nearbyCenter){
     filtered.sort((a,b)=>(b.chain?1:0)-(a.chain?1:0));
     if(!filtered.length){
       renderShopResults([]);
-      setMapStatus(`No PC store chains (Octagon, PC Express, EasyPC, etc.) were found ${locationLabel}. OpenStreetMap coverage varies; try another city or area.`);
+      setMapStatus(`No computer parts stores were found within 20 km ${locationLabel}. OpenStreetMap coverage varies; try another city or area.`);
       return filtered;
     }
     filtered.forEach(place=>{
@@ -383,17 +386,11 @@ async function searchPhilippinesShops(location,nearbyCenter){
   }
 }
 
-async function reverseGeocodePlace(position){
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),5000);
-  try{
-    const response=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&addressdetails=1&lat='+position.lat+'&lon='+position.lng,{signal:controller.signal});
-    if(!response.ok)return '';
-    const address=(await response.json()).address||{};
-    return [address.suburb||address.neighbourhood||address.village,address.city||address.town||address.municipality,address.state||address.province].filter(Boolean).join(', ');
-  }catch(e){return '';}finally{clearTimeout(timer);}
+function setButtonLoading(button,loading,label){
+  if(!button)return;
+  if(loading){button.dataset.label=button.textContent;button.textContent=label;button.classList.add('is-loading');button.disabled=true;}
+  else{if(button.dataset.label)button.textContent=button.dataset.label;button.classList.remove('is-loading');button.disabled=false;}
 }
-
 async function checkPartStock(){
   const part=(document.getElementById('stock-part')?.value||'').trim();
   const area=(document.getElementById('stock-location')?.value||'').trim();
@@ -416,8 +413,8 @@ async function checkPartStock(){
     return;
   }
   recordActivity('📦','Searched PC stores and stock',part+' near '+locationLabel,'rgba(255,107,53,.1)');
-  button.disabled=true;
-  result.innerHTML='<span style="color:var(--muted)">Finding nearby stores, then asking Gemini to search current listings for this part and area...</span>';
+  setButtonLoading(button,true,'Searching stores and part...');
+  result.innerHTML='<span class="search-spinner"></span><span style="color:var(--muted)">Finding nearby stores, then asking Gemini to search current listings for this part and area...</span>';
   try{
     if(useCurrentLocation){
       const placeName=await reverseGeocodePlace(lastLocatedPosition);
@@ -496,7 +493,7 @@ Search each mapped business name where web results allow, and search official Ph
     result.innerHTML=`<div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">${reportLabel}</span></div>${liveTable}${formatAIResponse(data.reply)}${sourceList}${groundingNotice}`;
   }catch(error){
     result.innerHTML=`<span style="color:var(--orange)">Stock check unavailable: ${escapeHtml(error.message||'Unknown error')}</span>`;
-  }finally{button.disabled=false;}
+  }finally{setButtonLoading(button,false);}
 }
 
 // ——— COMPONENTS DATA ———
