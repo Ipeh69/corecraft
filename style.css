@@ -417,7 +417,8 @@
     .divider-text{color:#6b7280;font-size:13px;white-space:nowrap}
     .social-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .google-social-grid{grid-template-columns:1fr;justify-items:center}
-    .google-signin-slot{width:100%;min-height:40px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .google-signin-slot{width:100%;min-height:48px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:4px;background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--border);border-radius:999px;transition:border-color .2s,box-shadow .2s}
+    .google-signin-slot:hover{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,191,255,.15),0 0 18px rgba(8,124,255,.25)}
     .google-signin-slot iframe{margin-left:auto!important;margin-right:auto!important}
     .google-signin-unconfigured{padding:8px;border:1px dashed #4b5563;border-radius:8px;color:var(--muted);font-size:11px;text-align:center;overflow-wrap:anywhere}
     .social-btn{padding:10px 16px;background:rgba(3,7,18,.5);border:1px solid #374151;border-radius:8px;color:#d1d5db;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;font-family:'DM Sans',sans-serif}

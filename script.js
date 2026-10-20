@@ -1373,6 +1373,25 @@ async function askGemini(id,text){
   if(!response.ok||!data.reply)throw new Error(data.error||'Gemini request failed');
   return data.reply;
 }
+let troubleFails=0,troubleTopic='';
+const TROUBLE_FAIL_RE=/(still|didn'?t work|did not work|not work|doesn'?t work|no luck|same (problem|issue|error)|nothing (happen|change)|tried|failed|not fixed|won'?t (work|fix))/i;
+const TROUBLE_SOLVED_RE=/(fixed|solved|it works now|working now|thank)/i;
+const TROUBLE_VIDEOS=[
+  {re:/(turn on|power|boot|dead|won'?t start)/i,id:'sfs_bE2X73Q'},
+  {re:/(display|black screen|no signal|monitor)/i,id:'SrcFSrt5Ev8'},
+  {re:/(restart|reboot)/i,id:'bzV4WBuZdLU'},
+  {re:/(overheat|hot|temp|shut ?down)/i,id:'KYRIfyIlNmM'},
+  {re:/(bsod|blue screen)/i,id:'SlfytZOvtC8'},
+  {re:/(slow|lag)/i,id:'sZl6rNUBbAY'}
+];
+function troubleVideoHtml(topic){
+  const v=TROUBLE_VIDEOS.find(x=>x.re.test(topic));
+  if(!v){
+    const url='https://www.youtube.com/results?search_query='+encodeURIComponent('how to fix PC '+topic);
+    return `🎬 <a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Watch video tutorials</a>`;
+  }
+  return `<div style="position:relative;padding-bottom:56.25%;height:0;margin-top:8px"><iframe src="https://www.youtube.com/embed/${v.id}" title="Troubleshooting video" style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:8px" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>`;
+}
 async function sendChat(id){
   const inp=document.getElementById(id+'-input');
   const text=inp.value.trim();if(!text)return;
@@ -1391,19 +1410,32 @@ async function sendChat(id){
   if(id==='trouble')recordActivity('🛠️','Asked troubleshooting AI',text,'rgba(34,197,94,.1)');
   if(id==='buildai')recordActivity('💡','Asked build recommendation AI',text,'rgba(8,124,255,.1)');
   addMsg(id,'user',displayText);inp.value='';
+  let troubleExtra='';
+  if(id==='trouble'){
+    if(TROUBLE_SOLVED_RE.test(text)){troubleFails=0;troubleTopic='';}
+    else if(TROUBLE_FAIL_RE.test(text)&&troubleTopic){
+      troubleFails++;
+      if(troubleFails>=3){
+        addMsg(id,'ai',`I'm sorry, the basic steps haven't fixed it after ${troubleFails} tries. This is likely beyond basic troubleshooting (possible failed hardware such as PSU, motherboard, RAM, GPU or storage).\n\n**Please stop here and take it to an expert or a trusted PC repair shop.** Continuing to open or test parts yourself could cause more damage or void your warranty.\n\n• Tell the shop everything you already tried\n• Back up your data first if the drive still works\n• If it's under warranty, contact the seller or manufacturer\n\n${troubleVideoHtml(troubleTopic)}`);
+        troubleFails=0;
+        return;
+      }
+      troubleExtra=`\n\n**Still stuck? (Attempt ${troubleFails} of 3)** Watch this video guide:\n${troubleVideoHtml(troubleTopic)}\nIf 3 attempts don't work, I'll recommend an expert or repair shop.`;
+    }else{troubleTopic=text;troubleFails=0;}
+  }
   document.getElementById(id+'-send').disabled=true;
   addTyping(id);
   try{
-    const reply=await askGemini(id,text);
+    const reply=await askGemini(id,id==='trouble'&&troubleFails?`${text}\n(Context: the user already tried basic fixes for "${troubleTopic}" ${troubleFails} time(s) without success. Suggest different steps.)`:text);
     removeTyping(id);
-    addMsg(id,'ai',reply);
+    addMsg(id,'ai',reply+troubleExtra);
   }catch(error){
     removeTyping(id);
     let reply = '';
     if(id==='trouble') reply = getTroubleResponse(text);
     else if(id==='compat') reply = getCompatResponse(text);
     else if(id==='buildai') reply = getBuildAIResponse(text);
-    addMsg(id,'ai',reply);
+    addMsg(id,'ai',reply+troubleExtra);
   }finally{
     document.getElementById(id+'-send').disabled=false;
   }
@@ -2259,7 +2291,7 @@ function mountGoogleSignInButton(){
   }
   if(!window.google||!google.accounts||!google.accounts.id)return;
   google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCredential,auto_select:false});
-  google.accounts.id.renderButton(slot,{type:'standard',theme:'outline',size:'large',text:'continue_with',shape:'rectangular',width:280,logo_alignment:'left'});
+  google.accounts.id.renderButton(slot,{type:'standard',theme:'filled_black',size:'large',text:'continue_with',shape:'pill',width:280,logo_alignment:'left'});
   googleSignInInitialized=true;
 }
 
