@@ -327,6 +327,9 @@
     .phchat-post-actions{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border)}
     .phchat-action-button{border:1px solid var(--border);background:transparent;color:var(--text);padding:7px 11px;border-radius:7px;cursor:pointer;font:600 12px 'DM Sans',sans-serif}
     .phchat-action-button.liked{color:#fb7185;border-color:rgba(251,113,133,.5)}
+    .phchat-post-delete,.phchat-post-report{margin-left:auto}
+    .phchat-post-delete{color:#fb7185;border-color:rgba(251,113,133,.45)}
+    .phchat-post-report{color:var(--muted)}
     .phchat-comments{padding-top:10px;display:flex;flex-direction:column;gap:8px}
     .phchat-comment{font-size:12px;line-height:1.55;color:var(--muted);overflow-wrap:anywhere}
     .phchat-comment strong{color:var(--text)}
