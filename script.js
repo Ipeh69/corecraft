@@ -79,6 +79,9 @@ let shopSearchRequest=0,lastGeocodeSearchAt=0;
 const geocodedShopLocations={};
 const pcRetailerPattern=/PC ?Express|PCX |Octagon|Easy ?PC|DynaQuest|Villman|PC ?Worx|PC ?Worth|Gigahertz|JDM Techno|Data ?Blitz|Silicon Valley|PC ?Hub|Complink|Bermor|PC Parts|Computer Parts|PC Builders|Computer Builders/i;
 const nonRetailPattern=/internet|net ?caf|cafe|café|gaming|e-?games|pisonet|rental|school|college|institute|university|academy|training/i;
+const cityRadius=12000;
+const liveStockIntervalMs=300000;
+let liveStockTimer=null;
 const philippinesBounds={south:4.3,west:116.8,north:21.3,east:126.8};
 
 function initPhilippinesMap(){
@@ -230,6 +233,28 @@ async function geocodeShopSearchArea(location){
   }finally{clearTimeout(timeout);}
 }
 
+async function reverseGeocodePlace(latitude,longitude){
+  if(latitude&&typeof latitude==='object'){
+    longitude=latitude.lng===undefined?latitude.lon:latitude.lng;
+    latitude=latitude.lat;
+  }
+  if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||!isInsidePhilippines({lat:latitude,lng:longitude})){
+    throw new Error('A valid location inside the Philippines is required.');
+  }
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),12000);
+  try{
+    const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&zoom=10&addressdetails=1`;
+    const response=await fetch(url,{headers:{'Accept':'application/json'},signal:controller.signal});
+    if(!response.ok)throw new Error('Place lookup returned HTTP '+response.status);
+    const place=await response.json();
+    if(!place||typeof place.display_name!=='string'||!place.display_name.trim()){
+      throw new Error('No place name was found for these coordinates.');
+    }
+    return place.display_name;
+  }finally{clearTimeout(timeout);}
+}
+
 function getShopListingsQuery(center,radius){
   const scope=`(around:${radius||30000},${center.lat},${center.lng})`;
   const listings=`nwr["shop"="computer"]${scope};nwr["shop"="electronics"]["name"~"${pcRetailerPattern.source}",i]${scope};nwr["shop"="electronics"]["brand"~"${pcRetailerPattern.source}",i]${scope};`;
@@ -301,12 +326,10 @@ async function searchPhilippinesShops(location,nearbyCenter){
     setMapStatus(`Searching OpenStreetMap for computer parts stores ${locationLabel}...`);
     clearPhilippinesMarkers();
     let elements=[];
-    for(const radius of [25000,80000]){
-      elements=await fetchShopListings(center,radius);
-      if(elements.length||requestId!==shopSearchRequest)break;
-      setMapStatus(`No stores within ${radius/1000} km. Widening the search...`);
-    }
-    if(requestId!==shopSearchRequest)return;
+    elements=await fetchShopListings(center,cityRadius);
+    if(requestId!==shopSearchRequest)return [];
+    philippinesMap.setMaxBounds(L.latLng(center.lat,center.lng).toBounds(cityRadius*2.4));
+    philippinesMap.setMinZoom(10);
     const seen={};
     const filtered=[];
     elements.forEach(function(element){
@@ -361,7 +384,8 @@ async function searchPhilippinesShops(location,nearbyCenter){
   }
 }
 
-async function checkPartStock(){
+async function checkPartStock(isAuto){
+  if(isAuto===true&&document.hidden)return;
   const part=(document.getElementById('stock-part')?.value||'').trim();
   const area=(document.getElementById('stock-location')?.value||'').trim();
   const source=(document.getElementById('stock-source')?.value||'').trim();
@@ -388,7 +412,7 @@ async function checkPartStock(){
   try{
     let nearbyStores=[];
     try{
-      nearbyStores=await searchPhilippinesShops(useCurrentLocation?'My current location':area,useCurrentLocation?lastLocatedPosition:null);
+      nearbyStores=(await searchPhilippinesShops(useCurrentLocation?'My current location':area,useCurrentLocation?lastLocatedPosition:null))||[];
     }catch(mapError){
       setMapStatus('Could not load mapped stores: '+(mapError.message||'OpenStreetMap is unavailable')+'. Gemini will still search retailers for this part and area.');
     }
@@ -411,7 +435,9 @@ Search each mapped business name where web results allow, and search official Ph
     const groundingNotice=data.grounded
       ?`<p class="stock-verification-note">Gemini used web search. A source can show an online listing but does not guarantee live branch inventory; confirm directly with the seller.${checkedTime}</p>`
       :`<p class="stock-verification-note">No citable web results were returned, so current stock and prices could not be independently verified. Treat any estimates above as unverified and check with the seller.${checkedTime}</p>`;
-    result.innerHTML=`<div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">Live-search stock report</span></div>${formatAIResponse(data.reply)}${sourceList}${groundingNotice}`;
+    clearInterval(liveStockTimer);
+    liveStockTimer=setInterval(()=>checkPartStock(true),liveStockIntervalMs);
+    result.innerHTML=`<div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">Live stock report</span><span class="ai-label" style="margin-left:auto">● Auto-refreshes every 5 min</span></div>${formatAIResponse(data.reply)}${sourceList}${groundingNotice}`;
   }catch(error){
     result.innerHTML=`<span style="color:var(--orange)">Stock check unavailable: ${escapeHtml(error.message||'Unknown error')}</span>`;
   }finally{button.disabled=false;}
