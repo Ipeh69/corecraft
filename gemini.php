@@ -4,6 +4,10 @@ header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 require_once __DIR__ . '/config.php';
 
+// A search attempt plus the estimate fallback can exceed PHP's default 30s limit. Never print HTML errors into the JSON reply.
+@set_time_limit(180);
+@ini_set('display_errors', '0');
+
 // Keep the key outside the public web directory. Production can also provide it
 // through the CORECRAFT_GEMINI_API_KEY server environment variable.
 $configuredGeminiKey = '';
@@ -143,6 +147,16 @@ $curlError = '';
 $statusCode = 0;
 $gemini = array();
 $lastError = 'Gemini returned an error.';
+$searchFallback = false;
+for ($attempt = 0; $attempt < 2; $attempt++) {
+if ($attempt === 1) {
+    // Live search failed (e.g. free-tier quota): retry as a plain, clearly labeled estimate.
+    unset($requestBody['tools']);
+    $useGoogleSearch = false;
+    $searchFallback = true;
+    $fallbackNote = $systemPrompt . "\n\nLive web search is NOT available right now. Do not claim to have searched the web or visited any store or page. Focus on the user's exact city/area from the message, not Metro Manila. Name the well-known malls, computer centers, and PC retailers you are confident exist in or near that city (for example, major mall branches), and say you are unsure when you are not. Give typical Philippine market price ranges in PHP as clearly labeled estimates, mark every stock status as STOCK NOT VERIFIED, and do not invent URLs, addresses, or prices per store.";
+    $requestBody['system_instruction'] = array('parts' => array(array('text' => $fallbackNote)));
+}
 foreach ($models as $model) {
     $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($model) . ':generateContent?key=' . rawurlencode($apiKey);
     $ch = curl_init($url);
@@ -171,6 +185,9 @@ foreach ($models as $model) {
     $gemini = is_string($response) ? json_decode($response, true) : array();
     if ($response !== false && !$curlError && $statusCode >= 200 && $statusCode < 300) break;
     $lastError = isset($gemini['error']['message']) ? $gemini['error']['message'] : ($curlError ? $curlError : 'Model unavailable.');
+}
+$succeeded = $response !== false && !$curlError && $statusCode >= 200 && $statusCode < 300;
+if ($succeeded || !$useGoogleSearch) break;
 }
 
 if ($response === false || $curlError) {
@@ -223,5 +240,6 @@ echo json_encode(array(
     'reply' => $text,
     'grounded' => $useGoogleSearch && count($sources) > 0,
     'sources' => array_values($sources),
-    'searchedAt' => $searchStartedAt
+    'searchedAt' => $searchStartedAt,
+    'searchUnavailable' => $searchFallback
 ));

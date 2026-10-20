@@ -231,7 +231,7 @@ async function geocodeShopSearchArea(location){
 }
 
 function getShopListingsQuery(center,radius){
-  const scope=`(around:${radius||30000},${center.lat},${center.lng})`;
+  const scope=`(around:${radius||SHOP_SEARCH_RADIUS_M},${center.lat},${center.lng})`;
   const listings=`nwr["shop"="computer"]${scope};nwr["shop"="electronics"]["name"~"${pcRetailerPattern.source}",i]${scope};nwr["shop"="electronics"]["brand"~"${pcRetailerPattern.source}",i]${scope};`;
   return `[out:json][timeout:12];(${listings});out tags center;`;
 }
@@ -243,6 +243,16 @@ async function fetchShopListings(center,radius){
     if(cached&&Date.now()-cached.time<21600000)return cached.elements;
   }catch(e){}
   const query=getShopListingsQuery(center,radius);
+  try{
+    const proxied=await fetch('overpass_proxy.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:query})});
+    if(proxied.ok){
+      const proxiedData=await proxied.json();
+      if(Array.isArray(proxiedData.elements)&&proxiedData.elements.length){
+        try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),elements:proxiedData.elements}));}catch(e){}
+        return proxiedData.elements;
+      }
+    }
+  }catch(proxyError){}
   const mirrors=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
   for(let attempt=0;attempt<2;attempt++){
     const controllers=mirrors.map(()=>new AbortController());
@@ -273,11 +283,11 @@ async function fetchShopListingsFromNominatim(center,radius){
   const dLat=radius/111000, dLng=radius/(111000*Math.cos(center.lat*Math.PI/180));
   const viewbox=[center.lng-dLng,center.lat+dLat,center.lng+dLng,center.lat-dLat].join(',');
   const results=[];
-  for(const term of ['computer store','computer shop','computer parts','PC Express','Octagon','EasyPC','DynaQuest','Villman']){
+  for(const term of ['PC Express','Octagon','EasyPC','DynaQuest','Villman','PCWorx','PC Worth','Gigahertz']){
     const response=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=40&bounded=1&countrycodes=ph&q='+encodeURIComponent(term)+'&viewbox='+viewbox);
     if(!response.ok)throw new Error('OpenStreetMap servers are busy. Please try again in a moment.');
     (await response.json()).forEach(item=>{
-      if(item.category!=='shop'||!['computer','electronics'].includes(item.type))return;
+      if(item.category!=='shop'||!pcRetailerPattern.test(item.name||item.display_name||''))return;
       results.push({type:item.osm_type||'node',id:item.osm_id,lat:parseFloat(item.lat),lon:parseFloat(item.lon),tags:{name:item.name||(item.display_name||'').split(',')[0],shop:item.type}});
     });
   }
@@ -309,24 +319,37 @@ async function searchPhilippinesShops(location,nearbyCenter){
     if(requestId!==shopSearchRequest)return;
     const seen={};
     const filtered=[];
+    // Mall branches missing from OpenStreetMap (positions are the mall's coordinates)
+    const knownBranches=[
+      {name:'PC Express - SM City Lipa',lat:13.9547813,lon:121.1630958,address:'2nd Floor, Cyberzone, SM City Lipa, Ayala Highway, Lipa, Batangas'},
+      {name:'Octagon - SM City Lipa',lat:13.9547813,lon:121.1630958,address:'2nd Floor, SM City Lipa, Ayala Highway, Lipa, Batangas'}
+    ];
+    knownBranches.forEach(function(branch){
+      const km=Math.hypot((branch.lat-center.lat)*111,(branch.lon-center.lng)*111*Math.cos(center.lat*Math.PI/180));
+      if(km>30)return;
+      const dup=elements.some(function(e){const t=e.tags||{};return /octagon|pc ?express/i.test(t.name||'')&&/lipa/i.test((t.name||'')+(t['addr:city']||'')+(t['addr:street']||''))&&(branch.name.toLowerCase().indexOf(/octagon/i.test(t.name)?'octagon':'pc express')>=0);});
+      if(dup)return;
+      elements.push({type:'known',id:branch.name,lat:branch.lat,lon:branch.lon,tags:{name:branch.name,shop:'computer','addr:full':branch.address}});
+    });
     elements.forEach(function(element){
       const tags=element.tags||{};
       const coordinates=getOSMCoordinates(element);
       const name=tags.name||tags.brand||tags.operator;
       const label=[tags.name,tags.brand,tags.operator].join(' ');
       const isKnownChain=pcRetailerPattern.test(label);
-      const isComputerStore=(tags.shop==='computer'&&!nonRetailPattern.test(label))||(tags.shop==='electronics'&&isKnownChain);
+      const isComputerStore=isKnownChain||(tags.shop==='computer'&&partsStorePattern.test(label)&&!nonRetailPattern.test(label));
       if(!coordinates||!name||!isComputerStore||!isInsidePhilippines(coordinates))return;
+      if(distanceMeters(center,{lat:coordinates.lat,lng:coordinates.lon})>SHOP_SEARCH_RADIUS_M)return;
       const id=element.type+'/'+element.id;
       if(seen[id])return;
       seen[id]=true;
-      const serviceType=isKnownChain?'PC parts store':'Computer store';
+      const serviceType='PC parts store';
       filtered.push({chain:isKnownChain,id:id,name:name,lat:coordinates.lat,lon:coordinates.lon,address:getOSMAddress(tags)||tags['addr:place']||tags['addr:district']||tags['addr:province']||'Philippines',serviceType:serviceType,tags:tags});
     });
     filtered.sort((a,b)=>(b.chain?1:0)-(a.chain?1:0));
     if(!filtered.length){
       renderShopResults([]);
-      setMapStatus(`No computer parts stores were found ${locationLabel}. OpenStreetMap coverage varies; try another city or area.`);
+      setMapStatus(`No computer parts stores were found within 20 km ${locationLabel}. OpenStreetMap coverage varies; try another city or area.`);
       return filtered;
     }
     filtered.forEach(place=>{
@@ -350,7 +373,7 @@ async function searchPhilippinesShops(location,nearbyCenter){
     if(filtered.length===1)philippinesMap.setView([filtered[0].lat,filtered[0].lon],14);
     else philippinesMap.fitBounds(L.latLngBounds(filtered.map(function(place){return [place.lat,place.lon];})),{padding:[20,20],maxZoom:12});
     renderShopResults(filtered);
-    setMapStatus(`${filtered.length} computer store listing${filtered.length===1?'':'s'} ${locationLabel}. OpenStreetMap coverage may be incomplete; listings do not confirm current stock or availability.`);
+    setMapStatus(`${filtered.length} PC store${filtered.length===1?'':'s'} (Octagon, PC Express, etc.) ${locationLabel}. OpenStreetMap coverage may be incomplete; listings do not confirm current stock or availability.`);
     return filtered;
   }catch(error){
     if(requestId!==shopSearchRequest)return [];
@@ -377,7 +400,7 @@ async function checkPartStock(){
     return;
   }
   const useCurrentLocation=area.toLowerCase()==='my current location';
-  const locationLabel=useCurrentLocation?'your current location':area;
+  let locationLabel=useCurrentLocation?'your current location':area;
   if(useCurrentLocation&&!lastLocatedPosition){
     if(result)result.innerHTML='<span style="color:var(--orange)">Your location is not available yet. Click “Use my location” and allow location access first.</span>';
     return;
@@ -386,6 +409,10 @@ async function checkPartStock(){
   button.disabled=true;
   result.innerHTML='<span style="color:var(--muted)">Finding nearby stores, then asking Gemini to search current listings for this part and area...</span>';
   try{
+    if(useCurrentLocation){
+      const placeName=await reverseGeocodePlace(lastLocatedPosition);
+      locationLabel=(placeName?placeName+' ':'')+`(GPS ${lastLocatedPosition.lat.toFixed(4)}, ${lastLocatedPosition.lng.toFixed(4)})`;
+    }
     let nearbyStores=[];
     try{
       nearbyStores=await searchPhilippinesShops(useCurrentLocation?'My current location':area,useCurrentLocation?lastLocatedPosition:null);
@@ -393,22 +420,66 @@ async function checkPartStock(){
       setMapStatus('Could not load mapped stores: '+(mapError.message||'OpenStreetMap is unavailable')+'. Gemini will still search retailers for this part and area.');
     }
     const mappedStoreContext=nearbyStores.length
-      ?`\nThe map found ${nearbyStores.length} computer stores. Search these local business names for the requested part; the map is not inventory evidence. Names passed to search:\n${nearbyStores.slice(0,60).map(store=>`- ${store.name} — ${store.address} (${store.serviceType})`).join('\n').slice(0,4500)}`
+      ?`\nThe map found ${nearbyStores.length} PC store branches near the user. Names:\n${nearbyStores.slice(0,60).map(store=>`- ${store.name} — ${store.address} (${store.serviceType})`).join('\n').slice(0,4500)}`
       :'\nThe map could not provide store listings for this area. Search relevant Philippine retailers directly and do not invent local branches.';
-    const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    let live=null;
+    try{
+      const liveResponse=await fetch('stock_search.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({part:part})});
+      const liveData=await liveResponse.json().catch(()=>null);
+      if(liveResponse.ok&&liveData&&Array.isArray(liveData.results))live=liveData;
+    }catch(liveError){}
+    const squash=text=>String(text||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const areaChains=nearbyStores.map(store=>squash(store.name));
+    const inArea=item=>{
+      const key=squash(item.store).replace(/pc$/,'');
+      return areaChains.some(name=>name.includes(key));
+    };
+    const allLive=live?live.results:[];
+    const liveResults=nearbyStores.length?allLive.filter(inArea):allLive;
+    const outsideArea=allLive.length-liveResults.length;
+    const formatPeso=value=>'₱'+Number(value).toLocaleString('en-PH',{maximumFractionDigits:0});
+    const liveContext=liveResults.length
+      ?`\n\nLIVE RETAILER WEBSITE RESULTS (fetched just now from the stores' own websites; online availability only, not branch stock). Use ONLY these for prices and stock; do not add other prices or links:\n${liveResults.map(item=>`- ${item.store}: ${item.title} — ${formatPeso(item.price)} — ${item.available?'IN STOCK ONLINE':'OUT OF STOCK ONLINE'} — ${item.url}`).join('\n')}`
+      :'';
+    const liveTable=live?(liveResults.length
+      ?`<div class="stock-sources"><strong>Live listings from retailer websites</strong><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">${liveResults.map(item=>`<div style="border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><strong>${escapeHtml(item.store)}</strong><span style="white-space:nowrap;font-weight:600;color:${item.available?'#22c55e':'#ef4444'}">${item.available?'✅ In stock':'❌ Out of stock'}</span></div><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" style="font-size:13px;word-break:break-word">${escapeHtml(item.title)}</a><div style="margin-top:4px;font-weight:700">${escapeHtml(formatPeso(item.price))}</div></div>`).join('')}</div><p class="stock-verification-note">Checked ${escapeHtml(live.checked.join(', '))}${live.failed.length?'. Could not reach: '+escapeHtml(live.failed.join(', ')):''}${live.checkedAt?' on '+escapeHtml(new Date(live.checkedAt).toLocaleString()):''}. This is each store's online availability; call the branch before travelling.</p></div>`
+      :`<p class="stock-verification-note">${outsideArea?'Matching listings exist, but none from stores with a branch '+escapeHtml(locationLabel)+'. Showing nothing outside your area.':'No matching '+(live.skippedLaptops?'desktop part':'listing')+' for “'+escapeHtml(part)+'” was found on '+escapeHtml(live.checked.join(', ')||'the retailer websites')+'.'}${live.skippedLaptops&&!outsideArea?' Only '+live.skippedLaptops+' laptop listing'+(live.skippedLaptops===1?'':'s')+' matched; this model may exist only in laptops.':''}</p>`):'';
+    if(live){
+      result.innerHTML=`<div class="ai-header"><div class="ai-avatar">🛒</div><span class="ai-label">Results for “${escapeHtml(part)}”</span></div>${liveTable}`;
+      return;
+    }
+    let data=null;
+    let aiError='';
+    try{
+      const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       feature:'pricing',
-      grounded_search:true,
-      message:`Search the web now for this exact computer part and current Philippine retailer listings in ${locationLabel}. Part/model: ${part}. Requested area: ${area}. ${source?'Also inspect this retailer product URL as a source: '+source+'.':''}
+      grounded_search:!liveResults.length,
+      message:liveResults.length
+      ?`The user wants this PC part: ${part}. Their area: ${locationLabel}. Using only the live retailer website results below, give a short summary: the cheapest in-stock option, notable out-of-stock items, and which listed stores have branches near the user's area when you are confident. Do not claim branch stock is confirmed.${mappedStoreContext}${liveContext}`
+      :`Search the web now for this exact computer part and current Philippine retailer listings in ${locationLabel}. Part/model: ${part}. Requested area: ${locationLabel}. ${source?'Also inspect this retailer product URL as a source: '+source+'.':''}
 
 Search each mapped business name where web results allow, and search official Philippine computer-store product pages, including PC Express, EasyPC, DynaQuest, Octagon, VillMan, PCWORX, and other relevant retailers. Never claim every store was searched if you cannot verify that. Include only actual stores and product pages supported by search sources. For each result give store/branch, exact matching product/model, current listed price in PHP, stock wording from its source, source date if shown, and the direct product/source URL. Clearly distinguish “listed in stock online” from confirmed branch stock; use “STOCK NOT VERIFIED” unless a source explicitly shows current availability for that product at that branch. A store's presence on a map is not proof it sells this part or has stock. If no reliable current matching listing is found, say so instead of guessing. State when you searched and recommend confirming with the store before travelling or paying.${mappedStoreContext}`
     })});
-    const data=await response.json();
-    if(!response.ok||!data.reply)throw new Error(data.error||'Gemini request failed');
+      data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.reply)throw new Error(data.error||'Gemini request failed');
+    }catch(error){
+      aiError=error.message||'Gemini request failed';
+      data=null;
+    }
+    if(!data){
+      if(!live)throw new Error(aiError);
+      result.innerHTML=`<div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">Retailer website stock check</span></div>${liveTable}`;
+      return;
+    }
     const sources=Array.isArray(data.sources)?data.sources:[];
     const sourceList=sources.length?`<div class="stock-sources"><strong>Web sources</strong><ul>${sources.map(source=>`<li><a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.title||source.url)}</a></li>`).join('')}</ul></div>`:'';
     const searchedAt=data.searchedAt?new Date(data.searchedAt).toLocaleString():'';
     const checkedTime=searchedAt?` Search performed ${escapeHtml(searchedAt)}.`:'';
-    const groundingNotice=data.grounded
+    const groundingNotice=liveResults.length
+      ?''
+      :data.searchUnavailable
+      ?`<p class="stock-verification-note"><strong>Live web search is unavailable</strong> (free Gemini plan), so these are AI price estimates only. Stock is NOT verified; confirm price and availability with the seller.</p>`
+      :data.grounded
       ?`<p class="stock-verification-note">Gemini used web search. A source can show an online listing but does not guarantee live branch inventory; confirm directly with the seller.${checkedTime}</p>`
       :`<p class="stock-verification-note">No citable web results were returned, so current stock and prices could not be independently verified. Treat any estimates above as unverified and check with the seller.${checkedTime}</p>`;
     result.innerHTML=`<div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">Live-search stock report</span></div>${formatAIResponse(data.reply)}${sourceList}${groundingNotice}`;
