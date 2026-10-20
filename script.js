@@ -77,8 +77,9 @@ function renderRecentActivity(){
 let autoLocateTried=false, philippinesMap=null, philippinesMarkers=[], userLocationMarker=null, hasLocatedUser=false, lastLocatedPosition=null;
 let shopSearchRequest=0,lastGeocodeSearchAt=0;
 const geocodedShopLocations={};
-const pcRetailerPattern=/PC ?Express|PCX |Octagon|Easy ?PC|DynaQuest|Villman|PC ?Worx|PC ?Worth|Gigahertz|JDM Techno|Data ?Blitz|Silicon Valley|PC ?Hub|Complink|Bermor|PC Parts|Computer Parts|PC Builders|Computer Builders/i;
-const nonRetailPattern=/internet|net ?caf|cafe|café|gaming|e-?games|pisonet|rental|school|college|institute|university|academy|training/i;
+const pcRetailerPattern=/PC ?Express|PCX |Octagon|Easy ?PC|DynaQuest|Villman|PC ?Worx|PC ?Worth|Gigahertz|JDM Techno|Silicon Valley|PC ?Hub|Complink|Bermor|PC Parts|Computer Parts|PC Builders|Computer Builders/i;
+const partsStorePattern=/pc ?(parts|builder|components|hardware|store|shop|center|zone|depot|mart)|computer ?(parts|components|hardware|builder)|hardware|components/i;
+const nonRetailPattern=/repair|service|phone|printer|ink|photocopy|cctv|software|internet|net ?caf|cafe|café|gaming|e-?games|pisonet|rental|school|college|institute|university|academy|training/i;
 const philippinesBounds={south:4.3,west:116.8,north:21.3,east:126.8};
 
 function initPhilippinesMap(){
@@ -230,6 +231,12 @@ async function geocodeShopSearchArea(location){
   }finally{clearTimeout(timeout);}
 }
 
+const SHOP_SEARCH_RADIUS_M=20000;
+function distanceMeters(a,b){
+  const rad=Math.PI/180,dLat=(b.lat-a.lat)*rad,dLng=(b.lng-a.lng)*rad;
+  const h=Math.sin(dLat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLng/2)**2;
+  return 12742000*Math.asin(Math.sqrt(h));
+}
 function getShopListingsQuery(center,radius){
   const scope=`(around:${radius||SHOP_SEARCH_RADIUS_M},${center.lat},${center.lng})`;
   const listings=`nwr["shop"="computer"]${scope};nwr["shop"="electronics"]["name"~"${pcRetailerPattern.source}",i]${scope};nwr["shop"="electronics"]["brand"~"${pcRetailerPattern.source}",i]${scope};`;
@@ -310,12 +317,7 @@ async function searchPhilippinesShops(location,nearbyCenter){
     if(requestId!==shopSearchRequest)return [];
     setMapStatus(`Searching OpenStreetMap for computer parts stores ${locationLabel}...`);
     clearPhilippinesMarkers();
-    let elements=[];
-    for(const radius of [25000,80000]){
-      elements=await fetchShopListings(center,radius);
-      if(elements.length||requestId!==shopSearchRequest)break;
-      setMapStatus(`No stores within ${radius/1000} km. Widening the search...`);
-    }
+    const elements=await fetchShopListings(center,SHOP_SEARCH_RADIUS_M);
     if(requestId!==shopSearchRequest)return;
     const seen={};
     const filtered=[];
@@ -384,6 +386,11 @@ async function searchPhilippinesShops(location,nearbyCenter){
   }
 }
 
+function setButtonLoading(button,loading,label){
+  if(!button)return;
+  if(loading){button.dataset.label=button.textContent;button.textContent=label;button.classList.add('is-loading');button.disabled=true;}
+  else{if(button.dataset.label)button.textContent=button.dataset.label;button.classList.remove('is-loading');button.disabled=false;}
+}
 async function checkPartStock(){
   const part=(document.getElementById('stock-part')?.value||'').trim();
   const area=(document.getElementById('stock-location')?.value||'').trim();
@@ -406,8 +413,8 @@ async function checkPartStock(){
     return;
   }
   recordActivity('📦','Searched PC stores and stock',part+' near '+locationLabel,'rgba(255,107,53,.1)');
-  button.disabled=true;
-  result.innerHTML='<span style="color:var(--muted)">Finding nearby stores, then asking Gemini to search current listings for this part and area...</span>';
+  setButtonLoading(button,true,'Searching stores and part...');
+  result.innerHTML='<span class="search-spinner"></span><span style="color:var(--muted)">Finding nearby stores, then asking Gemini to search current listings for this part and area...</span>';
   try{
     if(useCurrentLocation){
       const placeName=await reverseGeocodePlace(lastLocatedPosition);
@@ -482,10 +489,11 @@ Search each mapped business name where web results allow, and search official Ph
       :data.grounded
       ?`<p class="stock-verification-note">Gemini used web search. A source can show an online listing but does not guarantee live branch inventory; confirm directly with the seller.${checkedTime}</p>`
       :`<p class="stock-verification-note">No citable web results were returned, so current stock and prices could not be independently verified. Treat any estimates above as unverified and check with the seller.${checkedTime}</p>`;
-    result.innerHTML=`<div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">Live-search stock report</span></div>${formatAIResponse(data.reply)}${sourceList}${groundingNotice}`;
+    const reportLabel=liveResults.length?'Retailer website stock check':(data.searchUnavailable?'Estimated price report (not live)':'Live-search stock report');
+    result.innerHTML=`<div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">${reportLabel}</span></div>${liveTable}${formatAIResponse(data.reply)}${sourceList}${groundingNotice}`;
   }catch(error){
     result.innerHTML=`<span style="color:var(--orange)">Stock check unavailable: ${escapeHtml(error.message||'Unknown error')}</span>`;
-  }finally{button.disabled=false;}
+  }finally{setButtonLoading(button,false);}
 }
 
 // ——— COMPONENTS DATA ———
