@@ -60,7 +60,7 @@ function overpassPostWithCurlExe($url, $form) {
     file_put_contents($configFile, 'url = "' . $url . "\"\nheader = \"Accept: application/json\"\nuser-agent = \"CoreCraft/1.0 (PC parts store finder; capstone project)\"\n");
     $output = array();
     $code = 1;
-    exec('"' . $exe . '" -sS -m 14 -K "' . $configFile . '" --data-binary "@' . $bodyFile . '" -w "\n%{http_code}" 2>&1', $output, $code);
+    exec('"' . $exe . '" -sS -m 8 -K "' . $configFile . '" --data-binary "@' . $bodyFile . '" -w "\n%{http_code}" 2>&1', $output, $code);
     @unlink($bodyFile);
     @unlink($configFile);
     $text = implode("\n", $output);
@@ -71,36 +71,72 @@ function overpassPostWithCurlExe($url, $form) {
 }
 
 $elements = null;
+$form = 'data=' . rawurlencode($query);
+$userAgent = 'CoreCraft/1.0 (PC parts store finder; capstone project)';
+
+// Query every mirror at the same time and use the first valid answer.
+$multi = curl_multi_init();
+$handles = array();
 foreach ($mirrors as $endpoint) {
-    $form = 'data=' . rawurlencode($query);
     $ch = curl_init($endpoint);
     curl_setopt_array($ch, array(
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => $form,
         CURLOPT_HTTPHEADER => array('Accept: application/json'),
-        CURLOPT_USERAGENT => 'CoreCraft/1.0 (PC parts store finder; capstone project)',
+        CURLOPT_USERAGENT => $userAgent,
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CONNECTTIMEOUT => 6,
-        CURLOPT_TIMEOUT => 14,
+        CURLOPT_CONNECTTIMEOUT => 4,
+        CURLOPT_TIMEOUT => 8,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ));
-    $body = curl_exec($ch);
-    $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-    if ($body === false && preg_match('/ssl|certificate|protocol/i', $curlError)) {
-        $fallback = overpassPostWithCurlExe($endpoint, $form);
-        if ($fallback !== null) {
-            $body = $fallback['body'];
-            $status = $fallback['status'];
+    curl_multi_add_handle($multi, $ch);
+    $handles[] = array('ch' => $ch, 'endpoint' => $endpoint);
+}
+$running = 0;
+$done = array();
+$sslFailed = array();
+do {
+    curl_multi_exec($multi, $running);
+    while ($info = curl_multi_info_read($multi)) {
+        $id = (int)$info['handle'];
+        if (isset($done[$id])) continue;
+        $done[$id] = true;
+        if ($info['result'] !== 0) {
+            if ($info['result'] === CURLE_SSL_CONNECT_ERROR || $info['result'] === 35 || $info['result'] === 51 || $info['result'] === 58 || $info['result'] === 60) $sslFailed[$id] = true;
+            continue;
+        }
+        $body = curl_multi_getcontent($info['handle']);
+        $status = (int)curl_getinfo($info['handle'], CURLINFO_HTTP_CODE);
+        if ($status !== 200 || $body === null || $body === '') continue;
+        $data = json_decode($body, true);
+        if (is_array($data) && isset($data['elements']) && is_array($data['elements']) && !isset($data['remark'])) {
+            $elements = $data['elements'];
+            $running = 0;
+            break 2;
         }
     }
-    if ($body === false || $status !== 200) continue;
-    $data = json_decode($body, true);
-    if (is_array($data) && isset($data['elements']) && is_array($data['elements']) && !isset($data['remark'])) {
-        $elements = $data['elements'];
-        break;
+    if ($running > 0) curl_multi_select($multi, 0.2);
+} while ($running > 0);
+
+$sslHandles = array();
+foreach ($handles as $h) {
+    if ($elements === null && isset($sslFailed[(int)$h['ch']])) $sslHandles[] = $h['endpoint'];
+    curl_multi_remove_handle($multi, $h['ch']);
+    curl_close($h['ch']);
+}
+curl_multi_close($multi);
+
+// Old bundled PHP/OpenSSL cannot reach the mirrors over TLS; retry via curl.exe.
+if ($elements === null && $sslHandles) {
+    foreach (array_slice($sslHandles, 0, 1) as $endpoint) {
+        $fallback = overpassPostWithCurlExe($endpoint, $form);
+        if ($fallback === null || $fallback['status'] !== 200) continue;
+        $data = json_decode($fallback['body'], true);
+        if (is_array($data) && isset($data['elements']) && is_array($data['elements']) && !isset($data['remark'])) {
+            $elements = $data['elements'];
+            break;
+        }
     }
 }
 
