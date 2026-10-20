@@ -260,6 +260,29 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
   $conn->query("CREATE TABLE IF NOT EXISTS community_posts (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, community VARCHAR(80) NOT NULL, user_email VARCHAR(190) NOT NULL, body TEXT NOT NULL, image_path VARCHAR(255) NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), KEY idx_posts_community (community, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
   $conn->query("CREATE TABLE IF NOT EXISTS community_post_likes (post_id BIGINT UNSIGNED NOT NULL, user_email VARCHAR(190) NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (post_id, user_email), KEY idx_post_likes_user (user_email)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
   $conn->query("CREATE TABLE IF NOT EXISTS community_post_comments (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, post_id BIGINT UNSIGNED NOT NULL, user_email VARCHAR(190) NOT NULL, comment TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), KEY idx_post_comments (post_id, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+  // Posts expire after 7 days: remove images, comments, likes, reports, then the posts.
+  $expired = $conn->query("SELECT id, image_path FROM community_posts WHERE created_at < DATE_SUB(NOW(), INTERVAL 7 DAY) LIMIT 500");
+  if ($expired) {
+    $expired_ids = array();
+    $image_directory = realpath(__DIR__ . DIRECTORY_SEPARATOR . "uploads" . DIRECTORY_SEPARATOR . "community_images");
+    while ($row = $expired->fetch_assoc()) {
+      $expired_ids[] = (int)$row["id"];
+      $path = $row["image_path"];
+      if ($path && $image_directory && preg_match('/^uploads\/community_images\/[A-Za-z0-9._-]+$/', $path)) {
+        $file = realpath(__DIR__ . DIRECTORY_SEPARATOR . str_replace("/", DIRECTORY_SEPARATOR, $path));
+        if ($file && strpos($file, $image_directory . DIRECTORY_SEPARATOR) === 0 && is_file($file)) @unlink($file);
+      }
+    }
+    $expired->free();
+    if (count($expired_ids) > 0) {
+      $id_list = implode(",", $expired_ids);
+      $conn->query("DELETE FROM community_post_comments WHERE post_id IN ($id_list)");
+      $conn->query("DELETE FROM community_post_likes WHERE post_id IN ($id_list)");
+      $conn->query("DELETE FROM community_post_reports WHERE post_id IN ($id_list)");
+      $conn->query("DELETE FROM community_posts WHERE id IN ($id_list)");
+    }
+  }
+
   if ($action === "post_create") {
     $post_body = trim(isset($body["message"]) ? $body["message"] : "");
     $image_path = null;
