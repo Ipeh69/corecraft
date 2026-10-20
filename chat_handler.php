@@ -67,6 +67,9 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     }
     $seed->close();
   }
+  if (!$conn->query("CREATE TABLE IF NOT EXISTS community_post_reports (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, post_id BIGINT UNSIGNED NOT NULL, community VARCHAR(80) NOT NULL, reporter_email VARCHAR(190) NOT NULL, reason TEXT NOT NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), UNIQUE KEY uq_post_reporter (post_id, reporter_email), KEY idx_post_reports_status (status, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8")) {
+    $reply(array("success" => false, "error" => "Failed to prepare post reports table"), 500);
+  }
 
   if ($action === "dm_user_search") {
     $search = trim(isset($body["query"]) ? $body["query"] : "");
@@ -205,6 +208,7 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     $cleanup_queries = array(
+      "DELETE FROM community_post_reports WHERE community = ?",
       "DELETE FROM community_post_comments WHERE post_id IN (SELECT id FROM community_posts WHERE community = ?)",
       "DELETE FROM community_post_likes WHERE post_id IN (SELECT id FROM community_posts WHERE community = ?)",
       "DELETE FROM community_posts WHERE community = ?",
@@ -256,7 +260,6 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
   $conn->query("CREATE TABLE IF NOT EXISTS community_posts (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, community VARCHAR(80) NOT NULL, user_email VARCHAR(190) NOT NULL, body TEXT NOT NULL, image_path VARCHAR(255) NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), KEY idx_posts_community (community, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
   $conn->query("CREATE TABLE IF NOT EXISTS community_post_likes (post_id BIGINT UNSIGNED NOT NULL, user_email VARCHAR(190) NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (post_id, user_email), KEY idx_post_likes_user (user_email)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
   $conn->query("CREATE TABLE IF NOT EXISTS community_post_comments (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, post_id BIGINT UNSIGNED NOT NULL, user_email VARCHAR(190) NOT NULL, comment TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), KEY idx_post_comments (post_id, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
-
   if ($action === "post_create") {
     $post_body = trim(isset($body["message"]) ? $body["message"] : "");
     $image_path = null;
@@ -308,6 +311,113 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     }
     $stmt->close();
     $reply(array("success" => true, "posts" => $posts));
+  }
+
+  if ($action === "post_delete") {
+    $post_id = isset($body["post_id"]) ? (int) $body["post_id"] : 0;
+    if ($post_id < 1) $reply(array("success" => false, "error" => "Invalid post"), 400);
+
+    $post = $conn->prepare("SELECT image_path FROM community_posts WHERE id = ? AND community = ? AND user_email = ? LIMIT 1");
+    if (!$post) $reply(array("success" => false, "error" => "Failed to verify post ownership"), 500);
+    $post->bind_param("iss", $post_id, $community, $email);
+    if (!$post->execute()) {
+      $post->close();
+      $reply(array("success" => false, "error" => "Failed to verify post ownership"), 500);
+    }
+    $post->bind_result($image_path);
+    if (!$post->fetch()) {
+      $post->close();
+      $reply(array("success" => false, "error" => "Post not found or you are not its author"), 404);
+    }
+    $post->close();
+
+    $conn->autocommit(false);
+    $cleanup_queries = array(
+      "DELETE FROM community_post_comments WHERE post_id = ?",
+      "DELETE FROM community_post_likes WHERE post_id = ?",
+      "DELETE FROM community_post_reports WHERE post_id = ?"
+    );
+    foreach ($cleanup_queries as $cleanup_sql) {
+      $cleanup = $conn->prepare($cleanup_sql);
+      if (!$cleanup) {
+        $conn->rollback();
+        $conn->autocommit(true);
+        $reply(array("success" => false, "error" => "Failed to prepare post cleanup"), 500);
+      }
+      $cleanup->bind_param("i", $post_id);
+      if (!$cleanup->execute()) {
+        $cleanup->close();
+        $conn->rollback();
+        $conn->autocommit(true);
+        $reply(array("success" => false, "error" => "Failed to clean up post activity"), 500);
+      }
+      $cleanup->close();
+    }
+
+    $delete_post = $conn->prepare("DELETE FROM community_posts WHERE id = ? AND community = ? AND user_email = ?");
+    if (!$delete_post) {
+      $conn->rollback();
+      $conn->autocommit(true);
+      $reply(array("success" => false, "error" => "Failed to prepare post deletion"), 500);
+    }
+    $delete_post->bind_param("iss", $post_id, $community, $email);
+    if (!$delete_post->execute() || $delete_post->affected_rows !== 1) {
+      $delete_post->close();
+      $conn->rollback();
+      $conn->autocommit(true);
+      $reply(array("success" => false, "error" => "Post could not be deleted"), 500);
+    }
+    $delete_post->close();
+    if (!$conn->commit()) {
+      $conn->rollback();
+      $conn->autocommit(true);
+      $reply(array("success" => false, "error" => "Post deletion could not be saved"), 500);
+    }
+    $conn->autocommit(true);
+
+    if ($image_path && preg_match('/^uploads\/community_images\/[A-Za-z0-9._-]+$/', $image_path)) {
+      $image_directory = realpath(__DIR__ . DIRECTORY_SEPARATOR . "uploads" . DIRECTORY_SEPARATOR . "community_images");
+      $image_file = $image_directory ? realpath(__DIR__ . DIRECTORY_SEPARATOR . str_replace("/", DIRECTORY_SEPARATOR, $image_path)) : false;
+      if ($image_directory && $image_file && strpos($image_file, $image_directory . DIRECTORY_SEPARATOR) === 0 && is_file($image_file) && !@unlink($image_file)) {
+        error_log("CoreCraft could not remove deleted community post image: " . $image_file);
+      }
+    }
+    $reply(array("success" => true));
+  }
+
+  if ($action === "post_report") {
+    $post_id = isset($body["post_id"]) ? (int) $body["post_id"] : 0;
+    $reason = trim(isset($body["reason"]) ? $body["reason"] : "");
+    if ($post_id < 1) $reply(array("success" => false, "error" => "Invalid post"), 400);
+    if ($reason === "" || strlen($reason) > 1000) $reply(array("success" => false, "error" => "Please provide a reason of 1 to 1000 characters"), 400);
+
+    $post_check = $conn->prepare("SELECT user_email FROM community_posts WHERE id = ? AND community = ? LIMIT 1");
+    if (!$post_check) $reply(array("success" => false, "error" => "Failed to verify post"), 500);
+    $post_check->bind_param("is", $post_id, $community);
+    if (!$post_check->execute()) {
+      $post_check->close();
+      $reply(array("success" => false, "error" => "Failed to verify post"), 500);
+    }
+    $post_check->bind_result($post_author);
+    if (!$post_check->fetch()) {
+      $post_check->close();
+      $reply(array("success" => false, "error" => "Post was not found in this community"), 404);
+    }
+    $post_check->close();
+    if (strtolower($post_author) === $email) {
+      $reply(array("success" => false, "error" => "You cannot report your own post"), 400);
+    }
+
+    $report = $conn->prepare("INSERT INTO community_post_reports (post_id, community, reporter_email, reason) VALUES (?, ?, ?, ?)");
+    if (!$report) $reply(array("success" => false, "error" => "Failed to prepare post report"), 500);
+    $report->bind_param("isss", $post_id, $community, $email, $reason);
+    if (!$report->execute()) {
+      $duplicate = $report->errno === 1062;
+      $report->close();
+      $reply(array("success" => false, "error" => $duplicate ? "You have already reported this post" : "Post report could not be saved"), $duplicate ? 409 : 500);
+    }
+    $report->close();
+    $reply(array("success" => true));
   }
 
   if ($action === "post_like" || $action === "post_comment") {

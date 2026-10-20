@@ -1418,7 +1418,7 @@ function initPHChat(){
     const page=document.getElementById('page-PHchat');
     if(page&&page.classList.contains('active')&&window._user){
       refreshPHChatCommunities();
-      if(document.getElementById('phchat-posts-view')&&document.getElementById('phchat-posts-view').classList.contains('active'))loadCommunityPosts();
+      if(document.getElementById('phchat-posts-view')&&document.getElementById('phchat-posts-view').classList.contains('active'))loadCommunityPosts(true);
       if(document.getElementById('phchat-messages-view')&&document.getElementById('phchat-messages-view').classList.contains('active')){
         loadDMConversations();
         if(activeDMEmail)loadPrivateMessages();
@@ -1561,16 +1561,50 @@ async function publishCommunityPost(){
   finally{button.disabled=false;}
 }
 
-async function loadCommunityPosts(){
+let postLoadSeq=0;
+let renderedPostsSignature='';
+
+async function loadCommunityPosts(silent){
   const container=document.getElementById('community-post-list');
   const select=document.getElementById('feed-community');
   if(!container||!window._user)return;
   const community=select&&select.value?select.value:activePHChat;
-  container.innerHTML='<div class="card" style="padding:18px;color:var(--muted)">Loading community posts...</div>';
+  const seq=++postLoadSeq;
+  const signaturePrefix=community+'|';
+  if(!silent||!renderedPostsSignature.startsWith(signaturePrefix)){
+    renderedPostsSignature='';
+    container.innerHTML='<div class="card" style="padding:18px;color:var(--muted)">Loading community posts...</div>';
+  }
   try{
     const data=await phCommunityRequest('post_list',{community:community});
-    renderCommunityPosts(data.posts||[],container);
-  }catch(error){container.innerHTML=`<div class="card" style="padding:18px;color:#fca5a5">${escapeHtml(error.message||'Could not load posts.')}</div>`;}
+    // Ignore responses from older requests or a community the user already left.
+    if(seq!==postLoadSeq||feedCommunityName()!==community)return;
+    const posts=data.posts||[];
+    const signature=signaturePrefix+JSON.stringify(posts);
+    if(signature===renderedPostsSignature)return;
+    const drafts={};
+    let focusedPostId=null;
+    container.querySelectorAll('.phchat-comment-form input[data-post-id]').forEach(function(input){
+      if(input.value)drafts[input.dataset.postId]=input.value;
+      if(document.activeElement===input)focusedPostId=input.dataset.postId;
+    });
+    const scrollY=window.scrollY;
+    renderCommunityPosts(posts,container);
+    renderedPostsSignature=signature;
+    Object.keys(drafts).forEach(function(postId){
+      const input=container.querySelector('.phchat-comment-form input[data-post-id="'+postId+'"]');
+      if(input)input.value=drafts[postId];
+    });
+    if(focusedPostId){
+      const input=container.querySelector('.phchat-comment-form input[data-post-id="'+focusedPostId+'"]');
+      if(input)input.focus();
+    }
+    window.scrollTo(0,scrollY);
+  }catch(error){
+    if(seq!==postLoadSeq)return;
+    if(silent&&renderedPostsSignature)return;
+    container.innerHTML=`<div class="card" style="padding:18px;color:#fca5a5">${escapeHtml(error.message||'Could not load posts.')}</div>`;
+  }
 }
 
 function renderCommunityPosts(posts,container){
@@ -1578,15 +1612,40 @@ function renderCommunityPosts(posts,container){
   if(!posts.length){container.innerHTML='<div class="card" style="padding:22px;color:var(--muted)">No posts here yet. Start the discussion with a build, picture, or PC question.</div>';return;}
   container.innerHTML=posts.map(function(post){
     const comments=Array.isArray(post.comments)?post.comments:[];
+    const postId=Number(post.id);
+    const isOwnPost=window._user&&String(post.user_email||'').toLowerCase()===String(window._user.email||'').toLowerCase();
     const image=post.image_path?`<img class="phchat-post-image" src="${escapeHtml(post.image_path)}" alt="Image shared by ${escapeHtml(post.sender_name)}" loading="lazy">`:'';
     const commentHtml=comments.map(function(comment){return `<div class="phchat-comment"><strong>${escapeHtml(comment.sender_name||'Member')}:</strong> ${escapeHtml(comment.comment)}</div>`;}).join('');
-    return `<article class="card phchat-post"><div class="phchat-post-header"><span class="phchat-post-author">${escapeHtml(post.sender_name||'CoreCraft user')}</span><time>${formatChatTime(post.created_at)}</time></div>${post.body?`<div class="phchat-post-body">${escapeHtml(post.body)}</div>`:''}${image}<div class="phchat-post-actions"><button type="button" class="phchat-action-button ${Number(post.liked)?'liked':''}" onclick="togglePostLike(${Number(post.id)})">${Number(post.liked)?'♥ Liked':'♡ Like'} · ${Number(post.like_count)||0}</button><span class="phchat-muted">${comments.length} comment${comments.length===1?'':'s'}</span></div><div class="phchat-comments">${commentHtml}</div><form class="phchat-comment-form" onsubmit="submitPostComment(event,${Number(post.id)})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a comment..." required><button class="phchat-action-button" type="submit">Comment</button></form></article>`;
+    const postControl=isOwnPost
+      ?`<button type="button" class="phchat-action-button phchat-post-delete" onclick="deleteCommunityPost(${postId})">Delete post</button>`
+      :`<button type="button" class="phchat-action-button phchat-post-report" onclick="reportCommunityPost(${postId})">Report</button>`;
+    return `<article class="card phchat-post"><div class="phchat-post-header"><span class="phchat-post-author">${escapeHtml(post.sender_name||'CoreCraft user')}</span><time>${formatChatTime(post.created_at)}</time></div>${post.body?`<div class="phchat-post-body">${escapeHtml(post.body)}</div>`:''}${image}<div class="phchat-post-actions"><button type="button" class="phchat-action-button ${Number(post.liked)?'liked':''}" onclick="togglePostLike(${postId})">${Number(post.liked)?'♥ Liked':'♡ Like'} · ${Number(post.like_count)||0}</button><span class="phchat-muted">${comments.length} comment${comments.length===1?'':'s'}</span>${postControl}</div><div class="phchat-comments">${commentHtml}</div><form class="phchat-comment-form" onsubmit="submitPostComment(event,${postId})"><input class="chat-textarea" type="text" maxlength="1000" data-post-id="${postId}" placeholder="Write a comment..." required><button class="phchat-action-button" type="submit">Comment</button></form></article>`;
   }).join('');
+}
+
+async function deleteCommunityPost(postId){
+  if(!window._user||!window._user.authToken)return;
+  if(!confirm('Delete this post and its comments, likes, and reports? This cannot be undone.'))return;
+  try{
+    await phCommunityRequest('post_delete',{community:feedCommunityName(),post_id:postId});
+    await loadCommunityPosts(true);
+  }catch(error){alert(error.message||'Post could not be deleted.');}
+}
+
+async function reportCommunityPost(postId){
+  if(!window._user||!window._user.authToken)return;
+  const reason=window.prompt('Why are you reporting this post? Please describe the issue (up to 1000 characters).');
+  if(reason===null)return;
+  if(!reason.trim()){alert('Please provide a reason for the report.');return;}
+  try{
+    await phCommunityRequest('post_report',{community:feedCommunityName(),post_id:postId,reason:reason.trim()});
+    alert('Report submitted. Thank you for helping keep the community safe.');
+  }catch(error){alert(error.message||'Post report could not be submitted.');}
 }
 
 async function togglePostLike(postId){
   const community=document.getElementById('feed-community').value||activePHChat;
-  try{await phCommunityRequest('post_like',{community:community,post_id:postId});await loadCommunityPosts();}
+  try{await phCommunityRequest('post_like',{community:community,post_id:postId});await loadCommunityPosts(true);}
   catch(error){alert(error.message||'Like could not be saved.');}
 }
 
@@ -1596,7 +1655,7 @@ async function submitPostComment(event,postId){
   const comment=input.value.trim();
   if(!comment)return;
   const community=document.getElementById('feed-community').value||activePHChat;
-  try{await phCommunityRequest('post_comment',{community:community,post_id:postId,comment:comment});await loadCommunityPosts();}
+  try{await phCommunityRequest('post_comment',{community:community,post_id:postId,comment:comment});input.value='';await loadCommunityPosts(true);}
   catch(error){alert(error.message||'Comment could not be posted.');}
 }
 
