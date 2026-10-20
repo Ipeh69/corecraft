@@ -104,6 +104,13 @@ $requestBody = array(
     )
 );
 
+if ($feature === 'trouble') {
+    // Short answers return much faster than long ones.
+    $requestBody['generationConfig']['maxOutputTokens'] = 1024;
+    $requestBody['generationConfig']['temperature'] = 0.3;
+    $requestBody['system_instruction']['parts'][0]['text'] .= "\n\nSpeed rule: be brief. Reply in at most 5 short numbered steps, one line each, plus one short question if needed. No long introductions or summaries.";
+}
+
 $useGoogleSearch = $feature === 'pricing'
     && isset($payload['grounded_search'])
     && $payload['grounded_search'] === true;
@@ -166,7 +173,7 @@ foreach ($models as $model) {
         CURLOPT_POSTFIELDS => json_encode($requestBody),
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CONNECTTIMEOUT => 20,
-        CURLOPT_TIMEOUT => 90,
+        CURLOPT_TIMEOUT => $feature === 'trouble' ? 30 : 90,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ));
