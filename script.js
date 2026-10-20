@@ -77,9 +77,11 @@ function renderRecentActivity(){
 let autoLocateTried=false, philippinesMap=null, philippinesMarkers=[], userLocationMarker=null, hasLocatedUser=false, lastLocatedPosition=null;
 let shopSearchRequest=0,lastGeocodeSearchAt=0;
 const geocodedShopLocations={};
-const pcRetailerPattern=/PC ?Express|PCX |Octagon|Easy ?PC|DynaQuest|Villman|PC ?Worx|PC ?Worth|Gigahertz|JDM Techno|Silicon Valley|PC ?Hub|Complink|Bermor|PC Parts|Computer Parts|PC Builders|Computer Builders/i;
-const partsStorePattern=/pc ?(parts|builder|components|hardware|store|shop|center|zone|depot|mart)|computer ?(parts|components|hardware|builder)|hardware|components/i;
-const nonRetailPattern=/repair|service|phone|printer|ink|photocopy|cctv|software|internet|net ?caf|cafe|café|gaming|e-?games|pisonet|rental|school|college|institute|university|academy|training/i;
+const pcRetailerPattern=/PC ?Express|PCX |Octagon|Easy ?PC|DynaQuest|Villman|PC ?Worx|PC ?Worth|Gigahertz|JDM Techno|Data ?Blitz|Silicon Valley|PC ?Hub|Complink|Bermor|PC Parts|Computer Parts|PC Builders|Computer Builders/i;
+const nonRetailPattern=/internet|net ?caf|cafe|café|gaming|e-?games|pisonet|rental|school|college|institute|university|academy|training/i;
+const cityRadius=12000;
+const liveStockIntervalMs=300000;
+let liveStockTimer=null;
 const philippinesBounds={south:4.3,west:116.8,north:21.3,east:126.8};
 
 function initPhilippinesMap(){
@@ -231,12 +233,28 @@ async function geocodeShopSearchArea(location){
   }finally{clearTimeout(timeout);}
 }
 
-const SHOP_SEARCH_RADIUS_M=20000;
-function distanceMeters(a,b){
-  const rad=Math.PI/180,dLat=(b.lat-a.lat)*rad,dLng=(b.lng-a.lng)*rad;
-  const h=Math.sin(dLat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLng/2)**2;
-  return 12742000*Math.asin(Math.sqrt(h));
+async function reverseGeocodePlace(latitude,longitude){
+  if(latitude&&typeof latitude==='object'){
+    longitude=latitude.lng===undefined?latitude.lon:latitude.lng;
+    latitude=latitude.lat;
+  }
+  if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||!isInsidePhilippines({lat:latitude,lng:longitude})){
+    throw new Error('A valid location inside the Philippines is required.');
+  }
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),12000);
+  try{
+    const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&zoom=10&addressdetails=1`;
+    const response=await fetch(url,{headers:{'Accept':'application/json'},signal:controller.signal});
+    if(!response.ok)throw new Error('Place lookup returned HTTP '+response.status);
+    const place=await response.json();
+    if(!place||typeof place.display_name!=='string'||!place.display_name.trim()){
+      throw new Error('No place name was found for these coordinates.');
+    }
+    return place.display_name;
+  }finally{clearTimeout(timeout);}
 }
+
 function getShopListingsQuery(center,radius){
   const scope=`(around:${radius||SHOP_SEARCH_RADIUS_M},${center.lat},${center.lng})`;
   const listings=`nwr["shop"="computer"]${scope};nwr["shop"="electronics"]["name"~"${pcRetailerPattern.source}",i]${scope};nwr["shop"="electronics"]["brand"~"${pcRetailerPattern.source}",i]${scope};`;
@@ -317,8 +335,11 @@ async function searchPhilippinesShops(location,nearbyCenter){
     if(requestId!==shopSearchRequest)return [];
     setMapStatus(`Searching OpenStreetMap for computer parts stores ${locationLabel}...`);
     clearPhilippinesMarkers();
-    const elements=await fetchShopListings(center,SHOP_SEARCH_RADIUS_M);
-    if(requestId!==shopSearchRequest)return;
+    let elements=[];
+    elements=await fetchShopListings(center,cityRadius);
+    if(requestId!==shopSearchRequest)return [];
+    philippinesMap.setMaxBounds(L.latLng(center.lat,center.lng).toBounds(cityRadius*2.4));
+    philippinesMap.setMinZoom(10);
     const seen={};
     const filtered=[];
     // Mall branches missing from OpenStreetMap (positions are the mall's coordinates)
@@ -386,12 +407,8 @@ async function searchPhilippinesShops(location,nearbyCenter){
   }
 }
 
-function setButtonLoading(button,loading,label){
-  if(!button)return;
-  if(loading){button.dataset.label=button.textContent;button.textContent=label;button.classList.add('is-loading');button.disabled=true;}
-  else{if(button.dataset.label)button.textContent=button.dataset.label;button.classList.remove('is-loading');button.disabled=false;}
-}
-async function checkPartStock(){
+async function checkPartStock(isAuto){
+  if(isAuto===true&&document.hidden)return;
   const part=(document.getElementById('stock-part')?.value||'').trim();
   const area=(document.getElementById('stock-location')?.value||'').trim();
   const source=(document.getElementById('stock-source')?.value||'').trim();
@@ -422,7 +439,7 @@ async function checkPartStock(){
     }
     let nearbyStores=[];
     try{
-      nearbyStores=await searchPhilippinesShops(useCurrentLocation?'My current location':area,useCurrentLocation?lastLocatedPosition:null);
+      nearbyStores=(await searchPhilippinesShops(useCurrentLocation?'My current location':area,useCurrentLocation?lastLocatedPosition:null))||[];
     }catch(mapError){
       setMapStatus('Could not load mapped stores: '+(mapError.message||'OpenStreetMap is unavailable')+'. Gemini will still search retailers for this part and area.');
     }
@@ -489,8 +506,9 @@ Search each mapped business name where web results allow, and search official Ph
       :data.grounded
       ?`<p class="stock-verification-note">Gemini used web search. A source can show an online listing but does not guarantee live branch inventory; confirm directly with the seller.${checkedTime}</p>`
       :`<p class="stock-verification-note">No citable web results were returned, so current stock and prices could not be independently verified. Treat any estimates above as unverified and check with the seller.${checkedTime}</p>`;
-    const reportLabel=liveResults.length?'Retailer website stock check':(data.searchUnavailable?'Estimated price report (not live)':'Live-search stock report');
-    result.innerHTML=`<div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">${reportLabel}</span></div>${liveTable}${formatAIResponse(data.reply)}${sourceList}${groundingNotice}`;
+    clearInterval(liveStockTimer);
+    liveStockTimer=setInterval(()=>checkPartStock(true),liveStockIntervalMs);
+    result.innerHTML=`<div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">Live stock report</span><span class="ai-label" style="margin-left:auto">● Auto-refreshes every 5 min</span></div>${formatAIResponse(data.reply)}${sourceList}${groundingNotice}`;
   }catch(error){
     result.innerHTML=`<span style="color:var(--orange)">Stock check unavailable: ${escapeHtml(error.message||'Unknown error')}</span>`;
   }finally{setButtonLoading(button,false);}
