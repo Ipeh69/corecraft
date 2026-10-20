@@ -756,7 +756,8 @@ function getAICompatAnalysis(cpu,mb,ram,gpu,storage,psu,pccase){
   if(ramL.includes('ddr5')) ramType='DDR5';
   else if(ramL.includes('ddr4')) ramType='DDR4';
   let mbRamType='Unknown';
-  if(mbSocket==='AM5'||mbSocket==='LGA1700') mbRamType='DDR5';
+  if(mbSocket==='AM5') mbRamType='DDR5';
+  else if(mbSocket==='LGA1700') mbRamType=mbL.includes('ddr4')?'DDR4':mbL.includes('ddr5')?'DDR5':'Unknown';
   else if(mbSocket==='AM4') mbRamType='DDR4';
   if(cpuSocket!=='Unknown'&&mbSocket!=='Unknown'&&cpuSocket!==mbSocket){
     issues.push(`⚠️ **Socket mismatch** — CPU is ${cpuSocket} but motherboard is ${mbSocket}. Use a matching CPU or motherboard.`);
@@ -954,7 +955,9 @@ function inferMotherboardSpecs(value) {
   const text = String(value || '').toLowerCase();
   if (/(b650|x670|a620|b850|x870|am5)/.test(text)) return {socket:'AM5', ramType:'DDR5'};
   if (/(b550|b450|a520|x570|am4)/.test(text)) return {socket:'AM4', ramType:'DDR4'};
-  if (/(z690|z790|b660|b760|h610|h670|lga1700)/.test(text)) return {socket:'LGA1700', ramType:text.includes('ddr4') ? 'DDR4' : 'DDR5'};
+  if (/(z690|z790|b660|b760|h610|h670|lga1700)/.test(text)) {
+    return {socket:'LGA1700', ramType:text.includes('ddr4') ? 'DDR4' : text.includes('ddr5') ? 'DDR5' : ''};
+  }
   return {socket:'', ramType:''};
 }
 
@@ -981,6 +984,60 @@ function inferGpuPower(value) {
 function inferPsuWattage(value) {
   const match = String(value || '').match(/(\d{3,4})\s*w/i);
   return match ? parseInt(match[1], 10) : 0;
+}
+
+function assessRecommendationCompatibility(parts) {
+  const part = function (category) {
+    const match = parts.find(function (item) {
+      return item.cat.toLowerCase().includes(category);
+    });
+    return match ? match.name : '';
+  };
+  const cpu = part('cpu');
+  const motherboard = part('motherboard');
+  const ram = part('ram');
+  const gpu = part('gpu');
+  const storage = part('storage');
+  const psu = part('psu');
+  const cpuSocket = inferCpuSocket(cpu);
+  const motherboardSpecs = inferMotherboardSpecs(motherboard);
+  const ramType = inferRamType(ram);
+  const issues = [];
+
+  if (!cpuSocket || !motherboardSpecs.socket) {
+    issues.push('CPU or motherboard platform is not specific enough to verify.');
+  } else if (cpuSocket !== motherboardSpecs.socket) {
+    issues.push('CPU socket does not match the motherboard.');
+  }
+  if (!/boxed.*stock cooler included/i.test(cpu)) {
+    issues.push('CPU cooler inclusion is not specified; only boxed CPUs with their stock cooler are recommended.');
+  }
+  if (!ramType || !motherboardSpecs.ramType) {
+    issues.push('Motherboard and RAM generation are not specific enough to verify.');
+  } else if (ramType !== motherboardSpecs.ramType) {
+    issues.push('RAM generation does not match the motherboard.');
+  }
+
+  const integratedGraphics = /integrated|uhd|radeon graphics/i.test(gpu);
+  const availablePsu = inferPsuWattage(psu);
+  if (!availablePsu || availablePsu < 400) {
+    issues.push('PSU wattage is missing or too low for a complete build.');
+  }
+  if (!gpu || !cpu || (integratedGraphics && !(/ryzen[^,]*\b[0-9]{4,5}g\b/i.test(cpu) || (/intel|core i[3579]/i.test(cpu) && !/\bf\b/i.test(cpu))))) {
+    issues.push('Graphics configuration does not match a CPU with integrated graphics.');
+  } else if (!integratedGraphics) {
+    const requiredPsu = inferGpuPower(gpu);
+    if (!requiredPsu || !availablePsu) {
+      issues.push('GPU or PSU model/wattage is not specific enough to verify.');
+    } else if (availablePsu < requiredPsu) {
+      issues.push('PSU wattage is below the recommendation for this GPU.');
+    }
+  }
+  if (!storage || !/(nvme|sata|hdd)/i.test(storage)) {
+    issues.push('Storage type is not specific enough to verify.');
+  }
+
+  return {verified: issues.length === 0, issues: issues};
 }
 
 function checkCompatibility() {
@@ -1014,10 +1071,18 @@ function checkCompatibility() {
     cpu.tag = '⚠ Exact Model Needed';
     cpu.detail = 'Ryzen 9 is a product family. Enter the exact model, such as Ryzen 9 5900X or Ryzen 9 7900X, to verify the motherboard socket.';
   }
-  if (gpu.status === 'compatible' && !detectedGpuPower) {
+  const isIntegratedGraphics = /integrated|uhd|radeon graphics/i.test(gpu.value);
+  const cpuHasIntegratedGraphics = /ryzen[^,]*\b[0-9]{4,5}g\b/i.test(cpu.value)
+    || (/intel|core i[3579]/i.test(cpu.value) && !/\bf\b/i.test(cpu.value));
+  if (gpu.status === 'compatible' && !detectedGpuPower && !isIntegratedGraphics) {
     gpu.status = 'warning';
     gpu.tag = '⚠ Exact Model Needed';
     gpu.detail = 'RTX 3050 is not in the local parts database. It is generally compatible with modern PCIe motherboards, but the exact model is needed to verify power and case clearance.';
+  }
+  if (gpu.status === 'compatible' && isIntegratedGraphics && !cpuHasIntegratedGraphics) {
+    gpu.status = 'warning';
+    gpu.tag = '⚠ No Integrated Graphics';
+    gpu.detail = 'The selected CPU does not appear to include integrated graphics. Select a discrete graphics card or a CPU with an iGPU.';
   }
 
   // CPU-Motherboard socket compatibility
@@ -1102,13 +1167,13 @@ function getActiveBuildType() {
 
 function getLocalRecommendationFallback(type) {
   const fallback = {
-    gaming: {name:'Gaming Value 1080p',description:'Balanced entry gaming build for esports and modern games.',budget:28000,parts:['CPU: Ryzen 5 5600','Motherboard: B550M','RAM: 16GB DDR4','GPU: RX 6600 8GB','Storage: 1TB NVMe SSD','PSU: 550W 80+ Bronze']},
-    office: {name:'Office Productivity',description:'Reliable system for documents, browser work, meetings, and productivity.',budget:26000,parts:['CPU: Intel Core i3-12100','Motherboard: H610M','RAM: 16GB DDR4','GPU: Integrated UHD Graphics','Storage: 500GB SATA SSD','PSU: 500W 80+ Bronze']},
-    students: {name:'Student Smart Ryzen 5',description:'Practical PC for schoolwork, coding, research, and online classes.',budget:22000,parts:['CPU: Ryzen 5 5600G','Motherboard: B550M','RAM: 16GB DDR4','GPU: Integrated Radeon Graphics','Storage: 512GB NVMe SSD','PSU: 500W 80+ Bronze']},
-    streaming: {name:'Starter Streaming',description:'Affordable setup for livestreaming and esports content.',budget:30000,parts:['CPU: Ryzen 5 5600','Motherboard: B550M','RAM: 16GB DDR4','GPU: RTX 3060 12GB','Storage: 1TB NVMe SSD','PSU: 650W 80+ Bronze']},
-    editing: {name:'Creator Editing',description:'Editing-focused build for 1080p projects and content creation.',budget:42000,parts:['CPU: Ryzen 7 7700','Motherboard: B650M','RAM: 32GB DDR5','GPU: RTX 4060 8GB','Storage: 2TB NVMe SSD','PSU: 650W 80+ Gold']},
-    workstation: {name:'Developer Workstation',description:'Powerful build for development, rendering, virtualization, and multitasking.',budget:55000,parts:['CPU: Ryzen 9 7900','Motherboard: B650 ATX','RAM: 64GB DDR5','GPU: RTX 4070 12GB','Storage: 2TB NVMe SSD','PSU: 750W 80+ Gold']},
-    home: {name:'Home Office Essential',description:'Quiet everyday system for browsing, documents, calls, and media.',budget:20000,parts:['CPU: Intel Core i3-12100','Motherboard: H610M','RAM: 16GB DDR4','GPU: Integrated UHD Graphics','Storage: 500GB SATA SSD','PSU: 500W 80+ Bronze']}
+    gaming: {name:'Gaming Value 1080p',description:'Balanced entry gaming build for esports and modern games.',budget:28000,parts:['CPU: Ryzen 5 5600 (boxed; stock cooler included)','Motherboard: B550M (AM4, DDR4)','RAM: 16GB DDR4','GPU: RX 6600 8GB','Storage: 1TB NVMe SSD','PSU: 550W 80+ Bronze']},
+    office: {name:'Office Productivity',description:'Reliable system for documents, browser work, meetings, and productivity.',budget:26000,parts:['CPU: Intel Core i3-12100 (boxed; UHD 730 graphics and stock cooler included)','Motherboard: H610M (LGA1700, DDR4)','RAM: 16GB DDR4','GPU: Integrated UHD 730 graphics (from CPU; no separate GPU)','Storage: 500GB SATA SSD','PSU: 500W 80+ Bronze']},
+    students: {name:'Student Smart Ryzen 5',description:'Practical PC for schoolwork, coding, research, and online classes.',budget:22000,parts:['CPU: Ryzen 5 5600G (boxed; integrated Radeon graphics and stock cooler included)','Motherboard: B550M (AM4, DDR4)','RAM: 16GB DDR4','GPU: Integrated Radeon graphics (from CPU; no separate GPU)','Storage: 512GB NVMe SSD','PSU: 500W 80+ Bronze']},
+    streaming: {name:'Starter Streaming',description:'Affordable setup for livestreaming and esports content.',budget:30000,parts:['CPU: Ryzen 5 5600 (boxed; stock cooler included)','Motherboard: B550M (AM4, DDR4)','RAM: 16GB DDR4','GPU: RTX 3060 12GB','Storage: 1TB NVMe SSD','PSU: 650W 80+ Bronze']},
+    editing: {name:'Creator Editing',description:'Editing-focused build for 1080p projects and content creation.',budget:42000,parts:['CPU: Ryzen 7 7700 (boxed; stock cooler included)','Motherboard: B650M (AM5, DDR5)','RAM: 32GB DDR5','GPU: RTX 4060 8GB','Storage: 2TB NVMe SSD','PSU: 650W 80+ Gold']},
+    workstation: {name:'Developer Workstation',description:'Powerful build for development, rendering, virtualization, and multitasking.',budget:55000,parts:['CPU: Ryzen 9 7900 (boxed; stock cooler included)','Motherboard: B650 ATX (AM5, DDR5)','RAM: 64GB DDR5','GPU: RTX 4070 12GB','Storage: 2TB NVMe SSD','PSU: 750W 80+ Gold']},
+    home: {name:'Home Office Essential',description:'Quiet everyday system for browsing, documents, calls, and media.',budget:20000,parts:['CPU: Intel Core i3-12100 (boxed; UHD 730 graphics and stock cooler included)','Motherboard: H610M (LGA1700, DDR4)','RAM: 16GB DDR4','GPU: Integrated UHD 730 graphics (from CPU; no separate GPU)','Storage: 500GB SATA SSD','PSU: 500W 80+ Bronze']}
   };
   const item = fallback[type];
   if (!item) return [];
@@ -1161,7 +1226,8 @@ async function loadRecommendedBuilds() {
           parts: parsedParts,
           budget: Number(row.price || row.estimated_budget || 0),
           pros: getBuildPros(type,row.build_name || '',parsedParts),
-          cons: getBuildCons(type,row.build_name || '',parsedParts)
+          cons: getBuildCons(type,row.build_name || '',parsedParts),
+          compatibility: assessRecommendationCompatibility(parsedParts)
         };
       });
     });
@@ -1183,7 +1249,8 @@ async function loadRecommendedBuilds() {
           parts: parts,
           budget: Number(row.estimated_budget || 0),
           pros: getBuildPros(type,row.build_name,parts),
-          cons: getBuildCons(type,row.build_name,parts)
+          cons: getBuildCons(type,row.build_name,parts),
+          compatibility: assessRecommendationCompatibility(parts)
         };
       });
     });
@@ -1289,12 +1356,13 @@ function renderBuilds(type){
   const minimumBudget=20000;
   const maxBudget=Number(document.getElementById('build-budget')?.value||0);
   const allItems = Array.isArray(builds[type]) ? builds[type] : [];
-  const items = allItems.filter(b=>b.budget>=minimumBudget&&(!maxBudget||b.budget<=maxBudget));
+  const withinBudget = allItems.filter(b=>b.budget>=minimumBudget&&(!maxBudget||b.budget<=maxBudget));
+  const items = withinBudget.filter(b=>b.compatibility && b.compatibility.verified);
   if (items.length === 0) {
     document.getElementById('build-content').innerHTML = `
       <div class="build-card">
-        <div class="build-card-title">No recommendations yet</div>
-        <p style="margin-top:10px;color:var(--muted)">${maxBudget ? 'No build from ₱20,000 up matches your maximum budget.' : 'No recommended builds found for this category.'}</p>
+        <div class="build-card-title">${withinBudget.length ? 'Recommendations need compatibility details' : 'No recommendations yet'}</div>
+        <p style="margin-top:10px;color:var(--muted)">${withinBudget.length ? 'These builds are hidden until their CPU, motherboard, memory, graphics, storage, and power supply can be checked.' : maxBudget ? 'No verified build from ₱20,000 up matches your maximum budget.' : 'No verified recommended builds found for this category.'}</p>
       </div>`;
     return;
   }
@@ -1304,6 +1372,7 @@ function renderBuilds(type){
       <div class="build-card-header">
         <div class="build-card-title">${b.label}</div>
       </div>
+      <p style="color:var(--green);font-size:13px;font-weight:700;margin-bottom:12px">✓ Core compatibility checked: CPU socket, RAM generation, graphics, storage type, and PSU wattage.</p>
       <p style="color:var(--muted);line-height:1.7;margin-bottom:14px">${b.description || 'No description available.'}</p>
       ${b.budget ? `<div style="font-size:18px;font-weight:800;color:var(--cyan);margin-bottom:14px">Estimated budget: ₱${b.budget.toLocaleString()}</div>` : ''}
       <div class="build-pros-cons" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
@@ -1314,6 +1383,7 @@ function renderBuilds(type){
       <div class="build-parts">
         ${b.parts.map(p=>`<div class="build-part"><div class="build-part-icon">${p.icon}</div><div class="build-part-info"><div class="build-part-cat">${p.cat}</div><div class="build-part-name">${p.name}</div></div></div>`).join('')}
       </div>` : '<p style="color:var(--muted);margin-bottom:14px">No components listed for this build yet.</p>'}
+      <p style="color:var(--muted);font-size:12px;margin-top:8px">Choose the boxed CPU version listed to get its stock cooler. A case is not included; check case clearance and motherboard BIOS support for the exact models before purchase.</p>
       <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
         ${Array.isArray(b.parts) && b.parts.length ? `<button class="build-use-btn" onclick="useBuildRecommendation('${encodeURIComponent(JSON.stringify(b))}')">Use This Build →</button>` : ''}
         <button class="build-use-btn" style="background:transparent;border:1px solid var(--border);color:var(--text)" onclick="showPage('pricing')">Check Local Prices</button>

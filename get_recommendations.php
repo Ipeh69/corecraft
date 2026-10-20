@@ -11,6 +11,47 @@ function normalize_category($value) {
     return $cat;
 }
 
+function normalize_recommendation_motherboard($motherboard, $ram) {
+    $board = trim($motherboard);
+    $memory = strtolower($ram);
+    $board_lower = strtolower($board);
+
+    if (strpos($board_lower, "ddr4") !== false || strpos($board_lower, "ddr5") !== false) {
+        return $board;
+    }
+    if (preg_match('/\b(b550m?|b450m?|a520m?|x570)\b/', $board_lower) && strpos($memory, "ddr4") !== false) {
+        return $board . " (AM4, DDR4)";
+    }
+    if (preg_match('/\b(b650m?|x670|a620|b850|x870)\b/', $board_lower) && strpos($memory, "ddr5") !== false) {
+        return $board . " (AM5, DDR5)";
+    }
+    if (preg_match('/\b(h610m?|h670|b660m?|b760m?|z690|z790)\b/', $board_lower) && (strpos($memory, "ddr4") !== false || strpos($memory, "ddr5") !== false)) {
+        $memory_type = strpos($memory, "ddr4") !== false ? "DDR4" : "DDR5";
+        return $board . " (LGA1700, " . $memory_type . ")";
+    }
+    return $board;
+}
+
+function normalize_recommendation_cpu($cpu, $build_name) {
+    $processor = trim($cpu);
+    if (stripos($processor, "boxed") !== false) {
+        return $processor;
+    }
+    if ($build_name === "Gaming Beast 1440p" && preg_match('/^Ryzen 5 7600X\b/i', $processor)) {
+        return "Ryzen 5 7600 (boxed; stock cooler included)";
+    }
+    if (preg_match('/^Intel Core i3-12100\b/i', $processor)) {
+        return $processor . " (boxed; UHD 730 graphics and stock cooler included)";
+    }
+    if (preg_match('/^Ryzen 5 5600G\b/i', $processor)) {
+        return $processor . " (boxed; integrated Radeon graphics and stock cooler included)";
+    }
+    if (preg_match('/^Ryzen (5 5600|5 7600|7 7700|9 7900)\b/i', $processor)) {
+        return $processor . " (boxed; stock cooler included)";
+    }
+    return $processor;
+}
+
 function estimate_budget($build_name, $category) {
     $name = strtolower($build_name);
     if (strpos($name, "budget") !== false || strpos($name, "basic") !== false || strpos($name, "saver") !== false) {
@@ -58,26 +99,26 @@ $response = array(
 function fallback_recommendations() {
     return array(
         "gaming" => array(
-            array("id" => "fallback-gaming-1", "build_name" => "Gaming Value 1080p", "description" => "Balanced entry gaming build for esports and modern games.", "estimated_budget" => 28000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 5 5600"), array("cat" => "Motherboard", "name" => "B550M"), array("cat" => "RAM", "name" => "16GB DDR4"), array("cat" => "GPU", "name" => "RX 6600 8GB"), array("cat" => "Storage", "name" => "1TB NVMe SSD"), array("cat" => "PSU", "name" => "550W 80+ Bronze"))),
-            array("id" => "fallback-gaming-2", "build_name" => "Gaming Beast 1440p", "description" => "High-performance build for demanding 1080p and 1440p gaming.", "estimated_budget" => 65000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 5 7600X"), array("cat" => "Motherboard", "name" => "B650 ATX"), array("cat" => "RAM", "name" => "32GB DDR5"), array("cat" => "GPU", "name" => "RTX 4070 12GB"), array("cat" => "Storage", "name" => "1TB NVMe SSD"), array("cat" => "PSU", "name" => "750W 80+ Gold")))
+            array("id" => "fallback-gaming-1", "build_name" => "Gaming Value 1080p", "description" => "Balanced entry gaming build for esports and modern games.", "estimated_budget" => 28000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 5 5600 (boxed; stock cooler included)"), array("cat" => "Motherboard", "name" => "B550M (AM4, DDR4)"), array("cat" => "RAM", "name" => "16GB DDR4"), array("cat" => "GPU", "name" => "RX 6600 8GB"), array("cat" => "Storage", "name" => "1TB NVMe SSD"), array("cat" => "PSU", "name" => "550W 80+ Bronze"))),
+            array("id" => "fallback-gaming-2", "build_name" => "Gaming Beast 1440p", "description" => "High-performance build for demanding 1080p and 1440p gaming.", "estimated_budget" => 65000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 5 7600 (boxed; stock cooler included)"), array("cat" => "Motherboard", "name" => "B650 ATX (AM5, DDR5)"), array("cat" => "RAM", "name" => "32GB DDR5"), array("cat" => "GPU", "name" => "RTX 4070 12GB"), array("cat" => "Storage", "name" => "1TB NVMe SSD"), array("cat" => "PSU", "name" => "750W 80+ Gold")))
         ),
         "office" => array(
-            array("id" => "fallback-office-1", "build_name" => "Office Productivity", "description" => "Reliable system for documents, browser work, meetings, and productivity.", "estimated_budget" => 26000, "components" => array(array("cat" => "CPU", "name" => "Intel Core i3-12100"), array("cat" => "Motherboard", "name" => "H610M"), array("cat" => "RAM", "name" => "16GB DDR4"), array("cat" => "GPU", "name" => "Integrated UHD Graphics"), array("cat" => "Storage", "name" => "500GB SATA SSD"), array("cat" => "PSU", "name" => "500W 80+ Bronze")))
+            array("id" => "fallback-office-1", "build_name" => "Office Productivity", "description" => "Reliable system for documents, browser work, meetings, and productivity.", "estimated_budget" => 26000, "components" => array(array("cat" => "CPU", "name" => "Intel Core i3-12100 (integrated UHD 730 graphics)"), array("cat" => "Motherboard", "name" => "H610M (LGA1700, DDR4)"), array("cat" => "RAM", "name" => "16GB DDR4"), array("cat" => "GPU", "name" => "Integrated UHD 730 graphics (from CPU; no separate GPU)"), array("cat" => "Storage", "name" => "500GB SATA SSD"), array("cat" => "PSU", "name" => "500W 80+ Bronze")))
         ),
         "students" => array(
-            array("id" => "fallback-students-1", "build_name" => "Student Smart Ryzen 5", "description" => "Practical PC for schoolwork, coding, research, and online classes.", "estimated_budget" => 22000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 5 5600G"), array("cat" => "Motherboard", "name" => "B550M"), array("cat" => "RAM", "name" => "16GB DDR4"), array("cat" => "GPU", "name" => "Integrated Radeon Graphics"), array("cat" => "Storage", "name" => "512GB NVMe SSD"), array("cat" => "PSU", "name" => "500W 80+ Bronze")))
+            array("id" => "fallback-students-1", "build_name" => "Student Smart Ryzen 5", "description" => "Practical PC for schoolwork, coding, research, and online classes.", "estimated_budget" => 22000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 5 5600G (integrated Radeon graphics)"), array("cat" => "Motherboard", "name" => "B550M (AM4, DDR4)"), array("cat" => "RAM", "name" => "16GB DDR4"), array("cat" => "GPU", "name" => "Integrated Radeon graphics (from CPU; no separate GPU)"), array("cat" => "Storage", "name" => "512GB NVMe SSD"), array("cat" => "PSU", "name" => "500W 80+ Bronze")))
         ),
         "streaming" => array(
-            array("id" => "fallback-streaming-1", "build_name" => "Starter Streaming", "description" => "Affordable setup for livestreaming and esports content.", "estimated_budget" => 30000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 5 5600"), array("cat" => "Motherboard", "name" => "B550M"), array("cat" => "RAM", "name" => "16GB DDR4"), array("cat" => "GPU", "name" => "RTX 3060 12GB"), array("cat" => "Storage", "name" => "1TB NVMe SSD"), array("cat" => "PSU", "name" => "650W 80+ Bronze")))
+            array("id" => "fallback-streaming-1", "build_name" => "Starter Streaming", "description" => "Affordable setup for livestreaming and esports content.", "estimated_budget" => 30000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 5 5600 (boxed; stock cooler included)"), array("cat" => "Motherboard", "name" => "B550M (AM4, DDR4)"), array("cat" => "RAM", "name" => "16GB DDR4"), array("cat" => "GPU", "name" => "RTX 3060 12GB"), array("cat" => "Storage", "name" => "1TB NVMe SSD"), array("cat" => "PSU", "name" => "650W 80+ Bronze")))
         ),
         "editing" => array(
-            array("id" => "fallback-editing-1", "build_name" => "Creator Editing", "description" => "Editing-focused build for 1080p projects and content creation.", "estimated_budget" => 42000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 7 7700"), array("cat" => "Motherboard", "name" => "B650M"), array("cat" => "RAM", "name" => "32GB DDR5"), array("cat" => "GPU", "name" => "RTX 4060 8GB"), array("cat" => "Storage", "name" => "2TB NVMe SSD"), array("cat" => "PSU", "name" => "650W 80+ Gold")))
+            array("id" => "fallback-editing-1", "build_name" => "Creator Editing", "description" => "Editing-focused build for 1080p projects and content creation.", "estimated_budget" => 42000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 7 7700 (boxed; stock cooler included)"), array("cat" => "Motherboard", "name" => "B650M (AM5, DDR5)"), array("cat" => "RAM", "name" => "32GB DDR5"), array("cat" => "GPU", "name" => "RTX 4060 8GB"), array("cat" => "Storage", "name" => "2TB NVMe SSD"), array("cat" => "PSU", "name" => "650W 80+ Gold")))
         ),
         "workstation" => array(
-            array("id" => "fallback-workstation-1", "build_name" => "Developer Workstation", "description" => "Powerful build for development, rendering, virtualization, and multitasking.", "estimated_budget" => 55000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 9 7900"), array("cat" => "Motherboard", "name" => "B650 ATX"), array("cat" => "RAM", "name" => "64GB DDR5"), array("cat" => "GPU", "name" => "RTX 4070 12GB"), array("cat" => "Storage", "name" => "2TB NVMe SSD"), array("cat" => "PSU", "name" => "750W 80+ Gold")))
+            array("id" => "fallback-workstation-1", "build_name" => "Developer Workstation", "description" => "Powerful build for development, rendering, virtualization, and multitasking.", "estimated_budget" => 55000, "components" => array(array("cat" => "CPU", "name" => "Ryzen 9 7900 (boxed; stock cooler included)"), array("cat" => "Motherboard", "name" => "B650 ATX (AM5, DDR5)"), array("cat" => "RAM", "name" => "64GB DDR5"), array("cat" => "GPU", "name" => "RTX 4070 12GB"), array("cat" => "Storage", "name" => "2TB NVMe SSD"), array("cat" => "PSU", "name" => "750W 80+ Gold")))
         ),
         "home" => array(
-            array("id" => "fallback-home-1", "build_name" => "Home Office Essential", "description" => "Quiet everyday system for browsing, documents, calls, and media.", "estimated_budget" => 20000, "components" => array(array("cat" => "CPU", "name" => "Intel Core i3-12100"), array("cat" => "Motherboard", "name" => "H610M"), array("cat" => "RAM", "name" => "16GB DDR4"), array("cat" => "GPU", "name" => "Integrated UHD Graphics"), array("cat" => "Storage", "name" => "500GB SATA SSD"), array("cat" => "PSU", "name" => "500W 80+ Bronze")))
+            array("id" => "fallback-home-1", "build_name" => "Home Office Essential", "description" => "Quiet everyday system for browsing, documents, calls, and media.", "estimated_budget" => 20000, "components" => array(array("cat" => "CPU", "name" => "Intel Core i3-12100 (integrated UHD 730 graphics)"), array("cat" => "Motherboard", "name" => "H610M (LGA1700, DDR4)"), array("cat" => "RAM", "name" => "16GB DDR4"), array("cat" => "GPU", "name" => "Integrated UHD 730 graphics (from CPU; no separate GPU)"), array("cat" => "Storage", "name" => "500GB SATA SSD"), array("cat" => "PSU", "name" => "500W 80+ Bronze")))
         )
     );
 }
@@ -121,8 +162,8 @@ while ($stmt->fetch()) {
     }
 
     $components = array(
-        array("cat" => "CPU", "name" => $cpu),
-        array("cat" => "Motherboard", "name" => $motherboard),
+        array("cat" => "CPU", "name" => normalize_recommendation_cpu($cpu, $build_name)),
+        array("cat" => "Motherboard", "name" => normalize_recommendation_motherboard($motherboard, $ram)),
         array("cat" => "RAM", "name" => $ram),
         array("cat" => "GPU", "name" => $gpu),
         array("cat" => "Storage", "name" => $storage),
