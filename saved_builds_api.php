@@ -3,22 +3,8 @@ require_once "database_builds.php";
 
 header("Content-Type: application/json; charset=UTF-8");
 
-function respond($payload, $status_code) {
-    if (function_exists("http_response_code")) {
-        http_response_code($status_code);
-    } else {
-        $reason = "OK";
-        if ($status_code === 400) $reason = "Bad Request";
-        else if ($status_code === 401) $reason = "Unauthorized";
-        else if ($status_code === 404) $reason = "Not Found";
-        else if ($status_code === 500) $reason = "Internal Server Error";
-
-        if (isset($_SERVER["SERVER_PROTOCOL"])) {
-            header($_SERVER["SERVER_PROTOCOL"] . " " . $status_code . " " . $reason, true, $status_code);
-        } else {
-            header("HTTP/1.1 " . $status_code . " " . $reason, true, $status_code);
-        }
-    }
+function respond($payload, $status_code = 200) {
+    http_response_code($status_code);
     echo json_encode($payload);
     exit;
 }

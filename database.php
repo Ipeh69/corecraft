@@ -17,4 +17,3 @@ if ($hasDatabaseConfig) {
         $conn = $candidate;
     }
 }
-?>

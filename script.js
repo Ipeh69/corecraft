@@ -6,7 +6,7 @@ function closeMenu(){document.getElementById('mobile-menu').classList.remove('op
 // ——— AUTH ———
 let isLoggedIn=false,pendingPage=null,PHchatInit=false,activePHChat=null,phChatPoll=null,activeDMEmail=null,dmSearchTimer=null;
 let pendingCommunityDelete=null;
-const protected_=['compatibility','build','pricing','troubleshoot','profile','PHchat'];
+const protected_=['compatibility','build','pricing','troubleshoot','profile','PHchat','admin'];
 let PHCHAT_COMMUNITIES=[
   {id:'Recommendation Builds',icon:'💡',description:'Share and discover recommended PC builds'},
   {id:'Part Pricing',icon:'💸',description:'Deals and store prices'},
@@ -16,6 +16,8 @@ let PHCHAT_COMMUNITIES=[
 
 function showPage(name){
   if(protected_.includes(name)&&!isLoggedIn){pendingPage=name;showPage('login');return}
+  // The admin console is never reachable without an admin role.
+  if(name==='admin'&&(!window._user||!window._user.isAdmin))name='home';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const el=document.getElementById('page-'+name);
     if(el)el.classList.add('active');
@@ -35,6 +37,7 @@ function showPage(name){
   if(name==='PHchat'&&!PHchatInit)initPHChat();
   if(name==='build'){updateSavedBuildsList();renderBuildIdeas();}
   if(name==='profile')renderRecentActivity();
+  if(name==='admin'&&typeof initAdminPage==='function')initAdminPage();
 }
 
 const RECENT_ACTIVITY_KEY='corecraft_recent_activity';
@@ -413,6 +416,7 @@ async function checkPartStock(){
     return;
   }
   recordActivity('📦','Searched PC stores and stock',part+' near '+locationLabel,'rgba(255,107,53,.1)');
+  corecraftTrack('search',part);
   setButtonLoading(button,true,'Searching stores and part...');
   result.innerHTML='<span class="search-spinner"></span><span style="color:var(--muted)">Finding nearby stores, then asking Gemini to search current listings for this part and area...</span>';
   try{
@@ -684,6 +688,7 @@ async function runCompatCheck(){
     return;
   }
   recordActivity('🔍','Ran compatibility check',`${cpu} + ${mb}${gpu?' + '+gpu:''}`,'rgba(0,229,255,.1)');
+  corecraftTrack('build_check',`${cpu} | ${mb}${gpu?' | '+gpu:''}`);
   // Gemini is the source of truth for this run. The local database is used only
   // by the part picker and remains the fallback if Gemini is unavailable.
   components.forEach(function(component){
@@ -713,6 +718,7 @@ async function runCompatCheck(){
     const status=document.getElementById('compat-status');
     const needsChanges=/needs changes|not compatible|incompatible|mismatch|cannot work|does not support|too weak/i.test(aiText);
     if(status)status.textContent=needsChanges?'⚠ AI verdict: Needs Changes':'✓ AI verdict: Compatible';
+    if(needsChanges)corecraftTrack('compat_fail',`${cpu} | ${mb}${gpu?' | '+gpu:''}`);
     if(result){
       result.innerHTML='<div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">Gemini Compatibility and Price Estimate</span></div><div style="line-height:1.7;margin-top:12px">'+formatAIResponse(aiText)+'</div><p style="color:var(--muted);margin:16px 0 0;font-size:12px">Prices are AI estimates for the Philippines, not guaranteed live quotes. Confirm the current price, stock, warranty, and seller before buying.</p>';
     }
@@ -1890,6 +1896,7 @@ async function saveCurrentBuild(){
     alert(`✅ Build "${buildName}" saved locally (guest mode).`);
     recordActivity('💾','Saved build',buildName,'rgba(34,197,94,.1)');
   }
+  corecraftTrack('build_save',buildName);
   updateSavedBuildsList();
 }
 
@@ -2363,6 +2370,35 @@ function setActiveUser(user, rememberMe=false){
   if(PHchatInit&&communityPage&&communityPage.classList.contains('active')){
     loadPHChatCommunities();
   }
+  refreshAdminAccess();
+}
+// Asks the admin API whether the signed-in account holds an admin/moderator role,
+// then reveals the admin entry points. The API enforces this server-side regardless.
+async function refreshAdminAccess(){
+  if(!window._user||!window._user.authToken){updateAdminNav(false);return;}
+  try{
+    const response=await fetch('admin_api.php',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'whoami',email:window._user.email,auth_token:window._user.authToken})});
+    const data=await response.json();
+    const isAdmin=!!(data&&data.success&&data.is_admin);
+    window._user.isAdmin=isAdmin;
+    window._user.adminRole=(data&&data.role)?data.role:'user';
+    updateAdminNav(isAdmin);
+  }catch(error){
+    updateAdminNav(false);
+  }
+}
+function updateAdminNav(isAdmin){
+  ['nav-admin-link','mobile-admin-link','dropdown-admin-item'].forEach(function(id){
+    const el=document.getElementById(id);
+    if(el)el.style.display=isAdmin?'':'none';
+  });
+}
+// Records lightweight usage analytics consumed by the admin dashboard.
+function corecraftTrack(eventType,detail){
+  if(!window._user||!window._user.authToken||!eventType)return;
+  try{
+    fetch('admin_api.php',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'track',event_type:eventType,detail:detail||'',email:window._user.email,auth_token:window._user.authToken})});
+  }catch(error){}
 }
 function clearActiveUser(){
   localStorage.removeItem(AUTH_SESSION_KEY);
@@ -2493,6 +2529,7 @@ function handleLogout(){
   isLoggedIn=false;
   clearActiveUser();
   closeDropdown();
+  updateAdminNav(false);
   document.getElementById('nav-login-btn').style.display='';
   document.getElementById('user-dropdown').classList.remove('visible');
   updateMobileMenu(false,'');

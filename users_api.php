@@ -4,11 +4,7 @@ require_once "database_users.php";
 header("Content-Type: application/json; charset=UTF-8");
 
 function respond($payload, $status_code = 200) {
-    if (function_exists("http_response_code")) {
-        http_response_code($status_code);
-    } else {
-        header("HTTP/1.1 " . $status_code);
-    }
+    http_response_code($status_code);
     echo json_encode($payload);
     exit;
 }
@@ -41,6 +37,17 @@ $create_table_sql = "CREATE TABLE IF NOT EXISTS users (
 
 if (!$conn_users->query($create_table_sql)) {
     respond(array("success" => false, "error" => "Failed to prepare users table"), 500);
+}
+
+// Account status/role columns are owned by the admin panel; add them here too so a
+// fresh install can enforce bans before the admin page is ever opened.
+$status_column = $conn_users->query("SHOW COLUMNS FROM users LIKE 'status'");
+if ($status_column && $status_column->num_rows === 0) {
+    $conn_users->query("ALTER TABLE users ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active'");
+}
+$role_column = $conn_users->query("SHOW COLUMNS FROM users LIKE 'role'");
+if ($role_column && $role_column->num_rows === 0) {
+    $conn_users->query("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'");
 }
 
 $token_table_sql = "CREATE TABLE IF NOT EXISTS auth_tokens (
@@ -203,19 +210,28 @@ if ($action === "register") {
 }
 
 if ($action === "login") {
-    $stmt = $conn_users->prepare("SELECT full_name, email, password_hash FROM users WHERE email = ? LIMIT 1");
+    $stmt = $conn_users->prepare("SELECT full_name, email, password_hash, status FROM users WHERE email = ? LIMIT 1");
     if (!$stmt) {
         respond(array("success" => false, "error" => "Failed to prepare login"), 500);
     }
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $stmt->store_result();
-    $stmt->bind_result($name, $stored_email, $password_hash);
+    $stmt->bind_result($name, $stored_email, $password_hash, $account_status);
     if (!$stmt->fetch() || !password_verify($password, $password_hash)) {
         $stmt->close();
         respond(array("success" => false, "error" => "Invalid email or password"), 401);
     }
     $stmt->close();
+    if ($account_status === "banned") {
+        respond(array("success" => false, "error" => "This account has been suspended. Contact the CoreCraft administrator."), 403);
+    }
+    $touch = $conn_users->prepare("UPDATE users SET last_login_at = NOW() WHERE email = ?");
+    if ($touch) {
+        $touch->bind_param("s", $stored_email);
+        $touch->execute();
+        $touch->close();
+    }
     $auth_token = issue_auth_token($conn_users, $stored_email);
     if ($auth_token === false) {
         respond(array("success" => false, "error" => "Could not create an account session"), 500);

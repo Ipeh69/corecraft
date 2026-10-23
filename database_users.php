@@ -11,5 +11,3 @@ if ($conn_users->connect_error) {
     ));
     exit;
 }
-?>
-
