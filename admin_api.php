@@ -932,19 +932,37 @@ if ($action === "report_resolve") {
 // Any signed-in user can flag content; used by the community UI.
 if ($action === "report_create") {
     $content_type = trim(admin_field($body, "content_type", ""));
-    $content_ref = trim(admin_field($body, "content_ref", ""));
-    $community = substr(trim(admin_field($body, "community", "")), 0, 80);
+    $content_ref = trim((string) admin_field($body, "content_ref", ""));
+    $community = trim(admin_field($body, "community", ""));
     $reason = trim(admin_field($body, "reason", ""));
-    if ($content_type === "" || $content_ref === "" || $reason === "") {
-        admin_respond(array("success" => false, "error" => "Content type, reference and reason are required"), 400);
+    if ($content_type !== "community_post" || !ctype_digit($content_ref) || (int) $content_ref <= 0 || $community === "" || strlen($community) > 80 || $reason === "" || strlen($reason) > 255) {
+        admin_respond(array("success" => false, "error" => "A valid community post and report reason are required (up to 255 characters)"), 400);
     }
+    $post_id = (int) $content_ref;
+    $post_check = $conn_admin->prepare("SELECT id FROM community_posts WHERE id = ? AND community = ? LIMIT 1");
+    if (!$post_check) {
+        admin_respond(array("success" => false, "error" => "Failed to verify the reported post"), 500);
+    }
+    $post_check->bind_param("is", $post_id, $community);
+    if (!$post_check->execute()) {
+        $post_check->close();
+        admin_respond(array("success" => false, "error" => "Failed to verify the reported post"), 500);
+    }
+    $post_check->store_result();
+    if ($post_check->num_rows !== 1) {
+        $post_check->close();
+        admin_respond(array("success" => false, "error" => "The reported post could not be found"), 404);
+    }
+    $post_check->close();
     $stmt = $conn_admin->prepare("INSERT INTO moderation_reports (content_type, content_ref, community, reported_by, reason) VALUES (?, ?, ?, ?, ?)");
     if (!$stmt) {
         admin_respond(array("success" => false, "error" => "Failed to submit report"), 500);
     }
-    $community = $community === "" ? null : $community;
     $stmt->bind_param("sssss", $content_type, $content_ref, $community, $email, $reason);
-    $stmt->execute();
+    if (!$stmt->execute()) {
+        $stmt->close();
+        admin_respond(array("success" => false, "error" => "Failed to submit report"), 500);
+    }
     $stmt->close();
     admin_respond(array("success" => true, "message" => "Report submitted for review"), 201);
 }

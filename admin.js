@@ -564,7 +564,7 @@ async function loadAdminReports(){
       list.innerHTML=adminState.reports.length?adminState.reports.map(function(report,index){
         const open=report.status==='open';
         return '<div class="admin-list-row">'+
-          '<div class="grow"><div class="strong">'+adminEsc(report.content_type)+' · '+adminEsc(report.content_ref)+'</div>'+
+          '<div class="grow"><div class="strong">'+adminEsc(report.content_type.replace(/_/g,' '))+' · '+adminEsc(report.content_ref)+'</div>'+
           '<div class="muted">'+adminEsc(report.reason)+'</div>'+
           '<div class="muted">by '+adminEsc(report.reported_by)+(report.community?' · '+adminEsc(report.community):'')+' · '+adminEsc(report.created_at)+'</div></div>'+
           '<span class="admin-tag '+(report.status==='open'?'warning':(report.status==='resolved'?'ok':'neutral'))+'">'+adminEsc(report.status)+'</span>'+
@@ -574,6 +574,31 @@ async function loadAdminReports(){
     }
   }catch(error){
     if(list)list.innerHTML='<div class="admin-empty">'+adminEsc(error.message)+'</div>';
+  }
+}
+
+async function reportCommunityPost(postId){
+  const reason=window.prompt('Why are you reporting this post? (Up to 255 characters)');
+  if(reason===null)return;
+  const trimmedReason=reason.trim();
+  if(!trimmedReason){
+    window.alert('Please enter a reason for the report.');
+    return;
+  }
+  if(trimmedReason.length>255){
+    window.alert('Report reasons are limited to 255 characters.');
+    return;
+  }
+  try{
+    const data=await adminApi('report_create',{
+      content_type:'community_post',
+      content_ref:String(postId),
+      community:feedCommunityName(),
+      reason:trimmedReason
+    });
+    window.alert(data.message||'Report submitted for review.');
+  }catch(error){
+    window.alert(error.message||'The report could not be submitted.');
   }
 }
 

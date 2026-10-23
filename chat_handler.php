@@ -33,7 +33,7 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     $reply(array("success" => false, "error" => "Please sign in again"), 401);
   }
   $token_hash = hash("sha256", $token);
-  $auth = $conn->prepare("SELECT user_email FROM auth_tokens WHERE user_email = ? AND token_hash = ? AND expires_at > NOW() LIMIT 1");
+  $auth = $conn->prepare("SELECT t.user_email FROM auth_tokens t INNER JOIN users u ON u.email = t.user_email WHERE t.user_email = ? AND t.token_hash = ? AND t.expires_at > NOW() AND u.status <> 'banned' LIMIT 1");
   if (!$auth) {
     $reply(array("success" => false, "error" => "Failed to verify account session"), 500);
   }

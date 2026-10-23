@@ -59,7 +59,7 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $token === "") {
 }
 
 $token_hash = hash("sha256", $token);
-$auth = $conn_users->prepare("SELECT user_email FROM auth_tokens WHERE user_email = ? AND token_hash = ? AND expires_at > NOW() LIMIT 1");
+$auth = $conn_users->prepare("SELECT t.user_email FROM auth_tokens t INNER JOIN users u ON u.email = t.user_email WHERE t.user_email = ? AND t.token_hash = ? AND t.expires_at > NOW() AND u.status <> 'banned' LIMIT 1");
 if (!$auth) {
     chat_respond(array("success" => false, "error" => "Failed to verify account session"), 500);
 }
