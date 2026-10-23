@@ -13,7 +13,7 @@
             <div class="map-panel-sub">Mapped computer stores that sell PC parts near your selected area. OpenStreetMap coverage varies, so not every business will appear.</div>
           </div>
           <div class="map-search-row">
-            <button class="btn-secondary map-search-btn" type="button" onclick="locateOnMap(true)">Use my location</button>
+            <button id="locate-btn" class="btn-secondary map-search-btn" type="button" onclick="locateOnMap(true)">Use my location</button>
           </div>
         </div>
         <div id="philippines-map" class="philippines-map" aria-label="Map of computer parts stores in the Philippines"></div>

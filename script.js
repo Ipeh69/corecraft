@@ -80,7 +80,7 @@ function renderRecentActivity(){
 let autoLocateTried=false, philippinesMap=null, philippinesMarkers=[], userLocationMarker=null, hasLocatedUser=false, lastLocatedPosition=null;
 let shopSearchRequest=0,lastGeocodeSearchAt=0;
 const geocodedShopLocations={};
-const pcRetailerPattern=/PC ?Express|PCX |Octagon|Easy ?PC|DynaQuest|Villman|PC ?Worx|PC ?Worth|Gigahertz|JDM Techno|Silicon Valley|PC ?Hub|Complink|Bermor|PC Parts|Computer Parts|PC Builders|Computer Builders/i;
+const pcRetailerPattern=/PC ?Express|PCX |Octagon|Easy ?PC|DynaQuest|Villman|PC ?Worx|PC ?Worth|PC ?Alley|Gigahertz|JDM Techno|Silicon Valley|PC ?Hub|Complink|Bermor|PC Parts|Computer Parts|PC Builders|Computer Builders/i;
 const partsStorePattern=/pc ?(parts|builder|components|hardware|store|shop|center|zone|depot|mart)|computer ?(parts|components|hardware|builder)|hardware|components/i;
 const nonRetailPattern=/repair|service|phone|printer|ink|photocopy|cctv|software|internet|net ?caf|cafe|café|gaming|e-?games|pisonet|rental|school|college|institute|university|academy|training/i;
 const philippinesBounds={south:4.3,west:116.8,north:21.3,east:126.8};
@@ -103,13 +103,20 @@ function applyUserLocation(latitude,longitude,useForSearch,approximate){
   if(userLocationMarker)philippinesMap.removeLayer(userLocationMarker);
   userLocationMarker=L.circleMarker([latitude,longitude],{radius:8,color:'#fff',weight:3,fillColor:'#2563eb',fillOpacity:1}).addTo(philippinesMap).bindPopup(approximate?'Your approximate location':'Your current location');
   if(!approximate)try{localStorage.setItem('corecraft_last_location',JSON.stringify({lat:latitude,lng:longitude,time:Date.now()}));}catch(e){}
-  if(!useForSearch){setMapStatus('Showing your current location.');return;}
+  if(!useForSearch){setMapStatus('Showing your current location.');setLocateLoading(false);return;}
   const searchInput=document.getElementById('stock-location');
   if(searchInput)searchInput.value='My current location';
   setMapStatus(approximate?'Using your approximate location. Loading nearby PC stores...':'Location found. Loading nearby PC stores...');
   searchPhilippinesShops('my current location',lastLocatedPosition).catch(error=>{
     setMapStatus('Could not load mapped stores: '+error.message+' Press “Use my location” to retry.');
-  });
+  }).finally(()=>setLocateLoading(false));
+}
+
+function setLocateLoading(loading){
+  const button=document.getElementById('locate-btn');
+  if(!button)return;
+  if(loading&&!button.disabled){button.dataset.label=button.textContent;button.textContent='Locating...';button.classList.add('is-loading');button.disabled=true;}
+  else if(!loading&&button.disabled){button.textContent=button.dataset.label||'Use my location';button.classList.remove('is-loading');button.disabled=false;}
 }
 
 async function locateByIp(useForSearch,reason){
@@ -117,10 +124,11 @@ async function locateByIp(useForSearch,reason){
     const response=await fetch('https://ipwho.is/');
     const data=await response.json();
     if(!data||data.success===false||!Number.isFinite(data.latitude)||!Number.isFinite(data.longitude))throw new Error('no ip location');
-    if(hasLocatedUser)return;
+    if(hasLocatedUser){setLocateLoading(false);return;}
     applyUserLocation(data.latitude,data.longitude,useForSearch,true);
   }catch(error){
     setMapStatus(reason+' Type your city in the area box to search instead.');
+    setLocateLoading(false);
   }
 }
 
@@ -129,6 +137,7 @@ function locateOnMap(useForSearch){
     setMapStatus('The map is not ready yet. Check your internet connection and try again.');
     return;
   }
+  setLocateLoading(true);
   if(!navigator.geolocation||!window.isSecureContext){
     locateByIp(useForSearch,'Precise location is unavailable in this browser.');
     return;
@@ -148,8 +157,9 @@ function locateOnMap(useForSearch){
     const {latitude,longitude}=pos.coords;
     const moved=!lastLocatedPosition||Math.abs(lastLocatedPosition.lat-latitude)>0.005||Math.abs(lastLocatedPosition.lng-longitude)>0.005;
     if(!usedSaved||moved)applyUserLocation(latitude,longitude,useForSearch,false);
+    else setLocateLoading(false);
   },error=>{
-    if(usedSaved)return;
+    if(usedSaved){setLocateLoading(false);return;}
     const reason=error.code===error.PERMISSION_DENIED?'Location access was denied. Allow it in your browser for exact results.':'Finding your exact location failed.';
     locateByIp(useForSearch,reason);
   },{enableHighAccuracy:false,timeout:8000,maximumAge:600000});
@@ -214,6 +224,10 @@ function getOSMAddress(tags){
 async function geocodeShopSearchArea(location){
   const cacheKey=location.toLowerCase();
   if(geocodedShopLocations[cacheKey])return geocodedShopLocations[cacheKey];
+  try{
+    const saved=JSON.parse(localStorage.getItem('geocode:'+cacheKey)||'null');
+    if(saved&&Number.isFinite(saved.lat)&&Number.isFinite(saved.lng)){geocodedShopLocations[cacheKey]=saved;return saved;}
+  }catch(e){}
   const wait=Math.max(0,1000-(Date.now()-lastGeocodeSearchAt));
   if(wait)await new Promise(resolve=>setTimeout(resolve,wait));
   lastGeocodeSearchAt=Date.now();
@@ -230,18 +244,38 @@ async function geocodeShopSearchArea(location){
       throw new Error('No matching place inside the Philippines was found.');
     }
     geocodedShopLocations[cacheKey]=center;
+    try{localStorage.setItem('geocode:'+cacheKey,JSON.stringify(center));}catch(e){}
     return center;
   }finally{clearTimeout(timeout);}
 }
 
-const SHOP_SEARCH_RADIUS_M=20000;
+async function reverseGeocodePlace(location){
+  if(!location||!Number.isFinite(location.lat)||!Number.isFinite(location.lng))return null;
+  const wait=Math.max(0,1000-(Date.now()-lastGeocodeSearchAt));
+  if(wait)await new Promise(resolve=>setTimeout(resolve,wait));
+  lastGeocodeSearchAt=Date.now();
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),12000);
+  try{
+    const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&addressdetails=1&lat='+encodeURIComponent(location.lat)+'&lon='+encodeURIComponent(location.lng);
+    const response=await fetch(url,{headers:{'Accept':'application/json'},signal:controller.signal});
+    if(!response.ok)throw new Error('Place lookup returned HTTP '+response.status);
+    const data=await response.json();
+    const address=data&&data.address;
+    if(!address)return null;
+    return address.city||address.town||address.municipality||address.village||address.county||address.state||null;
+  }finally{clearTimeout(timeout);}
+}
+
+const SHOP_SEARCH_RADIUS_M=10000;
 function distanceMeters(a,b){
   const rad=Math.PI/180,dLat=(b.lat-a.lat)*rad,dLng=(b.lng-a.lng)*rad;
   const h=Math.sin(dLat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLng/2)**2;
   return 12742000*Math.asin(Math.sqrt(h));
 }
 function getShopListingsQuery(center,radius){
-  const scope=`(around:${radius||SHOP_SEARCH_RADIUS_M},${center.lat},${center.lng})`;
+  // Rounded centre (+ padding) so nearby searches share one cached server response.
+  const scope=`(around:${(radius||SHOP_SEARCH_RADIUS_M)+1500},${center.lat.toFixed(2)},${center.lng.toFixed(2)})`;
   const listings=`nwr["shop"="computer"]${scope};nwr["shop"="electronics"]["name"~"${pcRetailerPattern.source}",i]${scope};nwr["shop"="electronics"]["brand"~"${pcRetailerPattern.source}",i]${scope};`;
   return `[out:json][timeout:12];(${listings});out tags center;`;
 }
@@ -253,54 +287,57 @@ async function fetchShopListings(center,radius){
     if(cached&&Date.now()-cached.time<21600000)return cached.elements;
   }catch(e){}
   const query=getShopListingsQuery(center,radius);
+  const mirrors=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter'];
+  const controllers=[new AbortController(),...mirrors.map(()=>new AbortController())];
+  const timer=setTimeout(()=>controllers.forEach(c=>c.abort()),10000);
+  let fromBackup=false;
+  const sources=[
+    fetch('overpass_proxy.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:query}),signal:controllers[0].signal}).then(async response=>{
+      if(!response.ok)throw new Error('proxy failed');
+      const data=await response.json();
+      if(!Array.isArray(data.elements))throw new Error('proxy returned no data');
+      return data.elements;
+    }),
+    ...mirrors.map(async(endpoint,i)=>{
+      const response=await fetch(endpoint,{
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
+        body:'data='+encodeURIComponent(query),
+        signal:controllers[i+1].signal
+      });
+      if(!response.ok)throw new Error('OpenStreetMap search returned HTTP '+response.status);
+      const data=await response.json();
+      if(!Array.isArray(data.elements)||data.remark)throw new Error('OpenStreetMap returned no usable response.');
+      return data.elements;
+    }),
+    // Backup source starts after 4s so a busy Overpass never leaves the user waiting.
+    new Promise(resolve=>setTimeout(resolve,4000)).then(()=>fetchShopListingsFromNominatim(center,radius)).then(items=>{
+      if(!items.length)throw new Error('no backup results');
+      fromBackup=true;
+      return items;
+    })
+  ];
+  // Whichever source answers first wins; the rest are cancelled.
   try{
-    const proxied=await fetch('overpass_proxy.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:query})});
-    if(proxied.ok){
-      const proxiedData=await proxied.json();
-      if(Array.isArray(proxiedData.elements)&&proxiedData.elements.length){
-        try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),elements:proxiedData.elements}));}catch(e){}
-        return proxiedData.elements;
-      }
-    }
-  }catch(proxyError){}
-  const mirrors=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
-  for(let attempt=0;attempt<2;attempt++){
-    const controllers=mirrors.map(()=>new AbortController());
-    const timer=setTimeout(()=>controllers.forEach(c=>c.abort()),10000);
-    try{
-      const elements=await Promise.any(mirrors.map(async(endpoint,i)=>{
-        const response=await fetch(endpoint,{
-          method:'POST',
-          headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
-          body:'data='+encodeURIComponent(query),
-          signal:controllers[i].signal
-        });
-        if(!response.ok)throw new Error('OpenStreetMap search returned HTTP '+response.status);
-        const data=await response.json();
-        if(!Array.isArray(data.elements)||data.remark||!data.elements.length)throw new Error('OpenStreetMap returned no usable response.');
-        return data.elements;
-      }));
-      controllers.forEach(c=>c.abort());
-      if(elements.length)try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),elements:elements}));}catch(e){}
-      return elements;
-    }catch(error){
-      if(attempt)return await fetchShopListingsFromNominatim(center,radius);
-      await new Promise(resolve=>setTimeout(resolve,1200));
-    }finally{clearTimeout(timer);}
-  }
+    const elements=await Promise.any(sources);
+    controllers.forEach(c=>c.abort());
+    if(elements.length&&!fromBackup)try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),elements:elements}));}catch(e){}
+    return elements;
+  }catch(error){
+    return [];
+  }finally{clearTimeout(timer);}
 }
 async function fetchShopListingsFromNominatim(center,radius){
   const dLat=radius/111000, dLng=radius/(111000*Math.cos(center.lat*Math.PI/180));
   const viewbox=[center.lng-dLng,center.lat+dLat,center.lng+dLng,center.lat-dLat].join(',');
   const results=[];
-  for(const term of ['PC Express','Octagon','EasyPC','DynaQuest','Villman','PCWorx','PC Worth','Gigahertz']){
-    const response=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=40&bounded=1&countrycodes=ph&q='+encodeURIComponent(term)+'&viewbox='+viewbox);
-    if(!response.ok)throw new Error('OpenStreetMap servers are busy. Please try again in a moment.');
-    (await response.json()).forEach(item=>{
-      if(item.category!=='shop'||!pcRetailerPattern.test(item.name||item.display_name||''))return;
-      results.push({type:item.osm_type||'node',id:item.osm_id,lat:parseFloat(item.lat),lon:parseFloat(item.lon),tags:{name:item.name||(item.display_name||'').split(',')[0],shop:item.type}});
-    });
-  }
+  const responses=await Promise.all(['PC Express','Octagon','EasyPC','DynaQuest','Villman','PCWorx','PC Worth','PC Alley','Gigahertz'].map(term=>
+    fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=40&bounded=1&countrycodes=ph&q='+encodeURIComponent(term)+'&viewbox='+viewbox).then(response=>response.ok?response.json():[]).catch(()=>[])
+  ));
+  responses.forEach(items=>(Array.isArray(items)?items:[]).forEach(item=>{
+    if(item.category!=='shop'||!pcRetailerPattern.test(item.name||item.display_name||''))return;
+    results.push({type:item.osm_type||'node',id:item.osm_id,lat:parseFloat(item.lat),lon:parseFloat(item.lon),tags:{name:item.name||(item.display_name||'').split(',')[0],shop:item.type}});
+  }));
   return results;
 }
 async function searchPhilippinesShops(location,nearbyCenter){
@@ -331,7 +368,7 @@ async function searchPhilippinesShops(location,nearbyCenter){
     ];
     knownBranches.forEach(function(branch){
       const km=Math.hypot((branch.lat-center.lat)*111,(branch.lon-center.lng)*111*Math.cos(center.lat*Math.PI/180));
-      if(km>30)return;
+      if(km>SHOP_SEARCH_RADIUS_M/1000)return;
       const dup=elements.some(function(e){const t=e.tags||{};return /octagon|pc ?express/i.test(t.name||'')&&/lipa/i.test((t.name||'')+(t['addr:city']||'')+(t['addr:street']||''))&&(branch.name.toLowerCase().indexOf(/octagon/i.test(t.name)?'octagon':'pc express')>=0);});
       if(dup)return;
       elements.push({type:'known',id:branch.name,lat:branch.lat,lon:branch.lon,tags:{name:branch.name,shop:'computer','addr:full':branch.address}});
@@ -351,10 +388,11 @@ async function searchPhilippinesShops(location,nearbyCenter){
       const serviceType='PC parts store';
       filtered.push({chain:isKnownChain,id:id,name:name,lat:coordinates.lat,lon:coordinates.lon,address:getOSMAddress(tags)||tags['addr:place']||tags['addr:district']||tags['addr:province']||'Philippines',serviceType:serviceType,tags:tags});
     });
-    filtered.sort((a,b)=>(b.chain?1:0)-(a.chain?1:0));
+    const distanceTo=place=>distanceMeters(center,{lat:place.lat,lng:place.lon});
+    filtered.sort((a,b)=>(b.chain?1:0)-(a.chain?1:0)||distanceTo(a)-distanceTo(b));
     if(!filtered.length){
       renderShopResults([]);
-      setMapStatus(`No computer parts stores were found within 20 km ${locationLabel}. OpenStreetMap coverage varies; try another city or area.`);
+      setMapStatus(`No computer parts stores were found within ${SHOP_SEARCH_RADIUS_M/1000} km ${locationLabel}. OpenStreetMap coverage varies; try another city or area.`);
       return filtered;
     }
     filtered.forEach(place=>{
@@ -420,25 +458,24 @@ async function checkPartStock(){
   setButtonLoading(button,true,'Searching stores and part...');
   result.innerHTML='<span class="search-spinner"></span><span style="color:var(--muted)">Finding nearby stores, then asking Gemini to search current listings for this part and area...</span>';
   try{
-    if(useCurrentLocation){
-      const placeName=await reverseGeocodePlace(lastLocatedPosition);
-      locationLabel=(placeName?placeName+' ':'')+`(GPS ${lastLocatedPosition.lat.toFixed(4)}, ${lastLocatedPosition.lng.toFixed(4)})`;
-    }
-    let nearbyStores=[];
-    try{
-      nearbyStores=await searchPhilippinesShops(useCurrentLocation?'My current location':area,useCurrentLocation?lastLocatedPosition:null);
-    }catch(mapError){
+    // Start every independent lookup at once instead of one after another.
+    const livePromise=fetch('stock_search.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({part:part})})
+      .then(async liveResponse=>{
+        const liveData=await liveResponse.json().catch(()=>null);
+        return liveResponse.ok&&liveData&&Array.isArray(liveData.results)?liveData:null;
+      }).catch(()=>null);
+    const placePromise=useCurrentLocation?reverseGeocodePlace(lastLocatedPosition).catch(()=>null):Promise.resolve(null);
+    const storesPromise=searchPhilippinesShops(useCurrentLocation?'My current location':area,useCurrentLocation?lastLocatedPosition:null).catch(mapError=>{
       setMapStatus('Could not load mapped stores: '+(mapError.message||'OpenStreetMap is unavailable')+'. Gemini will still search retailers for this part and area.');
-    }
+      return [];
+    });
+    const [nearbyStoresRaw,placeName,liveFetched]=await Promise.all([storesPromise,placePromise,livePromise]);
+    const nearbyStores=nearbyStoresRaw||[];
+    if(useCurrentLocation)locationLabel=(placeName?placeName+' ':'')+`(GPS ${lastLocatedPosition.lat.toFixed(4)}, ${lastLocatedPosition.lng.toFixed(4)})`;
     const mappedStoreContext=nearbyStores.length
       ?`\nThe map found ${nearbyStores.length} PC store branches near the user. Names:\n${nearbyStores.slice(0,60).map(store=>`- ${store.name} — ${store.address} (${store.serviceType})`).join('\n').slice(0,4500)}`
       :'\nThe map could not provide store listings for this area. Search relevant Philippine retailers directly and do not invent local branches.';
-    let live=null;
-    try{
-      const liveResponse=await fetch('stock_search.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({part:part})});
-      const liveData=await liveResponse.json().catch(()=>null);
-      if(liveResponse.ok&&liveData&&Array.isArray(liveData.results))live=liveData;
-    }catch(liveError){}
+    const live=liveFetched;
     const squash=text=>String(text||'').toLowerCase().replace(/[^a-z0-9]/g,'');
     const areaChains=nearbyStores.map(store=>squash(store.name));
     const inArea=item=>{
@@ -762,7 +799,8 @@ function getAICompatAnalysis(cpu,mb,ram,gpu,storage,psu,pccase){
   if(ramL.includes('ddr5')) ramType='DDR5';
   else if(ramL.includes('ddr4')) ramType='DDR4';
   let mbRamType='Unknown';
-  if(mbSocket==='AM5'||mbSocket==='LGA1700') mbRamType='DDR5';
+  if(mbSocket==='AM5') mbRamType='DDR5';
+  else if(mbSocket==='LGA1700') mbRamType=mbL.includes('ddr4')?'DDR4':mbL.includes('ddr5')?'DDR5':'Unknown';
   else if(mbSocket==='AM4') mbRamType='DDR4';
   if(cpuSocket!=='Unknown'&&mbSocket!=='Unknown'&&cpuSocket!==mbSocket){
     issues.push(`⚠️ **Socket mismatch** — CPU is ${cpuSocket} but motherboard is ${mbSocket}. Use a matching CPU or motherboard.`);
@@ -960,7 +998,9 @@ function inferMotherboardSpecs(value) {
   const text = String(value || '').toLowerCase();
   if (/(b650|x670|a620|b850|x870|am5)/.test(text)) return {socket:'AM5', ramType:'DDR5'};
   if (/(b550|b450|a520|x570|am4)/.test(text)) return {socket:'AM4', ramType:'DDR4'};
-  if (/(z690|z790|b660|b760|h610|h670|lga1700)/.test(text)) return {socket:'LGA1700', ramType:text.includes('ddr4') ? 'DDR4' : 'DDR5'};
+  if (/(z690|z790|b660|b760|h610|h670|lga1700)/.test(text)) {
+    return {socket:'LGA1700', ramType:text.includes('ddr4') ? 'DDR4' : text.includes('ddr5') ? 'DDR5' : ''};
+  }
   return {socket:'', ramType:''};
 }
 
@@ -987,6 +1027,60 @@ function inferGpuPower(value) {
 function inferPsuWattage(value) {
   const match = String(value || '').match(/(\d{3,4})\s*w/i);
   return match ? parseInt(match[1], 10) : 0;
+}
+
+function assessRecommendationCompatibility(parts) {
+  const part = function (category) {
+    const match = parts.find(function (item) {
+      return item.cat.toLowerCase().includes(category);
+    });
+    return match ? match.name : '';
+  };
+  const cpu = part('cpu');
+  const motherboard = part('motherboard');
+  const ram = part('ram');
+  const gpu = part('gpu');
+  const storage = part('storage');
+  const psu = part('psu');
+  const cpuSocket = inferCpuSocket(cpu);
+  const motherboardSpecs = inferMotherboardSpecs(motherboard);
+  const ramType = inferRamType(ram);
+  const issues = [];
+
+  if (!cpuSocket || !motherboardSpecs.socket) {
+    issues.push('CPU or motherboard platform is not specific enough to verify.');
+  } else if (cpuSocket !== motherboardSpecs.socket) {
+    issues.push('CPU socket does not match the motherboard.');
+  }
+  if (!/boxed.*stock cooler included/i.test(cpu)) {
+    issues.push('CPU cooler inclusion is not specified; only boxed CPUs with their stock cooler are recommended.');
+  }
+  if (!ramType || !motherboardSpecs.ramType) {
+    issues.push('Motherboard and RAM generation are not specific enough to verify.');
+  } else if (ramType !== motherboardSpecs.ramType) {
+    issues.push('RAM generation does not match the motherboard.');
+  }
+
+  const integratedGraphics = /integrated|uhd|radeon graphics/i.test(gpu);
+  const availablePsu = inferPsuWattage(psu);
+  if (!availablePsu || availablePsu < 400) {
+    issues.push('PSU wattage is missing or too low for a complete build.');
+  }
+  if (!gpu || !cpu || (integratedGraphics && !(/ryzen[^,]*\b[0-9]{4,5}g\b/i.test(cpu) || (/intel|core i[3579]/i.test(cpu) && !/\bf\b/i.test(cpu))))) {
+    issues.push('Graphics configuration does not match a CPU with integrated graphics.');
+  } else if (!integratedGraphics) {
+    const requiredPsu = inferGpuPower(gpu);
+    if (!requiredPsu || !availablePsu) {
+      issues.push('GPU or PSU model/wattage is not specific enough to verify.');
+    } else if (availablePsu < requiredPsu) {
+      issues.push('PSU wattage is below the recommendation for this GPU.');
+    }
+  }
+  if (!storage || !/(nvme|sata|hdd)/i.test(storage)) {
+    issues.push('Storage type is not specific enough to verify.');
+  }
+
+  return {verified: issues.length === 0, issues: issues};
 }
 
 function checkCompatibility() {
@@ -1020,10 +1114,18 @@ function checkCompatibility() {
     cpu.tag = '⚠ Exact Model Needed';
     cpu.detail = 'Ryzen 9 is a product family. Enter the exact model, such as Ryzen 9 5900X or Ryzen 9 7900X, to verify the motherboard socket.';
   }
-  if (gpu.status === 'compatible' && !detectedGpuPower) {
+  const isIntegratedGraphics = /integrated|uhd|radeon graphics/i.test(gpu.value);
+  const cpuHasIntegratedGraphics = /ryzen[^,]*\b[0-9]{4,5}g\b/i.test(cpu.value)
+    || (/intel|core i[3579]/i.test(cpu.value) && !/\bf\b/i.test(cpu.value));
+  if (gpu.status === 'compatible' && !detectedGpuPower && !isIntegratedGraphics) {
     gpu.status = 'warning';
     gpu.tag = '⚠ Exact Model Needed';
     gpu.detail = 'RTX 3050 is not in the local parts database. It is generally compatible with modern PCIe motherboards, but the exact model is needed to verify power and case clearance.';
+  }
+  if (gpu.status === 'compatible' && isIntegratedGraphics && !cpuHasIntegratedGraphics) {
+    gpu.status = 'warning';
+    gpu.tag = '⚠ No Integrated Graphics';
+    gpu.detail = 'The selected CPU does not appear to include integrated graphics. Select a discrete graphics card or a CPU with an iGPU.';
   }
 
   // CPU-Motherboard socket compatibility
@@ -1108,13 +1210,13 @@ function getActiveBuildType() {
 
 function getLocalRecommendationFallback(type) {
   const fallback = {
-    gaming: {name:'Gaming Value 1080p',description:'Balanced entry gaming build for esports and modern games.',budget:28000,parts:['CPU: Ryzen 5 5600','Motherboard: B550M','RAM: 16GB DDR4','GPU: RX 6600 8GB','Storage: 1TB NVMe SSD','PSU: 550W 80+ Bronze']},
-    office: {name:'Office Productivity',description:'Reliable system for documents, browser work, meetings, and productivity.',budget:26000,parts:['CPU: Intel Core i3-12100','Motherboard: H610M','RAM: 16GB DDR4','GPU: Integrated UHD Graphics','Storage: 500GB SATA SSD','PSU: 500W 80+ Bronze']},
-    students: {name:'Student Smart Ryzen 5',description:'Practical PC for schoolwork, coding, research, and online classes.',budget:22000,parts:['CPU: Ryzen 5 5600G','Motherboard: B550M','RAM: 16GB DDR4','GPU: Integrated Radeon Graphics','Storage: 512GB NVMe SSD','PSU: 500W 80+ Bronze']},
-    streaming: {name:'Starter Streaming',description:'Affordable setup for livestreaming and esports content.',budget:30000,parts:['CPU: Ryzen 5 5600','Motherboard: B550M','RAM: 16GB DDR4','GPU: RTX 3060 12GB','Storage: 1TB NVMe SSD','PSU: 650W 80+ Bronze']},
-    editing: {name:'Creator Editing',description:'Editing-focused build for 1080p projects and content creation.',budget:42000,parts:['CPU: Ryzen 7 7700','Motherboard: B650M','RAM: 32GB DDR5','GPU: RTX 4060 8GB','Storage: 2TB NVMe SSD','PSU: 650W 80+ Gold']},
-    workstation: {name:'Developer Workstation',description:'Powerful build for development, rendering, virtualization, and multitasking.',budget:55000,parts:['CPU: Ryzen 9 7900','Motherboard: B650 ATX','RAM: 64GB DDR5','GPU: RTX 4070 12GB','Storage: 2TB NVMe SSD','PSU: 750W 80+ Gold']},
-    home: {name:'Home Office Essential',description:'Quiet everyday system for browsing, documents, calls, and media.',budget:20000,parts:['CPU: Intel Core i3-12100','Motherboard: H610M','RAM: 16GB DDR4','GPU: Integrated UHD Graphics','Storage: 500GB SATA SSD','PSU: 500W 80+ Bronze']}
+    gaming: {name:'Gaming Value 1080p',description:'Balanced entry gaming build for esports and modern games.',budget:28000,parts:['CPU: Ryzen 5 5600 (boxed; stock cooler included)','Motherboard: B550M (AM4, DDR4)','RAM: 16GB DDR4','GPU: RX 6600 8GB','Storage: 1TB NVMe SSD','PSU: 550W 80+ Bronze']},
+    office: {name:'Office Productivity',description:'Reliable system for documents, browser work, meetings, and productivity.',budget:26000,parts:['CPU: Intel Core i3-12100 (boxed; UHD 730 graphics and stock cooler included)','Motherboard: H610M (LGA1700, DDR4)','RAM: 16GB DDR4','GPU: Integrated UHD 730 graphics (from CPU; no separate GPU)','Storage: 500GB SATA SSD','PSU: 500W 80+ Bronze']},
+    students: {name:'Student Smart Ryzen 5',description:'Practical PC for schoolwork, coding, research, and online classes.',budget:22000,parts:['CPU: Ryzen 5 5600G (boxed; integrated Radeon graphics and stock cooler included)','Motherboard: B550M (AM4, DDR4)','RAM: 16GB DDR4','GPU: Integrated Radeon graphics (from CPU; no separate GPU)','Storage: 512GB NVMe SSD','PSU: 500W 80+ Bronze']},
+    streaming: {name:'Starter Streaming',description:'Affordable setup for livestreaming and esports content.',budget:30000,parts:['CPU: Ryzen 5 5600 (boxed; stock cooler included)','Motherboard: B550M (AM4, DDR4)','RAM: 16GB DDR4','GPU: RTX 3060 12GB','Storage: 1TB NVMe SSD','PSU: 650W 80+ Bronze']},
+    editing: {name:'Creator Editing',description:'Editing-focused build for 1080p projects and content creation.',budget:42000,parts:['CPU: Ryzen 7 7700 (boxed; stock cooler included)','Motherboard: B650M (AM5, DDR5)','RAM: 32GB DDR5','GPU: RTX 4060 8GB','Storage: 2TB NVMe SSD','PSU: 650W 80+ Gold']},
+    workstation: {name:'Developer Workstation',description:'Powerful build for development, rendering, virtualization, and multitasking.',budget:55000,parts:['CPU: Ryzen 9 7900 (boxed; stock cooler included)','Motherboard: B650 ATX (AM5, DDR5)','RAM: 64GB DDR5','GPU: RTX 4070 12GB','Storage: 2TB NVMe SSD','PSU: 750W 80+ Gold']},
+    home: {name:'Home Office Essential',description:'Quiet everyday system for browsing, documents, calls, and media.',budget:20000,parts:['CPU: Intel Core i3-12100 (boxed; UHD 730 graphics and stock cooler included)','Motherboard: H610M (LGA1700, DDR4)','RAM: 16GB DDR4','GPU: Integrated UHD 730 graphics (from CPU; no separate GPU)','Storage: 500GB SATA SSD','PSU: 500W 80+ Bronze']}
   };
   const item = fallback[type];
   if (!item) return [];
@@ -1167,7 +1269,8 @@ async function loadRecommendedBuilds() {
           parts: parsedParts,
           budget: Number(row.price || row.estimated_budget || 0),
           pros: getBuildPros(type,row.build_name || '',parsedParts),
-          cons: getBuildCons(type,row.build_name || '',parsedParts)
+          cons: getBuildCons(type,row.build_name || '',parsedParts),
+          compatibility: assessRecommendationCompatibility(parsedParts)
         };
       });
     });
@@ -1189,7 +1292,8 @@ async function loadRecommendedBuilds() {
           parts: parts,
           budget: Number(row.estimated_budget || 0),
           pros: getBuildPros(type,row.build_name,parts),
-          cons: getBuildCons(type,row.build_name,parts)
+          cons: getBuildCons(type,row.build_name,parts),
+          compatibility: assessRecommendationCompatibility(parts)
         };
       });
     });
@@ -1295,12 +1399,13 @@ function renderBuilds(type){
   const minimumBudget=20000;
   const maxBudget=Number(document.getElementById('build-budget')?.value||0);
   const allItems = Array.isArray(builds[type]) ? builds[type] : [];
-  const items = allItems.filter(b=>b.budget>=minimumBudget&&(!maxBudget||b.budget<=maxBudget));
+  const withinBudget = allItems.filter(b=>b.budget>=minimumBudget&&(!maxBudget||b.budget<=maxBudget));
+  const items = withinBudget.filter(b=>b.compatibility && b.compatibility.verified);
   if (items.length === 0) {
     document.getElementById('build-content').innerHTML = `
       <div class="build-card">
-        <div class="build-card-title">No recommendations yet</div>
-        <p style="margin-top:10px;color:var(--muted)">${maxBudget ? 'No build from ₱20,000 up matches your maximum budget.' : 'No recommended builds found for this category.'}</p>
+        <div class="build-card-title">${withinBudget.length ? 'Recommendations need compatibility details' : 'No recommendations yet'}</div>
+        <p style="margin-top:10px;color:var(--muted)">${withinBudget.length ? 'These builds are hidden until their CPU, motherboard, memory, graphics, storage, and power supply can be checked.' : maxBudget ? 'No verified build from ₱20,000 up matches your maximum budget.' : 'No verified recommended builds found for this category.'}</p>
       </div>`;
     return;
   }
@@ -1310,6 +1415,7 @@ function renderBuilds(type){
       <div class="build-card-header">
         <div class="build-card-title">${b.label}</div>
       </div>
+      <p style="color:var(--green);font-size:13px;font-weight:700;margin-bottom:12px">✓ Core compatibility checked: CPU socket, RAM generation, graphics, storage type, and PSU wattage.</p>
       <p style="color:var(--muted);line-height:1.7;margin-bottom:14px">${b.description || 'No description available.'}</p>
       ${b.budget ? `<div style="font-size:18px;font-weight:800;color:var(--cyan);margin-bottom:14px">Estimated budget: ₱${b.budget.toLocaleString()}</div>` : ''}
       <div class="build-pros-cons" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
@@ -1320,6 +1426,7 @@ function renderBuilds(type){
       <div class="build-parts">
         ${b.parts.map(p=>`<div class="build-part"><div class="build-part-icon">${p.icon}</div><div class="build-part-info"><div class="build-part-cat">${p.cat}</div><div class="build-part-name">${p.name}</div></div></div>`).join('')}
       </div>` : '<p style="color:var(--muted);margin-bottom:14px">No components listed for this build yet.</p>'}
+      <p style="color:var(--muted);font-size:12px;margin-top:8px">Choose the boxed CPU version listed to get its stock cooler. A case is not included; check case clearance and motherboard BIOS support for the exact models before purchase.</p>
       <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
         ${Array.isArray(b.parts) && b.parts.length ? `<button class="build-use-btn" onclick="useBuildRecommendation('${encodeURIComponent(JSON.stringify(b))}')">Use This Build →</button>` : ''}
         <button class="build-use-btn" style="background:transparent;border:1px solid var(--border);color:var(--text)" onclick="showPage('pricing')">Check Local Prices</button>
@@ -1379,6 +1486,25 @@ async function askGemini(id,text){
   if(!response.ok||!data.reply)throw new Error(data.error||'Gemini request failed');
   return data.reply;
 }
+let troubleFails=0,troubleTopic='';
+const TROUBLE_FAIL_RE=/(still|didn'?t work|did not work|not work|doesn'?t work|no luck|same (problem|issue|error)|nothing (happen|change)|tried|failed|not fixed|won'?t (work|fix))/i;
+const TROUBLE_SOLVED_RE=/(fixed|solved|it works now|working now|thank)/i;
+const TROUBLE_VIDEOS=[
+  {re:/(turn on|power|boot|dead|won'?t start)/i,id:'sfs_bE2X73Q'},
+  {re:/(display|black screen|no signal|monitor)/i,id:'SrcFSrt5Ev8'},
+  {re:/(restart|reboot)/i,id:'bzV4WBuZdLU'},
+  {re:/(overheat|hot|temp|shut ?down)/i,id:'KYRIfyIlNmM'},
+  {re:/(bsod|blue screen)/i,id:'SlfytZOvtC8'},
+  {re:/(slow|lag)/i,id:'sZl6rNUBbAY'}
+];
+function troubleVideoHtml(topic){
+  const v=TROUBLE_VIDEOS.find(x=>x.re.test(topic));
+  if(!v){
+    const url='https://www.youtube.com/results?search_query='+encodeURIComponent('how to fix PC '+topic);
+    return `🎬 <a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Watch video tutorials</a>`;
+  }
+  return `<div style="position:relative;padding-bottom:56.25%;height:0;margin-top:8px"><iframe src="https://www.youtube.com/embed/${v.id}" title="Troubleshooting video" style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:8px" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>`;
+}
 async function sendChat(id){
   const inp=document.getElementById(id+'-input');
   const text=inp.value.trim();if(!text)return;
@@ -1397,19 +1523,32 @@ async function sendChat(id){
   if(id==='trouble')recordActivity('🛠️','Asked troubleshooting AI',text,'rgba(34,197,94,.1)');
   if(id==='buildai')recordActivity('💡','Asked build recommendation AI',text,'rgba(8,124,255,.1)');
   addMsg(id,'user',displayText);inp.value='';
+  let troubleExtra='';
+  if(id==='trouble'){
+    if(TROUBLE_SOLVED_RE.test(text)){troubleFails=0;troubleTopic='';}
+    else if(TROUBLE_FAIL_RE.test(text)&&troubleTopic){
+      troubleFails++;
+      if(troubleFails>=3){
+        addMsg(id,'ai',`I'm sorry, the basic steps haven't fixed it after ${troubleFails} tries. This is likely beyond basic troubleshooting (possible failed hardware such as PSU, motherboard, RAM, GPU or storage).\n\n**Please stop here and take it to an expert or a trusted PC repair shop.** Continuing to open or test parts yourself could cause more damage or void your warranty.\n\n• Tell the shop everything you already tried\n• Back up your data first if the drive still works\n• If it's under warranty, contact the seller or manufacturer\n\n${troubleVideoHtml(troubleTopic)}`);
+        troubleFails=0;
+        return;
+      }
+      troubleExtra=`\n\n**Still stuck? (Attempt ${troubleFails} of 3)** Watch this video guide:\n${troubleVideoHtml(troubleTopic)}\nIf 3 attempts don't work, I'll recommend an expert or repair shop.`;
+    }else{troubleTopic=text;troubleFails=0;}
+  }
   document.getElementById(id+'-send').disabled=true;
   addTyping(id);
   try{
-    const reply=await askGemini(id,text);
+    const reply=await askGemini(id,id==='trouble'&&troubleFails?`${text}\n(Context: the user already tried basic fixes for "${troubleTopic}" ${troubleFails} time(s) without success. Suggest different steps.)`:text);
     removeTyping(id);
-    addMsg(id,'ai',reply);
+    addMsg(id,'ai',reply+troubleExtra);
   }catch(error){
     removeTyping(id);
     let reply = '';
     if(id==='trouble') reply = getTroubleResponse(text);
     else if(id==='compat') reply = getCompatResponse(text);
     else if(id==='buildai') reply = getBuildAIResponse(text);
-    addMsg(id,'ai',reply);
+    addMsg(id,'ai',reply+troubleExtra);
   }finally{
     document.getElementById(id+'-send').disabled=false;
   }
@@ -1424,7 +1563,7 @@ function initPHChat(){
     const page=document.getElementById('page-PHchat');
     if(page&&page.classList.contains('active')&&window._user){
       refreshPHChatCommunities();
-      if(document.getElementById('phchat-posts-view')&&document.getElementById('phchat-posts-view').classList.contains('active'))loadCommunityPosts();
+      if(document.getElementById('phchat-posts-view')&&document.getElementById('phchat-posts-view').classList.contains('active'))loadCommunityPosts(true);
       if(document.getElementById('phchat-messages-view')&&document.getElementById('phchat-messages-view').classList.contains('active')){
         loadDMConversations();
         if(activeDMEmail)loadPrivateMessages();
@@ -1567,16 +1706,50 @@ async function publishCommunityPost(){
   finally{button.disabled=false;}
 }
 
-async function loadCommunityPosts(){
+let postLoadSeq=0;
+let renderedPostsSignature='';
+
+async function loadCommunityPosts(silent){
   const container=document.getElementById('community-post-list');
   const select=document.getElementById('feed-community');
   if(!container||!window._user)return;
   const community=select&&select.value?select.value:activePHChat;
-  container.innerHTML='<div class="card" style="padding:18px;color:var(--muted)">Loading community posts...</div>';
+  const seq=++postLoadSeq;
+  const signaturePrefix=community+'|';
+  if(!silent||!renderedPostsSignature.startsWith(signaturePrefix)){
+    renderedPostsSignature='';
+    container.innerHTML='<div class="card" style="padding:18px;color:var(--muted)">Loading community posts...</div>';
+  }
   try{
     const data=await phCommunityRequest('post_list',{community:community});
-    renderCommunityPosts(data.posts||[],container);
-  }catch(error){container.innerHTML=`<div class="card" style="padding:18px;color:#fca5a5">${escapeHtml(error.message||'Could not load posts.')}</div>`;}
+    // Ignore responses from older requests or a community the user already left.
+    if(seq!==postLoadSeq||feedCommunityName()!==community)return;
+    const posts=data.posts||[];
+    const signature=signaturePrefix+JSON.stringify(posts);
+    if(signature===renderedPostsSignature)return;
+    const drafts={};
+    let focusedPostId=null;
+    container.querySelectorAll('.phchat-comment-form input[data-post-id]').forEach(function(input){
+      if(input.value)drafts[input.dataset.postId]=input.value;
+      if(document.activeElement===input)focusedPostId=input.dataset.postId;
+    });
+    const scrollY=window.scrollY;
+    renderCommunityPosts(posts,container);
+    renderedPostsSignature=signature;
+    Object.keys(drafts).forEach(function(postId){
+      const input=container.querySelector('.phchat-comment-form input[data-post-id="'+postId+'"]');
+      if(input)input.value=drafts[postId];
+    });
+    if(focusedPostId){
+      const input=container.querySelector('.phchat-comment-form input[data-post-id="'+focusedPostId+'"]');
+      if(input)input.focus();
+    }
+    window.scrollTo(0,scrollY);
+  }catch(error){
+    if(seq!==postLoadSeq)return;
+    if(silent&&renderedPostsSignature)return;
+    container.innerHTML=`<div class="card" style="padding:18px;color:#fca5a5">${escapeHtml(error.message||'Could not load posts.')}</div>`;
+  }
 }
 
 function renderCommunityPosts(posts,container){
@@ -1584,15 +1757,37 @@ function renderCommunityPosts(posts,container){
   if(!posts.length){container.innerHTML='<div class="card" style="padding:22px;color:var(--muted)">No posts here yet. Start the discussion with a build, picture, or PC question.</div>';return;}
   container.innerHTML=posts.map(function(post){
     const comments=Array.isArray(post.comments)?post.comments:[];
+    const postId=Number(post.id);
+    const isOwnPost=window._user&&String(post.user_email||'').toLowerCase()===String(window._user.email||'').toLowerCase();
     const image=post.image_path?`<img class="phchat-post-image" src="${escapeHtml(post.image_path)}" alt="Image shared by ${escapeHtml(post.sender_name)}" loading="lazy">`:'';
     const commentHtml=comments.map(function(comment){return `<div class="phchat-comment"><strong>${escapeHtml(comment.sender_name||'Member')}:</strong> ${escapeHtml(comment.comment)}</div>`;}).join('');
     return `<article class="card phchat-post"><div class="phchat-post-header"><span class="phchat-post-author">${escapeHtml(post.sender_name||'CoreCraft user')}</span><time>${formatChatTime(post.created_at)}</time></div>${post.body?`<div class="phchat-post-body">${escapeHtml(post.body)}</div>`:''}${image}<div class="phchat-post-actions"><button type="button" class="phchat-action-button ${Number(post.liked)?'liked':''}" onclick="togglePostLike(${Number(post.id)})">${Number(post.liked)?'♥ Liked':'♡ Like'} · ${Number(post.like_count)||0}</button><span class="phchat-muted">${comments.length} comment${comments.length===1?'':'s'}</span><button type="button" class="phchat-action-button" onclick="reportCommunityPost(${Number(post.id)})">Report</button></div><div class="phchat-comments">${commentHtml}</div><form class="phchat-comment-form" onsubmit="submitPostComment(event,${Number(post.id)})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a comment..." required><button class="phchat-action-button" type="submit">Comment</button></form></article>`;
   }).join('');
 }
 
+async function deleteCommunityPost(postId){
+  if(!window._user||!window._user.authToken)return;
+  if(!confirm('Delete this post and its comments, likes, and reports? This cannot be undone.'))return;
+  try{
+    await phCommunityRequest('post_delete',{community:feedCommunityName(),post_id:postId});
+    await loadCommunityPosts(true);
+  }catch(error){alert(error.message||'Post could not be deleted.');}
+}
+
+async function reportCommunityPost(postId){
+  if(!window._user||!window._user.authToken)return;
+  const reason=window.prompt('Why are you reporting this post? Please describe the issue (up to 1000 characters).');
+  if(reason===null)return;
+  if(!reason.trim()){alert('Please provide a reason for the report.');return;}
+  try{
+    await phCommunityRequest('post_report',{community:feedCommunityName(),post_id:postId,reason:reason.trim()});
+    alert('Report submitted. Thank you for helping keep the community safe.');
+  }catch(error){alert(error.message||'Post report could not be submitted.');}
+}
+
 async function togglePostLike(postId){
   const community=document.getElementById('feed-community').value||activePHChat;
-  try{await phCommunityRequest('post_like',{community:community,post_id:postId});await loadCommunityPosts();}
+  try{await phCommunityRequest('post_like',{community:community,post_id:postId});await loadCommunityPosts(true);}
   catch(error){alert(error.message||'Like could not be saved.');}
 }
 
@@ -1602,7 +1797,7 @@ async function submitPostComment(event,postId){
   const comment=input.value.trim();
   if(!comment)return;
   const community=document.getElementById('feed-community').value||activePHChat;
-  try{await phCommunityRequest('post_comment',{community:community,post_id:postId,comment:comment});await loadCommunityPosts();}
+  try{await phCommunityRequest('post_comment',{community:community,post_id:postId,comment:comment});input.value='';await loadCommunityPosts(true);}
   catch(error){alert(error.message||'Comment could not be posted.');}
 }
 
@@ -2266,7 +2461,7 @@ function mountGoogleSignInButton(){
   }
   if(!window.google||!google.accounts||!google.accounts.id)return;
   google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCredential,auto_select:false});
-  google.accounts.id.renderButton(slot,{type:'standard',theme:'outline',size:'large',text:'continue_with',shape:'rectangular',width:280,logo_alignment:'left'});
+  google.accounts.id.renderButton(slot,{type:'standard',theme:'filled_black',size:'large',text:'continue_with',shape:'pill',width:280,logo_alignment:'left'});
   googleSignInInitialized=true;
 }
 
