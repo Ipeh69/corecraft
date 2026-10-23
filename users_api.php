@@ -144,16 +144,19 @@ if ($action === "google") {
         respond(array("success" => false, "error" => "Google account verification failed"), 401);
     }
     $google_email = strtolower($token["email"]);
-    $stmt = $conn_users->prepare("SELECT full_name, email FROM users WHERE email = ? LIMIT 1");
+    $stmt = $conn_users->prepare("SELECT full_name, email, status FROM users WHERE email = ? LIMIT 1");
     if (!$stmt) {
         respond(array("success" => false, "error" => "Failed to prepare Google sign-in"), 500);
     }
     $stmt->bind_param("s", $google_email);
     $stmt->execute();
     $stmt->store_result();
-    $stmt->bind_result($name, $stored_email);
+    $stmt->bind_result($name, $stored_email, $google_status);
     if ($stmt->fetch()) {
         $stmt->close();
+        if ($google_status === "banned") {
+            respond(array("success" => false, "error" => "This account has been suspended. Contact the CoreCraft administrator."), 403);
+        }
         $auth_token = issue_auth_token($conn_users, $stored_email);
         if ($auth_token === false) {
             respond(array("success" => false, "error" => "Could not create an account session"), 500);
