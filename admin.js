@@ -1,5 +1,5 @@
-// ——— CoreCraft Admin Console ———
-let adminState={view:'dashboard',components:[],rules:[],regions:[],users:[],reports:[],content:[]};
+﻿// â€”â€”â€” CoreCraft Admin Console â€”â€”â€”
+let adminState={view:'dashboard',users:[],reports:[],content:[]};
 
 function adminEsc(value){
   return String(value==null?'':value).replace(/[&<>"']/g,function(c){
@@ -54,11 +54,11 @@ function adminModalStatus(message,type){
   if(el){el.textContent=message||'';el.className='admin-modal-status'+(type?' '+type:'');}
 }
 
-// ——— Entry point (called from showPage) ———
+// â€”â€”â€” Entry point (called from showPage) â€”â€”â€”
 function initAdminPage(){
   if(!window._user||!window._user.isAdmin){showPage('home');return;}
   const who=document.getElementById('admin-side-user');
-  if(who)who.textContent=(window._user.name||'Admin')+' · '+((window._user.adminRole||'admin'));
+  if(who)who.textContent=(window._user.name||'Admin')+' Â· '+((window._user.adminRole||'admin'));
   loadAdminView(adminState.view);
 }
 
@@ -71,12 +71,8 @@ function switchAdminView(view,button){
   if(button)button.classList.add('active');
   const titles={
     dashboard:['Dashboard','Platform health at a glance.'],
-    components:['Component Catalog','Add, update and retire hardware parts and pricing.'],
-    rules:['Compatibility Rules','Maintain the checks behind build compatibility.'],
     users:['Users & Roles','Manage accounts, roles and access.'],
     moderation:['Moderation','Review reports and remove abusive content.'],
-    pricing:['Pricing Feeds','Sync regional prices used by AI estimation.'],
-    analytics:['Analytics & Health','Usage trends, traffic and API health.'],
     logs:['System Logs','Errors, warnings and the admin audit trail.']
   };
   const meta=titles[view]||['Admin',''];
@@ -90,17 +86,13 @@ function switchAdminView(view,button){
 
 function loadAdminView(view){
   if(view==='dashboard')loadAdminDashboard();
-  else if(view==='components')loadAdminComponents();
-  else if(view==='rules')loadAdminRules();
   else if(view==='users')loadAdminUsers();
-  else if(view==='moderation'){loadAdminReports();loadAdminContent();}
-  else if(view==='pricing')loadAdminRegions();
-  else if(view==='analytics')loadAdminAnalytics();
+  else if(view==='moderation')loadAdminReports();
   else if(view==='logs')loadAdminLogs();
 }
 function refreshAdminView(){loadAdminView(adminState.view);}
 
-// ——— Charts (inline SVG) ———
+// â€”â€”â€” Charts (inline SVG) â€”â€”â€”
 const ADMIN_PALETTE=['#00bfff','#a78bfa','#ff6b35','#22c55e','#f472b6','#facc15','#38bdf8'];
 const ADMIN_EVENT_LABELS={search:'Searches',build_check:'Build checks',build_save:'Build saves',compat_fail:'Compat fails'};
 function adminShortDate(d){const p=d.split('-');return p[1]+'/'+p[2];}
@@ -133,7 +125,7 @@ function adminAreaChart(el,labels,series){
     const line=adminSmoothPath(pts);
     svg+='<path d="'+line+' L'+pts[pts.length-1][0]+','+(H-B)+' L'+pts[0][0]+','+(H-B)+' Z" fill="url(#'+uid+i+')"/>';
     svg+='<path d="'+line+'" fill="none" stroke="'+s.color+'" stroke-width="2.4" stroke-linecap="round"/>';
-    pts.forEach(function(p,j){svg+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.4" fill="'+s.color+'" class="admin-dot"><title>'+adminEsc(s.name+' · '+labels[j]+': '+s.values[j])+'</title></circle>';});
+    pts.forEach(function(p,j){svg+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.4" fill="'+s.color+'" class="admin-dot"><title>'+adminEsc(s.name+' Â· '+labels[j]+': '+s.values[j])+'</title></circle>';});
   });
   el.innerHTML=svg+'</svg>';
 }
@@ -201,14 +193,14 @@ function renderAdminGradCards(el,charts){
     {tone:1,label:'Searches (14d)',value:adminSum(searches),sub:'Part lookups',spark:searches},
     {tone:2,label:'Build checks (14d)',value:adminSum(checks),sub:'Compatibility runs',spark:checks},
     {tone:3,label:'Build saves (14d)',value:adminSum(saves),sub:'Saved configurations',spark:saves},
-    {tone:4,label:'Sign-ups (14d)',value:adminSum(signups),sub:'New accounts · '+adminSum(fails)+' compat fails',spark:signups}
+    {tone:4,label:'Sign-ups (14d)',value:adminSum(signups),sub:'New accounts Â· '+adminSum(fails)+' compat fails',spark:signups}
   ]);
 }
 
-// ——— Dashboard ———
+// â€”â€”â€” Dashboard â€”â€”â€”
 async function loadAdminDashboard(){
   const grid=document.getElementById('admin-stat-grid');
-  setAdminStatus('Loading dashboard…');
+  setAdminStatus('Loading dashboardâ€¦');
   try{
     const data=await adminApi('overview');
     const o=data.overview;
@@ -216,9 +208,6 @@ async function loadAdminDashboard(){
       const stats=[
         ['Registered users',o.total_users,'accent'],
         ['New users (7d)',o.new_users_7d,''],
-        ['Active parts',o.active_components,'accent'],
-        ['Retired parts',o.inactive_components,''],
-        ['Active rules',o.rules_enabled+' / '+o.rules_total,''],
         ['Saved builds',o.saved_builds,''],
         ['Build checks today',o.build_checks_today,'accent'],
         ['Open reports',o.open_reports,o.open_reports>0?'warn':''],
@@ -240,7 +229,7 @@ async function loadAdminDashboard(){
     const logsEl=document.getElementById('admin-recent-logs');
     if(logsEl){
       logsEl.innerHTML=(o.recent_logs||[]).length?(o.recent_logs||[]).map(function(log){
-        return '<div class="admin-list-row"><span class="admin-tag '+adminLevelClass(log.level)+'">'+adminEsc(log.level)+'</span><div class="grow"><div class="truncate">'+adminEsc(log.message)+'</div><div class="muted">'+adminEsc(log.source)+' · '+adminEsc(log.created_at)+'</div></div></div>';
+        return '<div class="admin-list-row"><span class="admin-tag '+adminLevelClass(log.level)+'">'+adminEsc(log.level)+'</span><div class="grow"><div class="truncate">'+adminEsc(log.message)+'</div><div class="muted">'+adminEsc(log.source)+' Â· '+adminEsc(log.created_at)+'</div></div></div>';
       }).join(''):'<div class="admin-empty">No activity recorded yet.</div>';
     }
     const charts=o.charts||{};
@@ -266,222 +255,10 @@ function adminLevelClass(level){
   return 'info';
 }
 
-// ——— Components ———
-async function loadAdminComponents(){
-  const tbody=document.getElementById('admin-component-rows');
-  setAdminStatus('Loading catalog…');
-  try{
-    const data=await adminApi('component_list',{search:adminVal('component-search'),category:adminVal('component-category-filter')});
-    adminState.components=data.components||[];
-    if(tbody){
-      tbody.innerHTML=adminState.components.length?adminState.components.map(function(c,index){
-        return '<tr>'+
-          '<td>'+adminEsc(c.category)+'</td>'+
-          '<td><div class="strong">'+adminEsc(c.brand)+'</div><div class="muted">'+adminEsc(c.model)+'</div></td>'+
-          '<td>'+adminEsc(c.socket||'—')+'</td>'+
-          '<td>'+adminEsc(c.tdp_watts!=null?c.tdp_watts:'—')+'</td>'+
-          '<td>'+adminEsc(c.form_factor||'—')+'</td>'+
-          '<td>₱'+Number(c.price_php||0).toLocaleString()+'</td>'+
-          '<td>$'+Number(c.price_usd||0).toLocaleString()+'</td>'+
-          '<td>'+adminEsc(c.stock_status||'—')+'</td>'+
-          '<td>'+(c.is_active?'<span class="admin-tag ok">Active</span>':'<span class="admin-tag neutral">Retired</span>')+'</td>'+
-          '<td><div class="admin-row-actions">'+
-            '<button class="admin-icon-btn" onclick="openComponentForm('+index+')">Edit</button>'+
-            '<button class="admin-icon-btn danger" onclick="deleteComponent('+index+')">Delete</button>'+
-          '</div></td>'+
-        '</tr>';
-      }).join(''):'<tr><td colspan="10"><div class="admin-empty">No components match this filter.</div></td></tr>';
-    }
-    setAdminStatus(adminState.components.length+' parts loaded','ok');
-  }catch(error){
-    setAdminStatus(error.message,'err');
-    if(tbody)tbody.innerHTML='<tr><td colspan="10"><div class="admin-empty">'+adminEsc(error.message)+'</div></td></tr>';
-  }
-}
-
-function openComponentForm(index){
-  const editing=(typeof index==='number'&&adminState.components[index])?adminState.components[index]:null;
-  const categories=['cpu','motherboard','gpu','ram','storage','psu','case','cooler','other'];
-  const cats=categories.map(function(c){return '<option value="'+c+'"'+(editing&&editing.category===c?' selected':'')+'>'+c+'</option>';}).join('');
-  const stocks=['in_stock','low_stock','out_of_stock','unknown'];
-  const stockOptions=stocks.map(function(s){return '<option value="'+s+'"'+(editing&&editing.stock_status===s?' selected':'')+'>'+s.replace(/_/g,' ')+'</option>';}).join('');
-  const specs=editing&&editing.specs?JSON.stringify(editing.specs,null,1):'';
-  adminModal(
-    '<div class="admin-modal-title">'+(editing?'Edit component':'New component')+'</div>'+
-    '<p class="admin-modal-hint">Resolve duplicates and incorrect specs here. Compatibility fields (socket, TDP, form factor) power the rule engine.</p>'+
-    '<div class="admin-form-grid">'+
-      '<label class="admin-label">Category<select id="cf-category">'+cats+'</select></label>'+
-      '<label class="admin-label">Brand<input id="cf-brand" value="'+adminEsc(editing?editing.brand:'')+'" placeholder="e.g. AMD"/></label>'+
-      '<label class="admin-label full">Model<input id="cf-model" value="'+adminEsc(editing?editing.model:'')+'" placeholder="e.g. Ryzen 5 5600"/></label>'+
-      '<label class="admin-label">Socket<input id="cf-socket" value="'+adminEsc(editing&&editing.socket?editing.socket:'')+'" placeholder="AM5 / LGA1700"/></label>'+
-      '<label class="admin-label">TDP (watts)<input id="cf-tdp" type="number" min="0" value="'+adminEsc(editing&&editing.tdp_watts!=null?editing.tdp_watts:'')+'"/></label>'+
-      '<label class="admin-label">Form factor<input id="cf-form" value="'+adminEsc(editing&&editing.form_factor?editing.form_factor:'')+'" placeholder="ATX / mATX / DIMM"/></label>'+
-      '<label class="admin-label">Stock<select id="cf-stock">'+stockOptions+'</select></label>'+
-      '<label class="admin-label">Price ₱<input id="cf-php" type="number" step="0.01" min="0" value="'+adminEsc(editing?editing.price_php:0)+'"/></label>'+
-      '<label class="admin-label">Price $<input id="cf-usd" type="number" step="0.01" min="0" value="'+adminEsc(editing?editing.price_usd:0)+'"/></label>'+
-      '<label class="admin-label">Status<select id="cf-active"><option value="1"'+(!editing||editing.is_active?' selected':'')+'>Active</option><option value="0"'+(editing&&!editing.is_active?' selected':'')+'>Retired</option></select></label>'+
-      '<label class="admin-label full">Specs (JSON)<textarea id="cf-specs" rows="4" placeholder=\'{"chipset":"B650"}\'>'+adminEsc(specs)+'</textarea></label>'+
-    '</div>'+
-    '<div class="admin-modal-status" id="admin-modal-status"></div>'+
-    '<div class="admin-modal-actions">'+
-      '<button class="admin-btn" onclick="closeAdminModal()">Cancel</button>'+
-      '<button class="admin-btn primary" onclick="saveComponentModal('+(editing?editing.id:0)+')">'+(editing?'Save changes':'Create component')+'</button>'+
-    '</div>'
-  );
-}
-
-async function saveComponentModal(id){
-  let specs={};
-  const rawSpecs=adminVal('cf-specs');
-  if(rawSpecs){
-    try{specs=JSON.parse(rawSpecs);}catch(error){adminModalStatus('Specs must be valid JSON.','err');return;}
-    if(typeof specs!=='object'||Array.isArray(specs)){adminModalStatus('Specs must be a JSON object.','err');return;}
-  }
-  const payload={
-    id:id||0,
-    category:adminVal('cf-category'),
-    brand:adminVal('cf-brand'),
-    model:adminVal('cf-model'),
-    socket:adminVal('cf-socket'),
-    tdp_watts:adminVal('cf-tdp'),
-    form_factor:adminVal('cf-form'),
-    stock_status:adminVal('cf-stock'),
-    price_php:adminVal('cf-php'),
-    price_usd:adminVal('cf-usd'),
-    is_active:adminVal('cf-active'),
-    specs:specs
-  };
-  adminModalStatus('Saving…');
-  try{
-    const data=await adminApi('component_save',payload);
-    adminModalStatus(data.message||'Saved','ok');
-    setTimeout(closeAdminModal,400);
-    loadAdminComponents();
-  }catch(error){
-    adminModalStatus(error.message,'err');
-  }
-}
-
-async function deleteComponent(index){
-  const component=adminState.components[index];
-  if(!component)return;
-  if(!window.confirm('Delete '+component.brand+' '+component.model+' from the catalog?'))return;
-  setAdminStatus('Deleting…');
-  try{
-    await adminApi('component_delete',{id:component.id});
-    setAdminStatus('Component deleted','ok');
-    loadAdminComponents();
-  }catch(error){
-    setAdminStatus(error.message,'err');
-  }
-}
-
-function openBulkPrice(){
-  switchAdminView('pricing',document.querySelector('.admin-nav-item[data-admin-view="pricing"]'));
-}
-
-// ——— Compatibility rules ———
-async function loadAdminRules(){
-  const list=document.getElementById('admin-rule-list');
-  setAdminStatus('Loading rules…');
-  try{
-    const data=await adminApi('rules_list');
-    adminState.rules=data.rules||[];
-    if(list){
-      list.innerHTML=adminState.rules.length?adminState.rules.map(function(rule,index){
-        return '<div class="admin-rule'+(rule.is_enabled?'':' disabled')+'">'+
-          '<div class="admin-rule-head">'+
-            '<div><div class="admin-rule-name">'+adminEsc(rule.name)+'</div><div class="admin-rule-key">'+adminEsc(rule.rule_key)+'</div></div>'+
-            '<label class="admin-switch" title="Enable or disable this check"><input type="checkbox" '+(rule.is_enabled?'checked':'')+' onchange="toggleRule('+index+')"><span class="admin-switch-slider"></span></label>'+
-          '</div>'+
-          '<div><span class="admin-tag '+adminLevelClass(rule.severity)+'">'+adminEsc(rule.severity)+'</span> <span class="admin-tag neutral">'+adminEsc(rule.category)+'</span></div>'+
-          '<div class="admin-rule-summary">'+adminEsc(rule.logic_summary||'No description')+'</div>'+
-          '<div class="admin-rule-actions">'+
-            '<button class="admin-icon-btn" onclick="openRuleForm('+index+')">Edit</button>'+
-            '<button class="admin-icon-btn danger" onclick="deleteRule('+index+')">Delete</button>'+
-          '</div>'+
-        '</div>';
-      }).join(''):'<div class="admin-empty">No rules configured.</div>';
-    }
-    setAdminStatus(adminState.rules.length+' rules','ok');
-  }catch(error){
-    setAdminStatus(error.message,'err');
-    if(list)list.innerHTML='<div class="admin-empty">'+adminEsc(error.message)+'</div>';
-  }
-}
-
-function openRuleForm(index){
-  const editing=(typeof index==='number'&&adminState.rules[index])?adminState.rules[index]:null;
-  const severities=['info','warning','error'];
-  const severityOptions=severities.map(function(s){return '<option value="'+s+'"'+(editing&&editing.severity===s?' selected':'')+'>'+s+'</option>';}).join('');
-  adminModal(
-    '<div class="admin-modal-title">'+(editing?'Edit compatibility rule':'New compatibility rule')+'</div>'+
-    '<p class="admin-modal-hint">Update the logic when new standards emerge (PCIe generations, DDR5 profiles, 12VHPWR). Disable a rule to override edge cases automated checks get wrong.</p>'+
-    '<div class="admin-form-grid">'+
-      '<label class="admin-label">Rule key<input id="rf-key" value="'+adminEsc(editing?editing.rule_key:'')+'" placeholder="e.g. pcie_generation"/></label>'+
-      '<label class="admin-label">Severity<select id="rf-severity">'+severityOptions+'</select></label>'+
-      '<label class="admin-label full">Name<input id="rf-name" value="'+adminEsc(editing?editing.name:'')+'" placeholder="Short rule title"/></label>'+
-      '<label class="admin-label full">Category<input id="rf-category" value="'+adminEsc(editing?editing.category:'general')+'" placeholder="e.g. power"/></label>'+
-      '<label class="admin-label full">Logic summary<textarea id="rf-summary" rows="4" placeholder="Describe what the rule checks…">'+adminEsc(editing?editing.logic_summary:'')+'</textarea></label>'+
-      '<label class="admin-label">Enabled<select id="rf-enabled"><option value="1"'+(!editing||editing.is_enabled?' selected':'')+'>Enabled</option><option value="0"'+(editing&&!editing.is_enabled?' selected':'')+'>Disabled</option></select></label>'+
-    '</div>'+
-    '<div class="admin-modal-status" id="admin-modal-status"></div>'+
-    '<div class="admin-modal-actions">'+
-      '<button class="admin-btn" onclick="closeAdminModal()">Cancel</button>'+
-      '<button class="admin-btn primary" onclick="saveRuleModal('+(editing?editing.id:0)+')">'+(editing?'Save rule':'Create rule')+'</button>'+
-    '</div>'
-  );
-}
-
-async function saveRuleModal(id){
-  adminModalStatus('Saving…');
-  try{
-    const data=await adminApi('rule_save',{
-      id:id||0,
-      rule_key:adminVal('rf-key'),
-      name:adminVal('rf-name'),
-      category:adminVal('rf-category'),
-      severity:adminVal('rf-severity'),
-      logic_summary:adminVal('rf-summary'),
-      is_enabled:adminVal('rf-enabled')
-    });
-    adminModalStatus(data.message||'Saved','ok');
-    setTimeout(closeAdminModal,400);
-    loadAdminRules();
-  }catch(error){
-    adminModalStatus(error.message,'err');
-  }
-}
-
-async function toggleRule(index){
-  const rule=adminState.rules[index];
-  if(!rule)return;
-  try{
-    await adminApi('rule_toggle',{id:rule.id});
-    loadAdminRules();
-  }catch(error){
-    setAdminStatus(error.message,'err');
-    loadAdminRules();
-  }
-}
-
-async function deleteRule(index){
-  const rule=adminState.rules[index];
-  if(!rule)return;
-  if(!window.confirm('Delete rule "'+rule.name+'"?'))return;
-  try{
-    await adminApi('rule_delete',{id:rule.id});
-    setAdminStatus('Rule deleted','ok');
-    loadAdminRules();
-  }catch(error){
-    setAdminStatus(error.message,'err');
-  }
-}
-
-// ——— Users & roles ———
+// â€”â€”â€” Users & roles â€”â€”â€”
 async function loadAdminUsers(){
   const tbody=document.getElementById('admin-user-rows');
-  setAdminStatus('Loading users…');
+  setAdminStatus('Loading usersâ€¦');
   try{
     const data=await adminApi('user_list',{search:adminVal('user-search'),role:adminVal('user-role-filter')});
     adminState.users=data.users||[];
@@ -496,8 +273,8 @@ async function loadAdminUsers(){
           '<td><select class="admin-input admin-select small" onchange="setUserRole('+index+',this.value)">'+roleOptions+'</select></td>'+
           '<td>'+(user.status==='banned'?'<span class="admin-tag error">banned</span>':'<span class="admin-tag ok">active</span>')+'</td>'+
           '<td>'+Number(user.saved_builds||0)+'</td>'+
-          '<td class="muted">'+adminEsc(user.created_at||'—')+'</td>'+
-          '<td class="muted">'+adminEsc(user.last_login_at||'—')+'</td>'+
+          '<td class="muted">'+adminEsc(user.created_at||'â€”')+'</td>'+
+          '<td class="muted">'+adminEsc(user.last_login_at||'â€”')+'</td>'+
           '<td><div class="admin-row-actions">'+
             (user.status==='banned'
               ?'<button class="admin-icon-btn" onclick="setUserStatus('+index+',\'active\')">Reactivate</button>'
@@ -553,10 +330,10 @@ async function deleteUser(index){
   }
 }
 
-// ——— Moderation ———
+// â€”â€”â€” Moderation â€”â€”â€”
 async function loadAdminReports(){
   const list=document.getElementById('admin-report-list');
-  setAdminStatus('Loading reports…');
+  setAdminStatus('Loading reportsâ€¦');
   try{
     const data=await adminApi('report_list',{status:adminVal('report-status-filter')});
     adminState.reports=data.reports||[];
@@ -564,11 +341,11 @@ async function loadAdminReports(){
       list.innerHTML=adminState.reports.length?adminState.reports.map(function(report,index){
         const open=report.status==='open';
         return '<div class="admin-list-row">'+
-          '<div class="grow"><div class="strong">'+adminEsc(report.content_type.replace(/_/g,' '))+' · '+adminEsc(report.content_ref)+'</div>'+
+          '<div class="grow"><div class="strong">'+adminEsc(report.content_type.replace(/_/g,' '))+' Â· '+adminEsc(report.content_ref)+'</div>'+
           '<div class="muted">'+adminEsc(report.reason)+'</div>'+
-          '<div class="muted">by '+adminEsc(report.reported_by)+(report.community?' · '+adminEsc(report.community):'')+' · '+adminEsc(report.created_at)+'</div></div>'+
+          '<div class="muted">by '+adminEsc(report.reported_by)+(report.community?' Â· '+adminEsc(report.community):'')+' Â· '+adminEsc(report.created_at)+'</div></div>'+
           '<span class="admin-tag '+(report.status==='open'?'warning':(report.status==='resolved'?'ok':'neutral'))+'">'+adminEsc(report.status)+'</span>'+
-          (open?'<div class="admin-row-actions"><button class="admin-icon-btn" onclick="resolveReport('+index+',\'resolved\')">Resolve</button><button class="admin-icon-btn" onclick="resolveReport('+index+',\'dismissed\')">Dismiss</button></div>':'')+
+          (open?'<div class="admin-row-actions"><button class="admin-icon-btn" onclick="goToReportedPost('+index+')">Go to post</button><button class="admin-icon-btn danger" onclick="deleteReportedPost('+index+')">Delete</button></div>':'')+
         '</div>';
       }).join(''):'<div class="admin-empty">No reports in this view.</div>';
     }
@@ -614,205 +391,39 @@ async function resolveReport(index,status){
   }
 }
 
-async function loadAdminContent(){
-  const list=document.getElementById('admin-content-list');
+async function deleteReportedPost(index){
+  const report=adminState.reports[index];
+  if(!report)return;
+  const type=report.content_type==='community_post'?'posts':report.content_type;
+  if(!window.confirm('Delete this '+type.replace(/_/g,' ')+' permanently? This cannot be undone.'))return;
   try{
-    const data=await adminApi('content_list',{type:adminVal('content-type-filter')});
-    adminState.content=data.items||[];
-    const type=adminVal('content-type-filter')||'posts';
-    if(list){
-      list.innerHTML=adminState.content.length?adminState.content.map(function(item,index){
-        return '<div class="admin-list-row">'+
-          '<div class="grow"><div class="strong">'+adminEsc(item.community||'—')+'</div>'+
-          '<div class="truncate">'+adminEsc(item.body||'')+'</div>'+
-          '<div class="muted">'+adminEsc(item.author)+' · '+adminEsc(item.created_at)+'</div></div>'+
-          '<button class="admin-icon-btn danger" onclick="deleteContent('+index+',\''+type+'\')">Remove</button>'+
-        '</div>';
-      }).join(''):'<div class="admin-empty">Nothing to moderate here.</div>';
-    }
-  }catch(error){
-    if(list)list.innerHTML='<div class="admin-empty">'+adminEsc(error.message)+'</div>';
-  }
-}
-
-async function deleteContent(index,type){
-  const item=adminState.content[index];
-  if(!item)return;
-  if(!window.confirm('Remove this content permanently?'))return;
-  try{
-    await adminApi('content_delete',{type:type,id:item.id});
-    setAdminStatus('Content removed','ok');
-    loadAdminContent();
+    await adminApi('content_delete',{type:type,id:report.content_ref});
+    await adminApi('report_resolve',{id:report.id,status:'resolved'});
+    setAdminStatus('Post deleted and report resolved','ok');
+    loadAdminReports();
   }catch(error){
     setAdminStatus(error.message,'err');
   }
 }
 
-// ——— Pricing feeds ———
-async function loadAdminRegions(){
-  const list=document.getElementById('admin-region-list');
-  setAdminStatus('Loading pricing feeds…');
-  try{
-    const data=await adminApi('pricing_list');
-    adminState.regions=data.regions||[];
-    if(list){
-      list.innerHTML=adminState.regions.length?adminState.regions.map(function(region,index){
-        return '<div class="admin-list-row">'+
-          '<div class="grow"><div class="strong">'+adminEsc(region.region)+'</div>'+
-          '<div class="muted">'+adminEsc(region.currency)+' · ×'+Number(region.multiplier).toFixed(3)+(region.notes?' · '+adminEsc(region.notes):'')+'</div></div>'+
-          '<div class="admin-row-actions">'+
-            '<button class="admin-icon-btn" onclick="applyRegionPricing('+index+')">Apply to catalog</button>'+
-            '<button class="admin-icon-btn" onclick="openRegionForm('+index+')">Edit</button>'+
-            '<button class="admin-icon-btn danger" onclick="deleteRegion('+index+')">Delete</button>'+
-          '</div>'+
-        '</div>';
-      }).join(''):'<div class="admin-empty">No regions configured.</div>';
-    }
-    setAdminStatus(adminState.regions.length+' regions','ok');
-  }catch(error){
-    setAdminStatus(error.message,'err');
-    if(list)list.innerHTML='<div class="admin-empty">'+adminEsc(error.message)+'</div>';
-  }
+function goToReportedPost(index){
+  const report=adminState.reports[index];
+  if(!report)return;
+  closeAdminModal();
+  if(typeof showPage!=='function')return;
+  showPage('PHchat');
+  setTimeout(function(){
+    if(typeof switchPHChatView==='function')switchPHChatView('posts',document.querySelector('.phchat-tab[data-view="posts"]')||document.querySelector('.phchat-tab'));
+    if(typeof selectFeedCommunity==='function')selectFeedCommunity(report.community);
+  },250);
 }
 
-function openRegionForm(index){
-  const editing=(typeof index==='number'&&adminState.regions[index])?adminState.regions[index]:null;
-  adminModal(
-    '<div class="admin-modal-title">'+(editing?'Edit pricing region':'New pricing region')+'</div>'+
-    '<p class="admin-modal-hint">The multiplier adjusts baseline prices for a regional market. Use "Apply to catalog" afterwards to sync component prices.</p>'+
-    '<div class="admin-form-grid">'+
-      '<label class="admin-label full">Region<input id="rg-region" value="'+adminEsc(editing?editing.region:'')+'" placeholder="e.g. Visayas"/></label>'+
-      '<label class="admin-label">Currency<input id="rg-currency" value="'+adminEsc(editing?editing.currency:'PHP')+'" placeholder="PHP"/></label>'+
-      '<label class="admin-label">Multiplier<input id="rg-multiplier" type="number" step="0.001" min="0.1" value="'+adminEsc(editing?editing.multiplier:1)+'"/></label>'+
-      '<label class="admin-label full">Notes<input id="rg-notes" value="'+adminEsc(editing&&editing.notes?editing.notes:'')+'" placeholder="Shipping markup, market notes…"/></label>'+
-    '</div>'+
-    '<div class="admin-modal-status" id="admin-modal-status"></div>'+
-    '<div class="admin-modal-actions">'+
-      '<button class="admin-btn" onclick="closeAdminModal()">Cancel</button>'+
-      '<button class="admin-btn primary" onclick="saveRegionModal('+(editing?editing.id:0)+')">'+(editing?'Save region':'Create region')+'</button>'+
-    '</div>'
-  );
-}
 
-async function saveRegionModal(id){
-  adminModalStatus('Saving…');
-  try{
-    const data=await adminApi('pricing_save',{
-      id:id||0,
-      region:adminVal('rg-region'),
-      currency:adminVal('rg-currency'),
-      multiplier:adminVal('rg-multiplier'),
-      notes:adminVal('rg-notes')
-    });
-    adminModalStatus(data.message||'Saved','ok');
-    setTimeout(closeAdminModal,400);
-    loadAdminRegions();
-  }catch(error){
-    adminModalStatus(error.message,'err');
-  }
-}
 
-async function applyRegionPricing(index){
-  const region=adminState.regions[index];
-  if(!region)return;
-  if(!window.confirm('Apply '+region.region+' pricing (×'+Number(region.multiplier).toFixed(3)+') to all components?'))return;
-  setAdminStatus('Applying prices…');
-  try{
-    const data=await adminApi('pricing_apply_region',{id:region.id});
-    setAdminStatus(data.message||'Prices applied','ok');
-  }catch(error){
-    setAdminStatus(error.message,'err');
-  }
-}
-
-async function deleteRegion(index){
-  const region=adminState.regions[index];
-  if(!region)return;
-  if(!window.confirm('Delete region "'+region.region+'"?'))return;
-  try{
-    await adminApi('pricing_delete',{id:region.id});
-    setAdminStatus('Region deleted','ok');
-    loadAdminRegions();
-  }catch(error){
-    setAdminStatus(error.message,'err');
-  }
-}
-
-async function applyBulkPrice(){
-  const value=adminVal('bulk-value');
-  if(!value){setAdminStatus('Enter a non-zero value first.','err');return;}
-  setAdminStatus('Applying update…');
-  try{
-    const data=await adminApi('component_bulk_price',{
-      mode:adminVal('bulk-mode'),
-      category:adminVal('bulk-category'),
-      value:value
-    });
-    setAdminStatus(data.message||'Prices updated','ok');
-  }catch(error){
-    setAdminStatus(error.message,'err');
-  }
-}
-
-// ——— Analytics ———
-async function loadAdminAnalytics(){
-  setAdminStatus('Loading analytics…');
-  try{
-    const data=await adminApi('analytics');
-    const s=data.summary;
-    const health=document.getElementById('admin-health-grid');
-    if(health){
-      const items=[
-        ['Events (24h)',s.api_health.events_24h,'accent'],
-        ['Active sessions',s.api_health.active_sessions,''],
-        ['Errors (24h)',s.api_health.errors_24h,s.api_health.errors_24h>0?'warn':''],
-        ['Warnings (24h)',s.api_health.warnings_24h,'']
-      ];
-      health.innerHTML=items.map(function(item){
-        return '<div class="admin-stat '+item[2]+'"><div class="admin-stat-label">'+adminEsc(item[0])+'</div><div class="admin-stat-value">'+adminEsc(item[1])+'</div></div>';
-      }).join('');
-    }
-    const charts=s.charts||{};
-    renderAdminTrend(document.getElementById('admin-an-trend'),document.getElementById('admin-an-legend'),charts);
-    adminDonut(document.getElementById('admin-event-donut'),(s.events_by_type||[]).map(function(r){return {label:ADMIN_EVENT_LABELS[r.event_type]||r.event_type,total:Number(r.total)};}),'events');
-    renderAdminGradCards(document.getElementById('admin-an-grad'),charts);
-    const su=charts.signups_daily||[];
-    adminColumns(document.getElementById('admin-signup-bars'),su.map(function(d){return d.date;}),adminDayTotals(su,['signups']),'#22c55e');
-    const cats=charts.categories||[],catMax=cats.reduce(function(m,c){return Math.max(m,c.total);},0)||1;
-    const catEl=document.getElementById('admin-category-bars');
-    if(catEl)catEl.innerHTML=cats.length?cats.map(function(c){
-      return '<div class="admin-bar-row wide"><span>'+adminEsc(c.label)+'</span><div class="admin-bar-track"><div class="admin-bar-fill" style="width:'+Math.round(c.total/catMax*100)+'%"></div></div><span>'+c.total+'</span></div>';
-    }).join(''):'<div class="admin-empty">No active parts yet.</div>';
-    renderAdminTotals('admin-top-searches',s.top_searches,'No searches recorded yet.');
-    renderAdminTotals('admin-trending-builds',s.trending_builds,'No saved builds recorded yet.');
-    renderAdminTotals('admin-failed-queries',s.failed_queries,'No failed compatibility checks recorded.');
-    const peak=document.getElementById('admin-peak-hours');
-    if(peak){
-      const rows=s.peak_hours||[];
-      const max=rows.reduce(function(m,row){return Math.max(m,row.total);},0)||1;
-      peak.innerHTML=rows.length?rows.map(function(row){
-        const hour=(row.hour<10?'0':'')+row.hour+':00';
-        const pct=Math.round((row.total/max)*100);
-        return '<div class="admin-bar-row"><span>'+hour+'</span><div class="admin-bar-track"><div class="admin-bar-fill" style="width:'+pct+'%"></div></div><span>'+row.total+'</span></div>';
-      }).join(''):'<div class="admin-empty">No activity in the last 7 days.</div>';
-    }
-    setAdminStatus('Analytics updated','ok');
-  }catch(error){
-    setAdminStatus(error.message,'err');
-  }
-}
-function renderAdminTotals(elementId,rows,emptyMessage){
-  const el=document.getElementById(elementId);
-  if(!el)return;
-  el.innerHTML=(rows&&rows.length)?rows.map(function(row){
-    return '<div class="admin-list-row"><div class="grow truncate">'+adminEsc(row.detail)+'</div><span class="admin-tag info">'+Number(row.total)+'</span></div>';
-  }).join(''):'<div class="admin-empty">'+adminEsc(emptyMessage)+'</div>';
-}
-
-// ——— Logs ———
+// â€”â€”â€” Logs â€”â€”â€”
 async function loadAdminLogs(){
   const tbody=document.getElementById('admin-log-rows');
-  setAdminStatus('Loading logs…');
+  setAdminStatus('Loading logsâ€¦');
   try{
     const data=await adminApi('logs_list',{level:adminVal('log-level-filter')});
     const logs=data.logs||[];

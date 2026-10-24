@@ -423,14 +423,7 @@ function admin_chart_data($conn)
             $roles[] = array("label" => $row["role"], "total" => (int) $row["total"]);
         }
     }
-    $categories = array();
-    $result = $conn->query("SELECT category, COUNT(*) AS total FROM components WHERE is_active = 1 GROUP BY category ORDER BY total DESC");
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $categories[] = array("label" => $row["category"], "total" => (int) $row["total"]);
-        }
-    }
-    return array("events_daily" => $events, "signups_daily" => $signups, "roles" => $roles, "categories" => $categories);
+    return array("events_daily" => $events, "signups_daily" => $signups, "roles" => $roles);
 }
 
 // ——— Dashboard overview ———
@@ -440,11 +433,6 @@ if ($action === "overview") {
         "new_users_7d" => admin_scalar($conn_admin, "SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"),
         "banned_users" => admin_scalar($conn_admin, "SELECT COUNT(*) FROM users WHERE status = 'banned'"),
         "moderators" => admin_scalar($conn_admin, "SELECT COUNT(*) FROM users WHERE role IN ('moderator','verified')"),
-        "total_components" => admin_scalar($conn_admin, "SELECT COUNT(*) FROM components"),
-        "active_components" => admin_scalar($conn_admin, "SELECT COUNT(*) FROM components WHERE is_active = 1"),
-        "inactive_components" => admin_scalar($conn_admin, "SELECT COUNT(*) FROM components WHERE is_active = 0"),
-        "rules_enabled" => admin_scalar($conn_admin, "SELECT COUNT(*) FROM compatibility_rules WHERE is_enabled = 1"),
-        "rules_total" => admin_scalar($conn_admin, "SELECT COUNT(*) FROM compatibility_rules"),
         "saved_builds" => admin_scalar($conn_admin, "SELECT COUNT(*) FROM user_saved_builds"),
         "communities" => admin_scalar($conn_admin, "SELECT COUNT(*) FROM communities"),
         "posts" => admin_scalar($conn_admin, "SELECT COUNT(*) FROM community_posts"),
