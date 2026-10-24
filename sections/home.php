@@ -35,7 +35,6 @@
   <div class="cta-box">
     <div class="cta-title">Ready to Build<br>Your First PC?</div>
     <p style="color:var(--muted);margin-bottom:32px;">Join thousands of beginners who built successfully with CoreCraft.</p>
-    <button class="btn-primary" onclick="showPage('compatibility')">⚡ Start Building</button>
   </div>
   <footer>
     <span>© 2026 CoreCraft · BS Information Technology Capstone</span>

@@ -2,9 +2,9 @@
 .admin-shell{display:grid;grid-template-columns:250px 1fr;min-height:calc(100vh - 61px);background:var(--bg)}
 .admin-side{background:var(--bg2);border-right:1px solid var(--border);padding:22px 16px;display:flex;flex-direction:column;gap:18px;position:sticky;top:61px;height:calc(100vh - 61px)}
 .admin-side-head{padding:0 8px}
-.admin-side-title{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;letter-spacing:-.3px}
+.admin-side-title{display:block;width:100%;padding:0;border:0;background:transparent;color:var(--text);font-family:'Syne',sans-serif;font-weight:800;font-size:16px;letter-spacing:-.3px;text-align:left;white-space:nowrap;cursor:pointer}
 .admin-side-sub{font-size:12px;color:var(--muted);margin-top:3px;word-break:break-all}
-.admin-nav{display:flex;flex-direction:column;gap:4px;flex:1}
+.admin-nav{position:static;top:auto;z-index:auto;display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:4px;flex:1;padding:0;border:0;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
 .admin-nav-item{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;border:1px solid transparent;background:none;color:var(--muted);font:inherit;font-size:14px;font-weight:600;text-align:left;cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif}
 .admin-nav-item:hover{background:rgba(255,255,255,.05);color:var(--text)}
 .admin-nav-item.active{background:rgba(0,191,255,.12);border-color:rgba(0,191,255,.35);color:var(--cyan)}
@@ -145,6 +145,13 @@
 .admin-modal-status.ok{color:var(--green)}
 .admin-modal-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
 .admin-modal-hint{color:var(--muted);font-size:12.5px;line-height:1.5;margin-bottom:14px}
+.reported-post-meta{display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:13px;margin:-4px 0 14px}
+.reported-post-meta strong{color:var(--text);font-size:14px}
+.reported-post-content,.reported-post-reason{padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--bg3);margin-bottom:12px;line-height:1.6;overflow-wrap:anywhere}
+.reported-post-image{display:block;max-width:100%;max-height:55vh;object-fit:contain;border-radius:10px;margin-top:14px}
+.reported-post-reason p{margin:6px 0;color:var(--text)}
+.reported-post-reason span{font-size:12px;color:var(--muted)}
+.admin-btn.danger{border-color:rgba(248,113,113,.4);color:#f87171}
 
 .admin-access-denied{max-width:520px;margin:80px auto;text-align:center;padding:36px;background:var(--bg2);border:1px solid var(--border);border-radius:20px}
 

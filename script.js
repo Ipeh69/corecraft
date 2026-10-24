@@ -4,7 +4,7 @@ function toggleMenu(){document.getElementById('mobile-menu').classList.toggle('o
 function closeMenu(){document.getElementById('mobile-menu').classList.remove('open')}
 
 // ——— AUTH ———
-let isLoggedIn=false,pendingPage=null,PHchatInit=false,activePHChat=null,phChatPoll=null,activeDMEmail=null,dmSearchTimer=null;
+let isLoggedIn=false,pendingPage=null,PHchatInit=false,activePHChat=null,phChatPoll=null,activeDMEmail=null,dmSearchTimer=null,dmUnreadPollTimer=null;
 let pendingCommunityDelete=null;
 const protected_=['compatibility','build','pricing','troubleshoot','profile','PHchat','admin'];
 let PHCHAT_COMMUNITIES=[
@@ -38,6 +38,9 @@ function showPage(name){
   if(name==='build'){updateSavedBuildsList();renderBuildIdeas();}
   if(name==='profile')renderRecentActivity();
   if(name==='admin'&&typeof initAdminPage==='function')initAdminPage();
+  if(name==='login'){
+    requestAnimationFrame(function(){mountGoogleSignInButton();});
+  }
 }
 
 const RECENT_ACTIVITY_KEY='corecraft_recent_activity';
@@ -72,7 +75,8 @@ function renderRecentActivity(){
     return;
   }
   container.innerHTML=activities.map(function(activity,index){
-    return `<div class="budget-row" style="${index===activities.length-1?'border-bottom:none':''}"><div style="display:flex;align-items:center;gap:14px;min-width:0"><div style="width:36px;height:36px;border-radius:10px;background:${escapeHtml(activity.color||'rgba(0,229,255,.1)')};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${escapeHtml(activity.icon||'•')}</div><div style="min-width:0"><div style="font-size:14px;font-weight:500">${escapeHtml(activity.title||'Activity')}</div><div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(activity.details||'')}</div></div></div><div style="font-size:12px;color:var(--muted);white-space:nowrap">${formatActivityAge(activity.createdAt)}</div></div>`;
+    const title=activity.title==='Ran compatibility check'?'Compatibility check completed':(activity.title||'Activity');
+    return `<div class="budget-row" style="${index===activities.length-1?'border-bottom:none':''}"><div style="display:flex;align-items:center;min-width:0"><div style="min-width:0"><div style="font-size:14px;font-weight:500">${escapeHtml(title)}</div><div style="font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(activity.details||'')}</div></div></div><div style="font-size:12px;color:var(--muted);white-space:nowrap">${formatActivityAge(activity.createdAt)}</div></div>`;
   }).join('');
 }
 
@@ -435,7 +439,6 @@ function setButtonLoading(button,loading,label){
 async function checkPartStock(){
   const part=(document.getElementById('stock-part')?.value||'').trim();
   const area=(document.getElementById('stock-location')?.value||'').trim();
-  const source=(document.getElementById('stock-source')?.value||'').trim();
   const result=document.getElementById('stock-result');
   const button=document.getElementById('stock-check-btn');
   if(button.disabled)return;
@@ -504,7 +507,7 @@ async function checkPartStock(){
       grounded_search:!liveResults.length,
       message:liveResults.length
       ?`The user wants this PC part: ${part}. Their area: ${locationLabel}. Using only the live retailer website results below, give a short summary: the cheapest in-stock option, notable out-of-stock items, and which listed stores have branches near the user's area when you are confident. Do not claim branch stock is confirmed.${mappedStoreContext}${liveContext}`
-      :`Search the web now for this exact computer part and current Philippine retailer listings in ${locationLabel}. Part/model: ${part}. Requested area: ${locationLabel}. ${source?'Also inspect this retailer product URL as a source: '+source+'.':''}
+      :`Search the web now for this exact computer part and current Philippine retailer listings in ${locationLabel}. Part/model: ${part}. Requested area: ${locationLabel}.
 
 Search each mapped business name where web results allow, and search official Philippine computer-store product pages, including PC Express, EasyPC, DynaQuest, Octagon, VillMan, PCWORX, and other relevant retailers. Never claim every store was searched if you cannot verify that. Include only actual stores and product pages supported by search sources. For each result give store/branch, exact matching product/model, current listed price in PHP, stock wording from its source, source date if shown, and the direct product/source URL. Clearly distinguish “listed in stock online” from confirmed branch stock; use “STOCK NOT VERIFIED” unless a source explicitly shows current availability for that product at that branch. A store's presence on a map is not proof it sells this part or has stock. If no reliable current matching listing is found, say so instead of guessing. State when you searched and recommend confirming with the store before travelling or paying.${mappedStoreContext}`
     })});
@@ -724,7 +727,7 @@ async function runCompatCheck(){
     alert('Please fill in CPU, Motherboard, RAM, and PSU to run the AI compatibility check.');
     return;
   }
-  recordActivity('🔍','Ran compatibility check',`${cpu} + ${mb}${gpu?' + '+gpu:''}`,'rgba(0,229,255,.1)');
+  recordActivity('🔍','Compatibility check completed',`${cpu} + ${mb}${gpu?' + '+gpu:''}`,'rgba(0,229,255,.1)');
   corecraftTrack('build_check',`${cpu} | ${mb}${gpu?' | '+gpu:''}`);
   // Gemini is the source of truth for this run. The local database is used only
   // by the part picker and remains the fallback if Gemini is unavailable.
@@ -1426,10 +1429,8 @@ function renderBuilds(type){
       <div class="build-parts">
         ${b.parts.map(p=>`<div class="build-part"><div class="build-part-icon">${p.icon}</div><div class="build-part-info"><div class="build-part-cat">${p.cat}</div><div class="build-part-name">${p.name}</div></div></div>`).join('')}
       </div>` : '<p style="color:var(--muted);margin-bottom:14px">No components listed for this build yet.</p>'}
-      <p style="color:var(--muted);font-size:12px;margin-top:8px">Choose the boxed CPU version listed to get its stock cooler. A case is not included; check case clearance and motherboard BIOS support for the exact models before purchase.</p>
       <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
         ${Array.isArray(b.parts) && b.parts.length ? `<button class="build-use-btn" onclick="useBuildRecommendation('${encodeURIComponent(JSON.stringify(b))}')">Use This Build →</button>` : ''}
-        <button class="build-use-btn" style="background:transparent;border:1px solid var(--border);color:var(--text)" onclick="showPage('pricing')">Check Local Prices</button>
       </div>
     </div>`).join('');
 }
@@ -1451,7 +1452,7 @@ function addMsg(id,type,text){
   const div=document.createElement('div');
   div.className='msg '+type;
   if(type==='ai'&&id!=='PHchat'){
-    div.innerHTML=`<div class="msg-bubble"><div class="ai-header"><div class="ai-avatar">🤖</div><span class="ai-label">CoreCraft AI</span></div><div>${text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div></div>`;
+    div.innerHTML=`<div class="msg-bubble"><div>${text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div></div>`;
   }else{div.innerHTML=`<div class="msg-bubble">${text}</div>`}
   wrap.appendChild(div);wrap.scrollTop=wrap.scrollHeight;
 }
@@ -1757,11 +1758,23 @@ function renderCommunityPosts(posts,container){
   if(!posts.length){container.innerHTML='<div class="card" style="padding:22px;color:var(--muted)">No posts here yet. Start the discussion with a build, picture, or PC question.</div>';return;}
   container.innerHTML=posts.map(function(post){
     const comments=Array.isArray(post.comments)?post.comments:[];
+    const totalCommentCount=comments.reduce(function(total,comment){return total+1+(Array.isArray(comment.replies)?comment.replies.length:0);},0);
     const postId=Number(post.id);
-    const isOwnPost=window._user&&String(post.user_email||'').toLowerCase()===String(window._user.email||'').toLowerCase();
+    const author=post.sender_name||'CoreCraft user';
+    const initials=author.trim().split(/\s+/).map(function(part){return part.charAt(0);}).join('').toUpperCase().slice(0,2)||'C';
     const image=post.image_path?`<img class="phchat-post-image" src="${escapeHtml(post.image_path)}" alt="Image shared by ${escapeHtml(post.sender_name)}" loading="lazy">`:'';
-    const commentHtml=comments.map(function(comment){return `<div class="phchat-comment"><strong>${escapeHtml(comment.sender_name||'Member')}:</strong> ${escapeHtml(comment.comment)}</div>`;}).join('');
-    return `<article class="card phchat-post"><div class="phchat-post-header"><span class="phchat-post-author">${escapeHtml(post.sender_name||'CoreCraft user')}</span><time>${formatChatTime(post.created_at)}</time></div>${post.body?`<div class="phchat-post-body">${escapeHtml(post.body)}</div>`:''}${image}<div class="phchat-post-actions"><button type="button" class="phchat-action-button ${Number(post.liked)?'liked':''}" onclick="togglePostLike(${Number(post.id)})">${Number(post.liked)?'♥ Liked':'♡ Like'} · ${Number(post.like_count)||0}</button><span class="phchat-muted">${comments.length} comment${comments.length===1?'':'s'}</span><button type="button" class="phchat-action-button" onclick="reportCommunityPost(${Number(post.id)})">Report</button></div><div class="phchat-comments">${commentHtml}</div><form class="phchat-comment-form" onsubmit="submitPostComment(event,${Number(post.id)})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a comment..." required><button class="phchat-action-button" type="submit">Comment</button></form></article>`;
+    const commentHtml=comments.map(function(comment){
+      const commentId=Number(comment.id);
+      const isOwnComment=window._user&&String(comment.user_email||'').toLowerCase()===String(window._user.email||'').toLowerCase();
+      const deleteButton=isOwnComment&&commentId?`<button type="button" class="phchat-comment-delete" onclick="deleteCommunityComment(${postId},${commentId})" aria-label="Delete your comment">Delete</button>`:'';
+      const replies=(comment.replies||[]).map(function(reply){
+        const replyId=Number(reply.id);
+        const canDeleteReply=window._user&&String(reply.user_email||'').toLowerCase()===String(window._user.email||'').toLowerCase();
+        return `<div class="phchat-reply"><div class="phchat-comment-content"><strong>${escapeHtml(reply.sender_name||'Member')}:</strong> ${escapeHtml(reply.comment)}</div>${canDeleteReply&&replyId?`<button type="button" class="phchat-comment-delete" onclick="deleteCommunityComment(${postId},${replyId})" aria-label="Delete your reply">Delete</button>`:''}</div>`;
+      }).join('');
+      return `<div class="phchat-comment"><div class="phchat-comment-row"><div class="phchat-comment-content"><strong>${escapeHtml(comment.sender_name||'Member')}:</strong> ${escapeHtml(comment.comment)}</div><div class="phchat-comment-tools">${deleteButton}<button type="button" class="phchat-comment-reply-button" onclick="toggleCommentReplyForm(this)">Reply</button></div></div>${replies?`<div class="phchat-replies">${replies}</div>`:''}<form class="phchat-reply-form" hidden onsubmit="submitCommentReply(event,${postId},${commentId})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a reply..." required><button class="phchat-action-button" type="submit">Reply</button></form></div>`;
+    }).join('');
+    return `<article class="card phchat-post" data-post-id="${postId}"><header class="phchat-post-header"><div class="phchat-post-identity"><span class="phchat-post-avatar" aria-hidden="true">${escapeHtml(initials)}</span><div class="phchat-post-byline"><span class="phchat-post-author">${escapeHtml(author)}</span><time>${formatChatTime(post.created_at)}</time></div></div></header>${post.body?`<div class="phchat-post-body">${escapeHtml(post.body)}</div>`:''}${image}<div class="phchat-post-actions"><button type="button" class="phchat-action-button ${Number(post.liked)?'liked':''}" onclick="togglePostLike(${postId})">${Number(post.liked)?'♥ Liked':'♡ Like'} <span>${Number(post.like_count)||0}</span></button><button type="button" class="phchat-comment-count" aria-haspopup="dialog" onclick="togglePostComments(this)">${totalCommentCount} comment${totalCommentCount===1?'':'s'}</button><button type="button" class="phchat-action-button phchat-post-report" onclick="reportCommunityPost(${postId})">Report</button></div><div class="modal-overlay phchat-comments-modal" role="dialog" aria-modal="true" aria-label="Comments" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal-box phchat-comment-section"><div class="phchat-comments-modal-header"><div class="modal-title">Comments (${totalCommentCount})</div><button type="button" class="btn-secondary" onclick="this.closest('.phchat-comments-modal').classList.remove('open')">Close</button></div><div class="phchat-comments">${commentHtml||'<div class="phchat-empty-comments">No comments yet. Start the conversation.</div>'}</div><form class="phchat-comment-form" onsubmit="submitPostComment(event,${postId})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a comment..." required><button class="phchat-action-button" type="submit">Comment</button></form></div></div></article>`;
   }).join('');
 }
 
@@ -1774,15 +1787,67 @@ async function deleteCommunityPost(postId){
   }catch(error){alert(error.message||'Post could not be deleted.');}
 }
 
+function showPHChatNotice(title,message){
+  const modal=document.getElementById('phchat-notice-modal');
+  if(!modal)return;
+  document.getElementById('phchat-notice-title').textContent=title||'Notice';
+  document.getElementById('phchat-notice-message').textContent=message||'';
+  modal.classList.add('open');
+  const button=modal.querySelector('.modal-close');
+  if(button)button.focus();
+}
+function closePHChatNotice(){
+  const modal=document.getElementById('phchat-notice-modal');
+  if(modal)modal.classList.remove('open');
+}
+let phChatConfirmResolver=null;
+function requestPHChatConfirm(title,message){
+  return new Promise(function(resolve){
+    phChatConfirmResolver=resolve;
+    document.getElementById('phchat-confirm-title').textContent=title||'Confirm action';
+    document.getElementById('phchat-confirm-message').textContent=message||'Are you sure?';
+    document.getElementById('phchat-confirm-modal').classList.add('open');
+    document.querySelector('#phchat-confirm-modal .phchat-confirm-delete').focus();
+  });
+}
+function resolvePHChatConfirm(confirmed){
+  const modal=document.getElementById('phchat-confirm-modal');
+  if(modal)modal.classList.remove('open');
+  if(phChatConfirmResolver){phChatConfirmResolver(!!confirmed);phChatConfirmResolver=null;}
+}
+let phChatReportReasonResolver=null;
+function requestPHChatReportReason(){
+  return new Promise(function(resolve){
+    phChatReportReasonResolver=resolve;
+    document.getElementById('phchat-report-reason').value='';
+    document.getElementById('phchat-report-error').textContent='';
+    document.getElementById('phchat-report-modal').classList.add('open');
+    document.getElementById('phchat-report-reason').focus();
+  });
+}
+function cancelPHChatReport(){
+  document.getElementById('phchat-report-modal').classList.remove('open');
+  if(phChatReportReasonResolver){phChatReportReasonResolver(null);phChatReportReasonResolver=null;}
+}
+function submitPHChatReport(){
+  const input=document.getElementById('phchat-report-reason');
+  const reason=input.value.trim();
+  if(!reason){
+    document.getElementById('phchat-report-error').textContent='Please describe why you are reporting this post.';
+    input.focus();
+    return;
+  }
+  document.getElementById('phchat-report-modal').classList.remove('open');
+  if(phChatReportReasonResolver){phChatReportReasonResolver(reason);phChatReportReasonResolver=null;}
+}
 async function reportCommunityPost(postId){
   if(!window._user||!window._user.authToken)return;
-  const reason=window.prompt('Why are you reporting this post? Please describe the issue (up to 1000 characters).');
+  const reason=await requestPHChatReportReason();
   if(reason===null)return;
-  if(!reason.trim()){alert('Please provide a reason for the report.');return;}
   try{
-    await phCommunityRequest('post_report',{community:feedCommunityName(),post_id:postId,reason:reason.trim()});
-    alert('Report submitted. Thank you for helping keep the community safe.');
-  }catch(error){alert(error.message||'Post report could not be submitted.');}
+    await phCommunityRequest('post_report',{community:feedCommunityName(),post_id:postId,reason:reason});
+    showPHChatNotice('Report submitted','Your report was submitted for review. Thank you for helping keep the community safe.');
+  }catch(error){showPHChatNotice('Report not submitted',error.message||'Post report could not be submitted.');}
 }
 
 async function togglePostLike(postId){
@@ -1797,8 +1862,45 @@ async function submitPostComment(event,postId){
   const comment=input.value.trim();
   if(!comment)return;
   const community=document.getElementById('feed-community').value||activePHChat;
-  try{await phCommunityRequest('post_comment',{community:community,post_id:postId,comment:comment});input.value='';await loadCommunityPosts(true);}
-  catch(error){alert(error.message||'Comment could not be posted.');}
+  try{await phCommunityRequest('post_comment',{community:community,post_id:postId,comment:comment});await reloadPostCommentsInModal(postId);}
+  catch(error){showPHChatNotice('Comment not posted',error.message||'Comment could not be posted.');}
+}
+
+function toggleCommentReplyForm(button){
+  const form=button.closest('.phchat-comment').querySelector('.phchat-reply-form');
+  if(!form)return;
+  form.hidden=!form.hidden;
+  if(!form.hidden)form.querySelector('input').focus();
+}
+
+async function submitCommentReply(event,postId,parentCommentId){
+  event.preventDefault();
+  const reply=event.currentTarget.querySelector('input').value.trim();
+  if(!reply)return;
+  try{
+    await phCommunityRequest('post_comment_reply',{community:feedCommunityName(),post_id:postId,parent_comment_id:parentCommentId,comment:reply});
+    await reloadPostCommentsInModal(postId);
+  }catch(error){showPHChatNotice('Reply not posted',error.message||'Reply could not be posted.');}
+}
+
+async function reloadPostCommentsInModal(postId){
+  await loadCommunityPosts(true);
+  const modal=document.querySelector('.phchat-post[data-post-id="'+Number(postId)+'"] .phchat-comments-modal');
+  if(modal)modal.classList.add('open');
+}
+
+function togglePostComments(button){
+  const modal=button.closest('.phchat-post').querySelector('.phchat-comments-modal');
+  if(modal)modal.classList.add('open');
+}
+
+async function deleteCommunityComment(postId,commentId){
+  if(!window._user||!window._user.authToken)return;
+  if(!await requestPHChatConfirm('Delete comment','Are you sure you want to delete this comment?'))return;
+  try{
+    await phCommunityRequest('post_comment_delete',{community:feedCommunityName(),post_id:postId,comment_id:commentId});
+    await reloadPostCommentsInModal(postId);
+  }catch(error){showPHChatNotice('Comment not deleted',error.message||'Comment could not be deleted.');}
 }
 
 async function searchDMUsers(){
@@ -1819,8 +1921,19 @@ async function loadDMConversations(){
   if(!container||!window._user)return;
   try{
     const data=await phCommunityRequest('dm_conversations');
-    container.innerHTML=(data.conversations||[]).map(function(item){return `<button type="button" class="dm-user-button ${activeDMEmail===item.email?'active':''}" onclick="openPrivateConversation(decodeURIComponent('${encodeURIComponent(item.email)}'),decodeURIComponent('${encodeURIComponent(item.name)}'))"><strong>${escapeHtml(item.name)}</strong><span class="dm-user-email">${escapeHtml(item.email)}</span></button>`;}).join('')||'<span class="phchat-muted">No conversations yet</span>';
+    const conversations=data.conversations||[];
+    const unreadTotal=conversations.reduce(function(total,item){return total+(Number(item.unread_count)||0);},0);
+    updateMessagesUnreadDot(unreadTotal);
+    container.innerHTML=conversations.map(function(item){const unread=Number(item.unread_count)||0;return `<button type="button" class="dm-user-button ${activeDMEmail===item.email?'active':''}" onclick="openPrivateConversation(decodeURIComponent('${encodeURIComponent(item.email)}'),decodeURIComponent('${encodeURIComponent(item.name)}'))"><strong>${escapeHtml(item.name)}</strong>${unread?'<span class="dm-unread-dot" aria-label="Unread messages"></span>':''}<span class="dm-user-email">${escapeHtml(item.email)}</span></button>`;}).join('')||'<span class="phchat-muted">No conversations yet</span>';
   }catch(error){container.innerHTML=`<span class="phchat-muted">${escapeHtml(error.message||'Could not load messages')}</span>`;}
+}
+
+function updateMessagesUnreadDot(unreadCount){
+  const dot=document.getElementById('phchat-messages-unread-dot');
+  const tab=document.getElementById('phchat-messages-tab');
+  const hasUnread=Number(unreadCount)>0;
+  if(dot)dot.hidden=!hasUnread;
+  if(tab)tab.setAttribute('aria-label',hasUnread?'Messages, unread messages':'Messages');
 }
 
 async function openPrivateConversation(email,name){
@@ -2113,7 +2226,7 @@ async function openLoadBuildsModal(){
         <div style="font-size:12px;color:var(--muted)">${escapeHtml(data.timestamp||'')} • ${(data.components||[]).length} parts</div>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="quick-btn" style="background:var(--cyan);color:#000;padding:8px 14px;font-size:12px;border:none;cursor:pointer" onclick="loadBuild('${escapeJsString(name)}');closeSavedBuildsModal()">Load</button>
+        <button class="quick-btn" style="background:var(--cyan);color:#000;padding:8px 14px;font-size:12px;border:none;cursor:pointer" onclick="loadBuild('${escapeJsString(name)}')">View</button>
         <button class="quick-btn" style="background:#ef4444;color:white;padding:8px 14px;font-size:12px;border:none;cursor:pointer" onclick="deleteBuild('${escapeJsString(name)}')">Delete</button>
       </div>
     </div>`).join('');
@@ -2141,7 +2254,7 @@ async function updateSavedBuildsList(){
     <div class="build-card" style="padding:16px">
       <div style="font-weight:600;margin-bottom:8px">${escapeHtml(name)}</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:12px">${escapeHtml(data.timestamp||'')}<br>${(data.components||[]).length} parts selected</div>
-      <button class="btn-gradient" style="width:100%;background:var(--cyan);color:#000;border:none;cursor:pointer" onclick="loadBuild('${escapeJsString(name)}')">Load Build</button>
+      <button class="btn-gradient" style="width:100%;background:var(--cyan);color:#000;border:none;cursor:pointer" onclick="loadBuild('${escapeJsString(name)}')">View</button>
     </div>`).join('');
 }
 function openAddBuildIdea(){
@@ -2300,6 +2413,7 @@ function deleteBuildIdea(id){
 function escapeHtml(s){
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+let savedBuildPriceEstimateRequest=0;
 async function loadBuild(name){
   let payload;
   try{
@@ -2310,13 +2424,47 @@ async function loadBuild(name){
   }
   const build=payload.builds[name];
   if(!build){alert('Build not found');return}
-  components.forEach(c=>c.status='empty');
-  build.components.forEach(({type,value})=>{
-    const comp=components.find(c=>c.type===type);
-    if(comp){comp.value=value;comp.status='compatible';comp.detail=value}
-  });
-  renderComponents();
-  alert(`✅ "${name}" loaded!`);
+  const savedComponents=Array.isArray(build.components)?build.components:[];
+  const typeLabels={motherboard:'Motherboard',cpu:'CPU',ram:'RAM',gpu:'GPU',storage:'Storage',psu:'PSU'};
+  const title=document.getElementById('saved-build-note-title');
+  const list=document.getElementById('saved-build-note-list');
+  if(title)title.textContent=name;
+  if(list){
+    list.innerHTML=savedComponents.map(function(item){
+      const label=typeLabels[item.type]||String(item.type||'Component');
+      return `<li><strong>${escapeHtml(label)}</strong>${escapeHtml(item.value||'Not selected')}</li>`;
+    }).join('')||'<li>No components were saved in this build.</li>';
+  }
+  closeSavedBuildsModal();
+  document.getElementById('saved-build-note-modal').classList.add('open');
+  requestSavedBuildPriceEstimate(savedComponents,typeLabels);
+}
+async function requestSavedBuildPriceEstimate(savedComponents,typeLabels){
+  const estimate=document.getElementById('saved-build-price-estimates');
+  if(!estimate)return;
+  const requestId=++savedBuildPriceEstimateRequest;
+  if(!savedComponents.length){estimate.textContent='No saved components to estimate.';return}
+  estimate.innerHTML='<div class="saved-build-estimate-content">Generating AI price estimates…</div>';
+  const parts=savedComponents.map(function(item){
+    return `${typeLabels[item.type]||item.type||'Component'}: ${item.value||'Not selected'}`;
+  }).join('\n');
+  try{
+    const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      feature:'general',
+      message:`Estimate typical Philippine market price ranges for these exact PC components. Treat every amount as an AI estimate for reference only; do not claim live prices, current store listings, or stock. Reply with one line per component in this exact format: COMPONENT TYPE | LOW ESTIMATE PHP | HIGH ESTIMATE PHP. Use numbers only after each pipe. Add a TOTAL line with low and high estimates. If a component model is too vague, write UNVERIFIED for its range. Components:\n${parts}`
+    })});
+    const data=await response.json();
+    if(!response.ok||!data.reply)throw new Error(data.error||'AI estimate unavailable');
+    if(requestId!==savedBuildPriceEstimateRequest)return;
+    estimate.innerHTML=`<div class="saved-build-estimate-content">${formatAIResponse(data.reply)}<p>AI-generated estimates for reference only. Prices vary by seller and date; check current listings before buying.</p></div>`;
+  }catch(error){
+    if(requestId!==savedBuildPriceEstimateRequest)return;
+    estimate.innerHTML='<div class="saved-build-estimate-content">AI price estimate is unavailable right now. Try loading this build again later.</div>';
+  }
+}
+function closeSavedBuildNote(){
+  savedBuildPriceEstimateRequest++;
+  document.getElementById('saved-build-note-modal').classList.remove('open');
 }
 async function deleteBuild(name){
   if(!confirm('Delete this build?'))return;
@@ -2445,24 +2593,59 @@ const MAX_ATTEMPTS=5;
 const LOCKOUT_MS=10*60*1000;
 const GOOGLE_CLIENT_ID=window.CORECRAFT_GOOGLE_CLIENT_ID||'';
 let googleSignInInitialized=false;
+let googleSignInWidth=0;
+let googleSignInResizeBound=false;
 
 function isGoogleClientIdConfigured(){
   return /^[A-Za-z0-9._-]+\.apps\.googleusercontent\.com$/.test(GOOGLE_CLIENT_ID)&&
     GOOGLE_CLIENT_ID.indexOf('PASTE_')!==0&&GOOGLE_CLIENT_ID.indexOf('YOUR_')!==0;
 }
 
+function googleSignInButtonWidth(slot){
+  const loginBtn=document.getElementById('submit-btn');
+  const measured=Math.floor((loginBtn&&loginBtn.offsetWidth)||slot.clientWidth);
+  if(measured>0)return Math.max(200,Math.min(400,measured));
+  const wrap=Math.min(440,Math.max(280,window.innerWidth-32));
+  return Math.max(200,Math.min(400,wrap-56));
+}
+
+function renderGoogleSignInButton(slot){
+  const width=googleSignInButtonWidth(slot);
+  if(googleSignInInitialized&&width===googleSignInWidth&&slot.querySelector('iframe'))return;
+  slot.replaceChildren();
+  google.accounts.id.renderButton(slot,{
+    type:'standard',
+    theme:'outline',
+    size:'large',
+    text:'continue_with',
+    shape:'rectangular',
+    width:width,
+    logo_alignment:'left'
+  });
+  googleSignInInitialized=true;
+  googleSignInWidth=width;
+}
+
 function mountGoogleSignInButton(){
   const slot=document.querySelector('.google-signin-slot');
-  if(!slot||googleSignInInitialized)return;
+  if(!slot)return;
   if(!isGoogleClientIdConfigured()){
     slot.textContent='Set CORECRAFT_GOOGLE_CLIENT_ID in config.php';
     slot.classList.add('google-signin-unconfigured');
     return;
   }
   if(!window.google||!google.accounts||!google.accounts.id)return;
-  google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCredential,auto_select:false});
-  google.accounts.id.renderButton(slot,{type:'standard',theme:'filled_black',size:'large',text:'continue_with',shape:'pill',width:280,logo_alignment:'left'});
-  googleSignInInitialized=true;
+  if(!googleSignInInitialized){
+    google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:handleGoogleCredential,auto_select:false});
+  }
+  renderGoogleSignInButton(slot);
+  if(!googleSignInResizeBound&&window.ResizeObserver){
+    googleSignInResizeBound=true;
+    new ResizeObserver(function(){
+      if(slot.getBoundingClientRect().width<200)return;
+      renderGoogleSignInButton(slot);
+    }).observe(slot);
+  }
 }
 
 function prepareGoogleSignIn(){
@@ -2510,6 +2693,23 @@ function togglePw(){
   toggle.textContent=isVisible?'Hide':'Show';
   toggle.setAttribute('aria-label',isVisible?'Hide password':'Show password');
   toggle.setAttribute('aria-pressed',String(isVisible));
+}
+function toggleConfirmPw(){
+  const inp=document.getElementById('confirm-input');
+  inp.type=inp.type==='password'?'text':'password';
+  const toggle=document.getElementById('confirm-pw-eye');
+  const isVisible=inp.type==='text';
+  toggle.textContent=isVisible?'Hide':'Show';
+  toggle.setAttribute('aria-label',isVisible?'Hide confirm password':'Show confirm password');
+  toggle.setAttribute('aria-pressed',String(isVisible));
+}
+function checkPasswordMatch(){
+  const password=document.getElementById('pw-input');
+  const confirm=document.getElementById('confirm-input');
+  if(!password||!confirm)return;
+  const matches=confirm.value.length>0&&password.value===confirm.value;
+  confirm.classList.toggle('password-match',matches);
+  if(matches)confirm.classList.remove('invalid');
 }
 function showAuthStatus(message,type='error'){
   const status=document.getElementById('login-status');
@@ -2561,6 +2761,9 @@ function setActiveUser(user, rememberMe=false){
   const storage=rememberMe?localStorage:sessionStorage;
   storage.setItem(AUTH_SESSION_KEY,JSON.stringify({name:user.name,email:user.email,auth_token:user.auth_token||'',remember:rememberMe}));
   isLoggedIn=true;
+  loadDMConversations();
+  if(dmUnreadPollTimer)clearInterval(dmUnreadPollTimer);
+  dmUnreadPollTimer=setInterval(function(){if(window._user&&window._user.authToken)loadDMConversations();},20000);
   const communityPage=document.getElementById('page-PHchat');
   if(PHchatInit&&communityPage&&communityPage.classList.contains('active')){
     loadPHChatCommunities();
@@ -2599,6 +2802,8 @@ function clearActiveUser(){
   localStorage.removeItem(AUTH_SESSION_KEY);
   sessionStorage.removeItem(AUTH_SESSION_KEY);
   window._user=null;
+  if(dmUnreadPollTimer){clearInterval(dmUnreadPollTimer);dmUnreadPollTimer=null;}
+  updateMessagesUnreadDot(0);
 }
 async function handleLogin(){
   clearAuthErrors();
@@ -2697,7 +2902,7 @@ function toggleEditMode(){
   const isEditing=editPanel.style.display!=='none';
   if(isEditing){
     viewPanel.style.display='';editPanel.style.display='none';
-    document.getElementById('edit-profile-btn').textContent='✏️ Edit Profile';
+    document.getElementById('edit-profile-btn').textContent='Edit Profile';
   }else{
     const u=window._user||{};
     document.getElementById('edit-name').value=u.name||'';
@@ -2706,9 +2911,20 @@ function toggleEditMode(){
     document.getElementById('edit-profile-btn').textContent='✕ Cancel Edit';
   }
 }
+function isValidGmailAddress(email){
+  const match=String(email||'').trim().match(/^([a-z0-9.]+)(?:\+[a-z0-9._-]+)?@gmail\.com$/i);
+  if(!match)return false;
+  const username=match[1];
+  return username.length>=6&&username.length<=30&&/^[a-z0-9]+(?:\.[a-z0-9]+)*$/i.test(username);
+}
 function saveProfile(){
   const newName=document.getElementById('edit-name').value.trim()||window._user.name;
-  const newEmail=document.getElementById('edit-email').value.trim()||window._user.email;
+  const emailInput=document.getElementById('edit-email');
+  const newEmail=emailInput.value.trim().toLowerCase();
+  if(!isValidGmailAddress(newEmail)){
+    document.getElementById('profile-email-warning').classList.add('open');
+    return;
+  }
   const initials=newName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   const firstName=newName.split(' ')[0];
   window._user={name:newName,email:newEmail,authToken:window._user.authToken||'',initials,firstName};
@@ -2719,6 +2935,10 @@ function saveProfile(){
   document.getElementById('user-avatar').textContent=initials;
   syncProfilePage();
   toggleEditMode();
+}
+function closeProfileEmailWarning(){
+  document.getElementById('profile-email-warning').classList.remove('open');
+  document.getElementById('edit-email').focus();
 }
 function handleLogout(){
   isLoggedIn=false;
@@ -2748,12 +2968,12 @@ function updateMobileMenu(loggedIn,firstName){
           <div style="text-align:left"><div style="font-weight:700;color:var(--text)">${firstName}</div><div style="font-size:12px;color:var(--muted)">Signed in</div></div>
           <div style="margin-left:auto;color:var(--muted);font-weight:700">▾</div>
         </button>
-        <button class="btn-login" style="justify-content:center;border:1px solid var(--border);background:#ef4444;color:white;width:100%;margin-top:10px" onclick="handleLogout();closeMenu()">🚪 Log Out</button>
+        <button class="btn-login" style="justify-content:center;border:1px solid var(--border);background:#ef4444;color:white;width:100%;margin-top:10px" onclick="handleLogout();closeMenu()">Log Out</button>
       </div>`;
   }else{
     actions.innerHTML=`
       <button class="btn-login" onclick="showPage('login');closeMenu()">👤 Login</button>
-      <button class="btn-start" onclick="showPage('compatibility');closeMenu()">⚡ Start Building</button>`;
+      `;
   }
 }
 // Close dropdown when clicking outside

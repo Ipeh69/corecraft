@@ -135,14 +135,7 @@ $conn->query("ALTER TABLE build_recommendations ADD COLUMN cons TEXT NULL");
 
 $sql = "SELECT id, build_name, category, description, price, pros, cons, cpu, motherboard, ram, gpu, storage, psu
     FROM build_recommendations
-                ORDER BY
-                    CASE
-                        WHEN LOWER(build_name) LIKE '%budget%' THEN 1
-                        WHEN LOWER(build_name) LIKE '%mid%' THEN 2
-                        WHEN LOWER(build_name) LIKE '%high%' THEN 3
-                        ELSE 4
-                    END,
-                    id ASC";
+    ORDER BY category ASC, price ASC, id ASC";
 
 $stmt = $conn->prepare($sql);
 

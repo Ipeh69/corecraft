@@ -2,6 +2,26 @@
 // Chat, DM, community and post API. Loaded by index.php (requests to index.php?chat_api).
 
 if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
+  $contains_foul_language = function ($text) {
+    $text = strtolower((string) $text);
+    $text = strtr($text, array("0" => "o", "1" => "i", "3" => "e", "4" => "a", "5" => "s", "@" => "a", "$" => "s"));
+    $normalized = preg_replace('/[^a-z]+/', ' ', $text);
+    $blocked_terms = array(
+      "ass", "asshole", "bastard", "bitch", "bullshit", "crap", "cunt", "damn", "dick", "dumbass",
+      "fag", "faggot", "fuck", "fucker", "fucking", "motherfucker", "piss", "prick", "shit", "slut", "whore",
+      "bisakol", "bisaya baho", "bobo", "gago", "gagu", "hinayupak", "kantot", "leche", "lintik", "pakyu", "pota", "potang ina", "potangina", "potangina mo", "potanginamo",
+      "puta", "putang ina", "putangina", "putangina mo", "putanginamo", "tang ina", "tangina", "tangina mo", "tanginamo", "tarantado", "tanga", "ulol", "yawa",
+      "racism", "racist", "racial slur", "racial hate", "white supremacy", "white supremacist", "white power", "race superiority", "inferior race", "go back to your country", "hate crime",
+      "chink", "coon", "kike", "nigger", "nigga", "spic", "wetback", "raghead", "towelhead",
+      "threat", "threaten", "kill you", "kill him", "kill her", "kill them", "i will kill", "ill kill", "i want to kill", "i will hurt", "ill hurt", "hurt you", "murder", "assault", "shoot", "shooting", "stab", "stabbing", "bomb threat", "massacre", "genocide", "torture", "behead", "rape", "hang you", "beat you", "burn you",
+      "patayin", "papatayin", "patay kita", "papatayin kita", "saktan kita", "sasaktan kita", "sasaksakin", "saksakin", "babarilin", "barilin", "bugbugin", "susunugin", "sunugin", "pagsamantalahan"
+    );
+    foreach ($blocked_terms as $term) {
+      $term = trim($term);
+      if (preg_match('/(^| )' . preg_quote($term, '/') . '( |$)/', $normalized)) return true;
+    }
+    return false;
+  };
   header("Content-Type: application/json; charset=UTF-8");
   $content_type = isset($_SERVER["CONTENT_TYPE"]) ? $_SERVER["CONTENT_TYPE"] : "";
   $is_multipart = stripos($content_type, "multipart/form-data") !== false;
@@ -100,9 +120,9 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
   if (!$conn->query($create_dm_sql)) $reply(array("success" => false, "error" => "Failed to prepare private messages"), 500);
 
   if ($action === "dm_conversations") {
-    $stmt = $conn->prepare("SELECT CASE WHEN sender_email = ? THEN recipient_email ELSE sender_email END AS peer_email, MAX(created_at) AS last_message FROM private_messages WHERE sender_email = ? OR recipient_email = ? GROUP BY peer_email ORDER BY last_message DESC LIMIT 100");
+    $stmt = $conn->prepare("SELECT CASE WHEN sender_email = ? THEN recipient_email ELSE sender_email END AS peer_email, MAX(created_at) AS last_message, SUM(CASE WHEN recipient_email = ? AND read_at IS NULL THEN 1 ELSE 0 END) AS unread_count FROM private_messages WHERE sender_email = ? OR recipient_email = ? GROUP BY peer_email ORDER BY last_message DESC LIMIT 100");
     if (!$stmt) $reply(array("success" => false, "error" => "Failed to load conversations"), 500);
-    $stmt->bind_param("sss", $email, $email, $email);
+    $stmt->bind_param("ssss", $email, $email, $email, $email);
     $stmt->execute();
     $result = $stmt->get_result();
     $conversations = array();
@@ -117,7 +137,7 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
         if ($user_stmt->fetch()) $peer_name = $found_name;
         $user_stmt->close();
       }
-      $conversations[] = array("email" => $peer_email, "name" => $peer_name, "last_message" => $row["last_message"]);
+      $conversations[] = array("email" => $peer_email, "name" => $peer_name, "last_message" => $row["last_message"], "unread_count" => (int) $row["unread_count"]);
     }
     $stmt->close();
     $reply(array("success" => true, "conversations" => $conversations));
@@ -148,6 +168,12 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
       }
       $stmt->close();
       $reply(array("success" => true));
+    }
+    $mark_read = $conn->prepare("UPDATE private_messages SET read_at = NOW() WHERE sender_email = ? AND recipient_email = ? AND read_at IS NULL");
+    if ($mark_read) {
+      $mark_read->bind_param("ss", $peer, $email);
+      $mark_read->execute();
+      $mark_read->close();
     }
     $stmt = $conn->prepare("SELECT sender_email, recipient_email, message, created_at FROM private_messages WHERE (sender_email = ? AND recipient_email = ?) OR (sender_email = ? AND recipient_email = ?) ORDER BY id DESC LIMIT 100");
     if (!$stmt) $reply(array("success" => false, "error" => "Failed to load private messages"), 500);
@@ -259,7 +285,11 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
 
   $conn->query("CREATE TABLE IF NOT EXISTS community_posts (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, community VARCHAR(80) NOT NULL, user_email VARCHAR(190) NOT NULL, body TEXT NOT NULL, image_path VARCHAR(255) NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), KEY idx_posts_community (community, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
   $conn->query("CREATE TABLE IF NOT EXISTS community_post_likes (post_id BIGINT UNSIGNED NOT NULL, user_email VARCHAR(190) NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (post_id, user_email), KEY idx_post_likes_user (user_email)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
-  $conn->query("CREATE TABLE IF NOT EXISTS community_post_comments (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, post_id BIGINT UNSIGNED NOT NULL, user_email VARCHAR(190) NOT NULL, comment TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), KEY idx_post_comments (post_id, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+  $conn->query("CREATE TABLE IF NOT EXISTS community_post_comments (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, post_id BIGINT UNSIGNED NOT NULL, parent_comment_id BIGINT UNSIGNED NULL, user_email VARCHAR(190) NOT NULL, comment TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), KEY idx_post_comments (post_id, created_at), KEY idx_comment_replies (parent_comment_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+  $comment_parent_column = $conn->query("SHOW COLUMNS FROM community_post_comments LIKE 'parent_comment_id'");
+  if ($comment_parent_column && $comment_parent_column->num_rows === 0) {
+    $conn->query("ALTER TABLE community_post_comments ADD COLUMN parent_comment_id BIGINT UNSIGNED NULL AFTER post_id, ADD KEY idx_comment_replies (parent_comment_id)");
+  }
   // Posts expire after 7 days: remove images, comments, likes, reports, then the posts.
   $expired = $conn->query("SELECT id, image_path FROM community_posts WHERE created_at < DATE_SUB(NOW(), INTERVAL 7 DAY) LIMIT 500");
   if ($expired) {
@@ -301,6 +331,7 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     }
     if ($post_body === "" && $image_path === null) $reply(array("success" => false, "error" => "Write a post or attach an image"), 400);
     if (strlen($post_body) > 2000) $reply(array("success" => false, "error" => "Posts are limited to 2000 characters"), 400);
+    if ($contains_foul_language($post_body)) $reply(array("success" => false, "error" => "This content is not allowed. Remove hateful, threatening, or violent language before publishing."), 400);
     $stmt = $conn->prepare("INSERT INTO community_posts (community, user_email, body, image_path) VALUES (?, ?, ?, ?)");
     if (!$stmt) $reply(array("success" => false, "error" => "Failed to prepare post"), 500);
     $stmt->bind_param("ssss", $community, $email, $post_body, $image_path);
@@ -322,12 +353,23 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     while ($row = $result->fetch_assoc()) {
       $post_id = (int) $row["id"];
       $row["comments"] = array();
-      $comments_stmt = $conn->prepare("SELECT c.user_email, u.full_name AS sender_name, c.comment, c.created_at FROM community_post_comments c INNER JOIN users u ON u.email = c.user_email WHERE c.post_id = ? ORDER BY c.id ASC LIMIT 100");
+        $comments_stmt = $conn->prepare("SELECT c.id, c.parent_comment_id, c.user_email, u.full_name AS sender_name, c.comment, c.created_at FROM community_post_comments c INNER JOIN users u ON u.email = c.user_email WHERE c.post_id = ? ORDER BY c.id ASC LIMIT 300");
       if ($comments_stmt) {
         $comments_stmt->bind_param("i", $post_id);
         $comments_stmt->execute();
         $comments_result = $comments_stmt->get_result();
-        while ($comment_row = $comments_result->fetch_assoc()) $row["comments"][] = $comment_row;
+        $comment_indexes = array();
+        while ($comment_row = $comments_result->fetch_assoc()) {
+          $comment_row["replies"] = array();
+          $comment_id = (int) $comment_row["id"];
+          $parent_comment_id = (int) $comment_row["parent_comment_id"];
+          if ($parent_comment_id > 0 && isset($comment_indexes[$parent_comment_id])) {
+            $row["comments"][$comment_indexes[$parent_comment_id]]["replies"][] = $comment_row;
+          } else if ($parent_comment_id === 0) {
+            $comment_indexes[$comment_id] = count($row["comments"]);
+            $row["comments"][] = $comment_row;
+          }
+        }
         $comments_stmt->close();
       }
       $posts[] = $row;
@@ -443,7 +485,33 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     $reply(array("success" => true));
   }
 
-  if ($action === "post_like" || $action === "post_comment") {
+  if ($action === "post_comment_delete") {
+    $comment_id = isset($body["comment_id"]) ? (int) $body["comment_id"] : 0;
+    $post_id = isset($body["post_id"]) ? (int) $body["post_id"] : 0;
+    if ($comment_id < 1 || $post_id < 1) $reply(array("success" => false, "error" => "Invalid comment"), 400);
+    $check = $conn->prepare("SELECT c.parent_comment_id FROM community_post_comments c INNER JOIN community_posts p ON p.id = c.post_id WHERE c.id = ? AND c.post_id = ? AND p.community = ? AND c.user_email = ? LIMIT 1");
+    if (!$check) $reply(array("success" => false, "error" => "Failed to verify comment ownership"), 500);
+    $check->bind_param("iiss", $comment_id, $post_id, $community, $email);
+    $check->execute();
+    $check->bind_result($parent_comment_id);
+    if (!$check->fetch()) {
+      $check->close();
+      $reply(array("success" => false, "error" => "Comment not found or you are not its author"), 404);
+    }
+    $check->close();
+    if ($parent_comment_id === null) {
+      $replies = $conn->prepare("DELETE FROM community_post_comments WHERE parent_comment_id = ? AND post_id = ?");
+      if ($replies) { $replies->bind_param("ii", $comment_id, $post_id); $replies->execute(); $replies->close(); }
+    }
+    $stmt = $conn->prepare("DELETE FROM community_post_comments WHERE id = ? AND post_id = ? AND user_email = ?");
+    if (!$stmt) $reply(array("success" => false, "error" => "Failed to prepare comment deletion"), 500);
+    $stmt->bind_param("iis", $comment_id, $post_id, $email);
+    if (!$stmt->execute()) { $stmt->close(); $reply(array("success" => false, "error" => "Comment could not be deleted"), 500); }
+    $stmt->close();
+    $reply(array("success" => true));
+  }
+
+  if ($action === "post_like" || $action === "post_comment" || $action === "post_comment_reply") {
     $post_id = isset($body["post_id"]) ? (int) $body["post_id"] : 0;
     $post_check = $conn->prepare("SELECT id FROM community_posts WHERE id = ? AND community = ? LIMIT 1");
     if (!$post_check) $reply(array("success" => false, "error" => "Failed to verify post"), 500);
@@ -476,9 +544,27 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     }
     $comment = trim(isset($body["comment"]) ? $body["comment"] : "");
     if ($comment === "" || strlen($comment) > 1000) $reply(array("success" => false, "error" => "Comments must be between 1 and 1000 characters"), 400);
-    $stmt = $conn->prepare("INSERT INTO community_post_comments (post_id, user_email, comment) VALUES (?, ?, ?)");
-    if (!$stmt) $reply(array("success" => false, "error" => "Failed to prepare comment"), 500);
-    $stmt->bind_param("iss", $post_id, $email, $comment);
+    if ($contains_foul_language($comment)) $reply(array("success" => false, "error" => "This content is not allowed. Remove hateful, threatening, or violent language before commenting."), 400);
+    $parent_comment_id = null;
+    if ($action === "post_comment_reply") {
+      $parent_comment_id = isset($body["parent_comment_id"]) ? (int) $body["parent_comment_id"] : 0;
+      $parent_check = $conn->prepare("SELECT id FROM community_post_comments WHERE id = ? AND post_id = ? AND parent_comment_id IS NULL LIMIT 1");
+      if (!$parent_check) $reply(array("success" => false, "error" => "Failed to verify parent comment"), 500);
+      $parent_check->bind_param("ii", $parent_comment_id, $post_id);
+      $parent_check->execute(); $parent_check->store_result();
+      $parent_exists = $parent_check->num_rows === 1;
+      $parent_check->close();
+      if (!$parent_exists) $reply(array("success" => false, "error" => "Comment to reply to was not found"), 404);
+    }
+    if ($action === "post_comment_reply") {
+      $stmt = $conn->prepare("INSERT INTO community_post_comments (post_id, parent_comment_id, user_email, comment) VALUES (?, ?, ?, ?)");
+      if (!$stmt) $reply(array("success" => false, "error" => "Failed to prepare reply"), 500);
+      $stmt->bind_param("iiss", $post_id, $parent_comment_id, $email, $comment);
+    } else {
+      $stmt = $conn->prepare("INSERT INTO community_post_comments (post_id, parent_comment_id, user_email, comment) VALUES (?, NULL, ?, ?)");
+      if (!$stmt) $reply(array("success" => false, "error" => "Failed to prepare comment"), 500);
+      $stmt->bind_param("iss", $post_id, $email, $comment);
+    }
     if (!$stmt->execute()) {
       $stmt->close();
       $reply(array("success" => false, "error" => "Comment could not be posted"), 500);

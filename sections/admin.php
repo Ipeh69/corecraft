@@ -3,20 +3,14 @@
   <div class="admin-shell">
     <aside class="admin-side">
       <div class="admin-side-head">
-        <div class="admin-side-title">Admin Console</div>
+        <button type="button" class="admin-side-title" onclick="openAdminDashboard()">Admin Console</button>
         <div class="admin-side-sub" id="admin-side-user">Signed in</div>
       </div>
       <nav class="admin-nav">
-        <button class="admin-nav-item active" data-admin-view="dashboard" onclick="switchAdminView('dashboard',this)"><span>📊</span> Dashboard</button>
-        <button class="admin-nav-item" data-admin-view="components" onclick="switchAdminView('components',this)"><span>🧩</span> Component Catalog</button>
-        <button class="admin-nav-item" data-admin-view="rules" onclick="switchAdminView('rules',this)"><span>⚙️</span> Compatibility Rules</button>
-        <button class="admin-nav-item" data-admin-view="users" onclick="switchAdminView('users',this)"><span>👥</span> Users &amp; Roles</button>
-        <button class="admin-nav-item" data-admin-view="moderation" onclick="switchAdminView('moderation',this)"><span>🛡️</span> Moderation</button>
-        <button class="admin-nav-item" data-admin-view="pricing" onclick="switchAdminView('pricing',this)"><span>💸</span> Pricing Feeds</button>
-        <button class="admin-nav-item" data-admin-view="analytics" onclick="switchAdminView('analytics',this)"><span>📈</span> Analytics &amp; Health</button>
-        <button class="admin-nav-item" data-admin-view="logs" onclick="switchAdminView('logs',this)"><span>🗂️</span> System Logs</button>
+        <button class="admin-nav-item" data-admin-view="users" onclick="switchAdminView('users',this)">Users &amp; Roles</button>
+        <button class="admin-nav-item" data-admin-view="moderation" onclick="switchAdminView('moderation',this)">Moderation</button>
+        <button class="admin-nav-item" data-admin-view="logs" onclick="switchAdminView('logs',this)">System Logs</button>
       </nav>
-      <button class="admin-back" onclick="showPage('home')">← Back to CoreCraft</button>
     </aside>
 
     <main class="admin-main">
@@ -27,7 +21,6 @@
         </div>
         <div class="admin-head-actions">
           <span class="admin-status" id="admin-status" role="status" aria-live="polite"></span>
-          <button class="admin-refresh" onclick="refreshAdminView()">↻ Refresh</button>
         </div>
       </header>
 
@@ -104,10 +97,8 @@
           <input class="admin-input" id="user-search" type="search" placeholder="Search name or email…" onkeyup="if(event.key==='Enter')loadAdminUsers()"/>
           <select class="admin-input admin-select" id="user-role-filter" onchange="loadAdminUsers()">
             <option value="">All roles</option>
-            <option value="user">Standard users</option>
-            <option value="verified">Verified builders</option>
-            <option value="moderator">Moderators</option>
-            <option value="admin">Admins</option>
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
           </select>
           <button class="admin-btn" onclick="loadAdminUsers()">Search</button>
         </div>
@@ -135,17 +126,6 @@
               </select>
             </div>
             <div id="admin-report-list" class="admin-list"></div>
-          </div>
-          <div class="admin-card">
-            <div class="admin-card-title with-actions">
-              <span>Community content</span>
-              <select class="admin-input admin-select small" id="content-type-filter" onchange="loadAdminContent()">
-                <option value="posts">Posts</option>
-                <option value="comments">Comments</option>
-                <option value="messages">Live messages</option>
-              </select>
-            </div>
-            <div id="admin-content-list" class="admin-list"></div>
           </div>
         </div>
       </section>

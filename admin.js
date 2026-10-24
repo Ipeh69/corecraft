@@ -58,8 +58,13 @@ function adminModalStatus(message,type){
 function initAdminPage(){
   if(!window._user||!window._user.isAdmin){showPage('home');return;}
   const who=document.getElementById('admin-side-user');
-  if(who)who.textContent=(window._user.name||'Admin')+' · '+((window._user.adminRole||'admin'));
-  loadAdminView(adminState.view);
+  if(who)who.textContent=window._user.name||'Admin';
+  switchAdminView(adminState.view,document.querySelector('.admin-nav-item[data-admin-view="'+adminState.view+'"]'));
+}
+
+function openAdminDashboard(){
+  adminState.view='dashboard';
+  showPage('admin');
 }
 
 function switchAdminView(view,button){
@@ -93,7 +98,7 @@ function loadAdminView(view){
   else if(view==='components')loadAdminComponents();
   else if(view==='rules')loadAdminRules();
   else if(view==='users')loadAdminUsers();
-  else if(view==='moderation'){loadAdminReports();loadAdminContent();}
+  else if(view==='moderation')loadAdminReports();
   else if(view==='pricing')loadAdminRegions();
   else if(view==='analytics')loadAdminAnalytics();
   else if(view==='logs')loadAdminLogs();
@@ -216,14 +221,10 @@ async function loadAdminDashboard(){
       const stats=[
         ['Registered users',o.total_users,'accent'],
         ['New users (7d)',o.new_users_7d,''],
-        ['Active parts',o.active_components,'accent'],
-        ['Retired parts',o.inactive_components,''],
-        ['Active rules',o.rules_enabled+' / '+o.rules_total,''],
         ['Saved builds',o.saved_builds,''],
         ['Build checks today',o.build_checks_today,'accent'],
         ['Open reports',o.open_reports,o.open_reports>0?'warn':''],
         ['Banned users',o.banned_users,o.banned_users>0?'warn':''],
-        ['Errors today',o.errors_today,o.errors_today>0?'warn':''],
         ['Communities',o.communities,''],
         ['Community posts',o.posts,'']
       ];
@@ -502,12 +503,10 @@ async function loadAdminUsers(){
             (user.status==='banned'
               ?'<button class="admin-icon-btn" onclick="setUserStatus('+index+',\'active\')">Reactivate</button>'
               :'<button class="admin-icon-btn danger" onclick="setUserStatus('+index+',\'banned\')">Ban</button>')+
-            '<button class="admin-icon-btn danger" onclick="deleteUser('+index+')">Delete</button>'+
           '</div></td>'+
         '</tr>';
       }).join(''):'<tr><td colspan="8"><div class="admin-empty">No users match this filter.</div></td></tr>';
     }
-    setAdminStatus(adminState.users.length+' accounts','ok');
   }catch(error){
     setAdminStatus(error.message,'err');
     if(tbody)tbody.innerHTML='<tr><td colspan="8"><div class="admin-empty">'+adminEsc(error.message)+'</div></td></tr>';
@@ -568,7 +567,7 @@ async function loadAdminReports(){
           '<div class="muted">'+adminEsc(report.reason)+'</div>'+
           '<div class="muted">by '+adminEsc(report.reported_by)+(report.community?' · '+adminEsc(report.community):'')+' · '+adminEsc(report.created_at)+'</div></div>'+
           '<span class="admin-tag '+(report.status==='open'?'warning':(report.status==='resolved'?'ok':'neutral'))+'">'+adminEsc(report.status)+'</span>'+
-          (open?'<div class="admin-row-actions"><button class="admin-icon-btn" onclick="resolveReport('+index+',\'resolved\')">Resolve</button><button class="admin-icon-btn" onclick="resolveReport('+index+',\'dismissed\')">Dismiss</button></div>':'')+
+          (open?'<div class="admin-row-actions"><button class="admin-icon-btn" onclick="checkReportedPost('+index+')">Check post</button></div>':'')+
         '</div>';
       }).join(''):'<div class="admin-empty">No reports in this view.</div>';
     }
@@ -577,18 +576,56 @@ async function loadAdminReports(){
   }
 }
 
+function checkReportedPost(index){
+  const report=adminState.reports[index];
+  if(!report)return;
+  const postExists=report.post_body!==null&&report.post_body!==undefined;
+  const postContent=postExists?(report.post_body?'<div class="reported-post-body">'+adminEsc(report.post_body)+'</div>':'<div class="admin-hint">This post contains an image and no text.</div>'):'<div class="admin-empty">The reported post is no longer available.</div>';
+  const postImage=postExists&&report.post_image?'<img class="reported-post-image" src="'+adminEsc(report.post_image)+'" alt="Reported post image">':'';
+  adminModal(
+    '<div class="admin-modal-title">Check reported post</div>'+
+    '<div class="reported-post-meta"><strong>'+adminEsc(report.post_author||report.post_author_email||'Unknown author')+'</strong><span>'+adminEsc(report.community||'')+(report.post_created_at?' · '+adminEsc(report.post_created_at):'')+'</span></div>'+
+    '<div class="reported-post-content">'+postContent+postImage+'</div>'+
+    '<div class="reported-post-reason"><strong>Report reason</strong><p>'+adminEsc(report.reason)+'</p><span>Reported by '+adminEsc(report.reported_by)+' · '+adminEsc(report.created_at)+'</span></div>'+
+    '<div id="admin-modal-status" class="admin-modal-status"></div>'+
+    '<div class="admin-modal-actions"><button class="admin-btn" onclick="closeAdminModal()">Close</button>'+(report.status==='open'?'<button id="reported-post-warning-button" class="admin-btn" '+(Number(report.warning_sent)?'disabled':'')+' onclick="sendReportedPostWarning('+index+')">'+(Number(report.warning_sent)?'Warning sent':'Send warning')+'</button><button class="admin-btn danger" onclick="deleteReportedPost('+index+')">Delete post</button>':'')+'</div>'
+  );
+}
+
+async function sendReportedPostWarning(index){
+  const report=adminState.reports[index];
+  const button=document.getElementById('reported-post-warning-button');
+  if(!report||!button||Number(report.warning_sent))return;
+  button.disabled=true;
+  button.textContent='Sending...';
+  try{
+    await adminApi('report_warn_user',{id:report.id});
+    report.warning_sent=1;
+    button.textContent='Warning sent';
+    setAdminStatus('Warning sent to '+(report.post_author_email||'the post author'),'ok');
+  }catch(error){
+    button.disabled=false;
+    button.textContent='Send warning';
+    adminModalStatus(error.message,'err');
+  }
+}
+
+async function deleteReportedPost(index){
+  const report=adminState.reports[index];
+  if(!report)return;
+  try{
+    await adminApi('report_post_delete',{id:report.id});
+    closeAdminModal();
+    setAdminStatus('Post deleted and report closed','ok');
+    loadAdminReports();
+  }catch(error){adminModalStatus(error.message,'err');}
+}
+
 async function reportCommunityPost(postId){
-  const reason=window.prompt('Why are you reporting this post? (Up to 255 characters)');
+  if(!window._user||!window._user.authToken)return;
+  const reason=await requestPHChatReportReason();
   if(reason===null)return;
   const trimmedReason=reason.trim();
-  if(!trimmedReason){
-    window.alert('Please enter a reason for the report.');
-    return;
-  }
-  if(trimmedReason.length>255){
-    window.alert('Report reasons are limited to 255 characters.');
-    return;
-  }
   try{
     const data=await adminApi('report_create',{
       content_type:'community_post',
@@ -596,9 +633,9 @@ async function reportCommunityPost(postId){
       community:feedCommunityName(),
       reason:trimmedReason
     });
-    window.alert(data.message||'Report submitted for review.');
+    showPHChatNotice('Report submitted',data.message||'Your report was submitted for review. Thank you for helping keep the community safe.');
   }catch(error){
-    window.alert(error.message||'The report could not be submitted.');
+    showPHChatNotice('Report not submitted',error.message||'The report could not be submitted.');
   }
 }
 

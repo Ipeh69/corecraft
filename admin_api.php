@@ -155,6 +155,18 @@ $conn_admin->query("CREATE TABLE IF NOT EXISTS moderation_reports (
     KEY idx_report_status (status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 
+$conn_admin->query("CREATE TABLE IF NOT EXISTS moderation_warning_deliveries (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    report_id INT UNSIGNED NOT NULL,
+    recipient_email VARCHAR(190) NOT NULL,
+    sent_by VARCHAR(190) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at DATETIME NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_warning_report (report_id),
+    KEY idx_warning_recipient (recipient_email, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+
 $conn_admin->query("CREATE TABLE IF NOT EXISTS system_logs (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     level VARCHAR(20) NOT NULL DEFAULT 'info',
@@ -383,7 +395,7 @@ if ($action === "track") {
 // report_create is open to any signed-in user (the community UI flags content).
 // Moderation actions are available to moderators; everything else requires a full admin.
 $member_actions = array("report_create");
-$moderator_actions = array("report_list", "report_resolve", "content_list", "content_delete");
+$moderator_actions = array("report_list", "report_resolve", "report_post_delete", "report_warn_user", "content_list", "content_delete");
 if (in_array($action, $member_actions, true)) {
     // allowed for any authenticated account
 } elseif (in_array($action, $moderator_actions, true)) {
@@ -886,15 +898,15 @@ if ($action === "user_delete") {
 // ——— Community moderation ———
 if ($action === "report_list") {
     $status_filter = trim(admin_field($body, "status", ""));
-    $sql = "SELECT id, content_type, content_ref, community, reported_by, reason, status, resolved_by, resolved_at, created_at FROM moderation_reports";
+    $sql = "SELECT r.id, r.content_type, r.content_ref, r.community, r.reported_by, r.reason, r.status, r.resolved_by, r.resolved_at, r.created_at, p.body AS post_body, p.image_path AS post_image, p.user_email AS post_author_email, u.full_name AS post_author, p.created_at AS post_created_at, EXISTS(SELECT 1 FROM moderation_warning_deliveries wd WHERE wd.report_id = r.id) AS warning_sent FROM moderation_reports r LEFT JOIN community_posts p ON r.content_type = 'community_post' AND p.id = CAST(r.content_ref AS UNSIGNED) AND p.community = r.community LEFT JOIN users u ON u.email = p.user_email";
     $types = "";
     $params = array();
     if ($status_filter !== "") {
-        $sql .= " WHERE status = ?";
+        $sql .= " WHERE r.status = ?";
         $types = "s";
         $params[] = $status_filter;
     }
-    $sql .= " ORDER BY id DESC LIMIT 200";
+    $sql .= " ORDER BY r.id DESC LIMIT 200";
     $stmt = $conn_admin->prepare($sql);
     if (!$stmt) {
         admin_respond(array("success" => false, "error" => "Failed to load reports"), 500);
@@ -912,6 +924,46 @@ if ($action === "report_list") {
     admin_respond(array("success" => true, "reports" => $reports));
 }
 
+if ($action === "report_warn_user") {
+    $report_id = (int) admin_field($body, "id", 0);
+    if ($report_id <= 0) admin_respond(array("success" => false, "error" => "Invalid report"), 400);
+    $stmt = $conn_admin->prepare("SELECT p.user_email, r.community, r.reason FROM moderation_reports r INNER JOIN community_posts p ON p.id = CAST(r.content_ref AS UNSIGNED) AND p.community = r.community WHERE r.id = ? AND r.content_type = 'community_post' AND r.status = 'open' LIMIT 1");
+    if (!$stmt) admin_respond(array("success" => false, "error" => "Could not find the reported post"), 500);
+    $stmt->bind_param("i", $report_id);
+    $stmt->execute();
+    $stmt->bind_result($recipient_email, $community, $report_reason);
+    if (!$stmt->fetch()) {
+        $stmt->close();
+        admin_respond(array("success" => false, "error" => "The open report or its post could not be found"), 404);
+    }
+    $stmt->close();
+    $recipient_email = strtolower($recipient_email);
+    $warning_message = "CORECRAFT MODERATION WARNING\n\nA post you shared in " . $community . " was reported for: " . $report_reason . ". Please review the community guidelines and keep future posts respectful and relevant. Repeated violations may lead to content removal or account restrictions.";
+    $conn_admin->autocommit(false);
+    $message_stmt = $conn_admin->prepare("INSERT INTO private_messages (sender_email, recipient_email, message) VALUES (?, ?, ?)");
+    if (!$message_stmt) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Could not prepare the warning message"), 500); }
+    $message_stmt->bind_param("sss", $email, $recipient_email, $warning_message);
+    if (!$message_stmt->execute()) {
+        $message_stmt->close(); $conn_admin->rollback();
+        admin_respond(array("success" => false, "error" => "Could not send the warning message"), 500);
+    }
+    $message_id = $message_stmt->insert_id;
+    $message_stmt->close();
+    $delivery = $conn_admin->prepare("INSERT INTO moderation_warning_deliveries (report_id, recipient_email, sent_by) VALUES (?, ?, ?)");
+    if (!$delivery) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Could not record the warning"), 500); }
+    $delivery->bind_param("iss", $report_id, $recipient_email, $email);
+    if (!$delivery->execute()) {
+        $duplicate = $delivery->errno === 1062;
+        $delivery->close(); $conn_admin->rollback();
+        admin_respond(array("success" => false, "error" => $duplicate ? "A warning has already been sent for this report" : "Could not record the warning"), $duplicate ? 409 : 500);
+    }
+    $delivery->close();
+    $conn_admin->commit();
+    $conn_admin->autocommit(true);
+    admin_log($conn_admin, "warning", "moderation", "Sent a community warning to " . $recipient_email . " for report #" . $report_id);
+    admin_respond(array("success" => true, "message" => "Warning sent to the post author in Messages", "message_id" => $message_id));
+}
+
 if ($action === "report_resolve") {
     $report_id = (int) admin_field($body, "id", 0);
     $status = trim(admin_field($body, "status", "resolved"));
@@ -927,6 +979,59 @@ if ($action === "report_resolve") {
     $stmt->close();
     admin_log($conn_admin, "info", "moderation", "Report #" . $report_id . " marked " . $status);
     admin_respond(array("success" => true, "message" => "Report " . $status));
+}
+
+if ($action === "report_post_delete") {
+    $report_id = (int) admin_field($body, "id", 0);
+    if ($report_id <= 0) admin_respond(array("success" => false, "error" => "Invalid report"), 400);
+    $conn_admin->autocommit(false);
+    $report = $conn_admin->prepare("SELECT content_ref, community FROM moderation_reports WHERE id = ? AND content_type = 'community_post' AND status = 'open' LIMIT 1");
+    if (!$report) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Failed to verify report"), 500); }
+    $report->bind_param("i", $report_id);
+    $report->execute();
+    $report->bind_result($content_ref, $community);
+    if (!$report->fetch() || !ctype_digit((string) $content_ref) || (int) $content_ref <= 0) {
+        $report->close(); $conn_admin->rollback();
+        admin_respond(array("success" => false, "error" => "Open post report not found"), 404);
+    }
+    $report->close();
+    $post_id = (int) $content_ref;
+    $post = $conn_admin->prepare("SELECT image_path FROM community_posts WHERE id = ? AND community = ? LIMIT 1");
+    if (!$post) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Failed to find reported post"), 500); }
+    $post->bind_param("is", $post_id, $community);
+    $post->execute();
+    $post->bind_result($image_path);
+    if (!$post->fetch()) {
+        $post->close(); $conn_admin->rollback();
+        admin_respond(array("success" => false, "error" => "Reported post is no longer available"), 404);
+    }
+    $post->close();
+    foreach (array("community_post_comments", "community_post_likes") as $table) {
+        $cleanup = $conn_admin->prepare("DELETE FROM " . $table . " WHERE post_id = ?");
+        if (!$cleanup) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Failed to prepare post cleanup"), 500); }
+        $cleanup->bind_param("i", $post_id);
+        if (!$cleanup->execute()) { $cleanup->close(); $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Failed to clean up post data"), 500); }
+        $cleanup->close();
+    }
+    $delete = $conn_admin->prepare("DELETE FROM community_posts WHERE id = ? AND community = ?");
+    if (!$delete) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Failed to prepare post deletion"), 500); }
+    $delete->bind_param("is", $post_id, $community);
+    if (!$delete->execute() || $delete->affected_rows !== 1) { $delete->close(); $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Post could not be deleted"), 500); }
+    $delete->close();
+    $resolve = $conn_admin->prepare("UPDATE moderation_reports SET status = 'resolved', resolved_by = ?, resolved_at = NOW() WHERE id = ? AND status = 'open'");
+    if (!$resolve) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Failed to close report"), 500); }
+    $resolve->bind_param("si", $email, $report_id);
+    if (!$resolve->execute()) { $resolve->close(); $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Failed to close report"), 500); }
+    $resolve->close();
+    $conn_admin->commit();
+    $conn_admin->autocommit(true);
+    if ($image_path && preg_match('/^uploads\/community_images\/[A-Za-z0-9._-]+$/', $image_path)) {
+        $image_directory = realpath(__DIR__ . DIRECTORY_SEPARATOR . "uploads" . DIRECTORY_SEPARATOR . "community_images");
+        $image_file = realpath(__DIR__ . DIRECTORY_SEPARATOR . str_replace("/", DIRECTORY_SEPARATOR, $image_path));
+        if ($image_directory && $image_file && strpos($image_file, $image_directory . DIRECTORY_SEPARATOR) === 0 && is_file($image_file)) @unlink($image_file);
+    }
+    admin_log($conn_admin, "warning", "moderation", "Deleted reported post #" . $post_id . " from report #" . $report_id);
+    admin_respond(array("success" => true, "message" => "Post deleted and report closed"));
 }
 
 // Any signed-in user can flag content; used by the community UI.

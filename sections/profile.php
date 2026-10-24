@@ -10,10 +10,10 @@
         <div id="profile-email-big" style="color:var(--muted);font-size:14px;margin-bottom:12px">juan@example.com</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <span class="badge"><span class="pulse"></span> Active Builder</span>
-          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(8,124,255,.12);border:1px solid rgba(8,124,255,.3);color:#70b7ff;padding:5px 14px;border-radius:999px;font-size:13px;font-weight:500">🏅 Member since 2026</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(8,124,255,.12);border:1px solid rgba(8,124,255,.3);color:#70b7ff;padding:5px 14px;border-radius:999px;font-size:13px;font-weight:500">Member since 2026</span>
         </div>
       </div>
-      <button onclick="toggleEditMode()" id="edit-profile-btn" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;white-space:nowrap" onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">✏️ Edit Profile</button>
+      <button onclick="toggleEditMode()" id="edit-profile-btn" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;white-space:nowrap" onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">Edit Profile</button>
     </div>
     <button class="btn-secondary" onclick="openLoadBuildsModal()" style="width:100%;padding:20px;margin-bottom:24px;font-size:17px;font-weight:700">📂 Saved Builds</button>
     <div class="grid-2" style="margin-bottom:24px">
@@ -33,7 +33,7 @@
       </div>
       <!-- Edit Form (hidden by default) -->
       <div class="card" style="padding:28px;display:none" id="info-edit-panel">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px">✏️ Edit Profile</div>
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px">Edit Profile</div>
         <div style="display:flex;flex-direction:column;gap:14px">
           <div>
             <label style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px">Full Name</label>
@@ -41,7 +41,7 @@
           </div>
           <div>
             <label style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px">Email</label>
-            <input id="edit-email" class="chat-textarea" type="email" style="width:100%;resize:none;border-radius:8px;padding:10px 14px" placeholder="your@email.com"/>
+            <input id="edit-email" class="chat-textarea" type="email" autocomplete="email" inputmode="email" style="width:100%;resize:none;border-radius:8px;padding:10px 14px" placeholder="name@gmail.com"/>
           </div>
           <div style="display:flex;gap:10px;margin-top:4px">
             <button onclick="saveProfile()" style="flex:1;background:var(--cyan);color:#000;border:none;padding:11px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif">Save Changes</button>
@@ -55,19 +55,18 @@
       <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px">🕒 Recent Activity</div>
       <div id="recent-activity-list" style="display:flex;flex-direction:column;gap:0"></div>
     </div>
-    <!-- Danger Zone -->
-    <div style="background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.2);border-radius:16px;padding:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
-      <div>
-        <div style="font-size:15px;font-weight:700;color:#f87171;margin-bottom:4px">Log Out</div>
-        <div style="font-size:13px;color:var(--muted)">Sign out of your CoreCraft account on this device.</div>
-      </div>
-      <button onclick="handleLogout()" style="background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:#f87171;padding:10px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s" onmouseover="this.style.background='rgba(248,113,113,.22)'" onmouseout="this.style.background='rgba(248,113,113,.12)'">🚪 Log Out</button>
-    </div>
   </div>
   <footer>
     <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
     <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
   </footer>
+</div>
+<div class="modal-overlay" id="profile-email-warning" role="alertdialog" aria-modal="true" aria-labelledby="profile-email-warning-title" aria-describedby="profile-email-warning-message">
+  <div class="modal-box">
+    <div class="modal-title" id="profile-email-warning-title">Invalid Gmail address</div>
+    <p id="profile-email-warning-message" style="color:var(--muted);line-height:1.6">Please enter a valid Gmail address (e.g., name@gmail.com).</p>
+    <button class="modal-close" type="button" onclick="closeProfileEmailWarning()">OK</button>
+  </div>
 </div>
 <!-- Compatibility Modal -->
 <div class="modal-overlay" id="compat-modal">
@@ -120,6 +119,17 @@
     <div class="modal-title">📂 Saved Builds</div>
     <div id="saved-builds-modal-list" style="max-height:400px;overflow-y:auto;margin:20px 0;"></div>
     <button class="modal-close" style="width:100%" onclick="closeSavedBuildsModal()">Close</button>
+  </div>
+</div>
+<div class="modal-overlay" id="saved-build-note-modal" role="dialog" aria-modal="true" aria-labelledby="saved-build-note-title">
+  <div class="modal-box">
+    <div class="modal-title" id="saved-build-note-title">Saved Build</div>
+    <div id="saved-build-note-list" class="saved-build-note-list"></div>
+    <section class="saved-build-estimate">
+      <h3>AI Estimated Prices <span>(reference only)</span></h3>
+      <div id="saved-build-price-estimates" aria-live="polite">Preparing estimate…</div>
+    </section>
+    <button class="modal-close" style="width:100%" type="button" onclick="closeSavedBuildNote()">Close</button>
   </div>
 </div>
 <div class="modal-overlay" id="create-community-modal">
