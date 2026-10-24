@@ -28,8 +28,6 @@
         <input id="stock-part" class="stock-input" type="text" placeholder="e.g. RTX 4060 8GB" onkeydown="if(event.key==='Enter')checkPartStock()" />
         <label class="compat-label" for="stock-location">Your city or area</label>
         <input id="stock-location" class="stock-input" type="text" placeholder="e.g. Manila, Cebu, or use my location" onkeydown="if(event.key==='Enter')checkPartStock()" />
-        <label class="compat-label" for="stock-source">Retailer product URL (optional)</label>
-        <textarea id="stock-source" class="stock-input stock-source" rows="3" placeholder="Add a store product page to check it alongside web search..."></textarea>
         <button id="stock-check-btn" class="btn-gradient" type="button" onclick="checkPartStock()">Search stores and part together</button>
         <div id="stock-result" class="stock-result" aria-live="polite"></div>
       </div>

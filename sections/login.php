@@ -25,13 +25,16 @@
         <div class="form-group">
           <label class="form-label">Password</label>
           <div class="input-wrap">
-            <input class="form-input password-input" type="password" id="pw-input" autocomplete="current-password" placeholder="••••••••"/>
+            <input class="form-input password-input" type="password" id="pw-input" autocomplete="current-password" placeholder="••••••••" oninput="checkPasswordMatch()"/>
             <button class="pw-toggle" onclick="togglePw()" id="pw-eye" type="button" aria-label="Show password" aria-pressed="false">Show</button>
           </div>
         </div>
         <div class="hidden-field form-group" id="field-confirm">
           <label class="form-label">Confirm Password</label>
-          <div class="input-wrap"><input class="form-input signup-focus" id="confirm-input" type="password" autocomplete="new-password" placeholder="••••••••"/></div>
+          <div class="input-wrap">
+            <input class="form-input password-input signup-focus" id="confirm-input" type="password" autocomplete="new-password" placeholder="••••••••" oninput="checkPasswordMatch()"/>
+            <button class="pw-toggle" onclick="toggleConfirmPw()" id="confirm-pw-eye" type="button" aria-label="Show confirm password" aria-pressed="false">Show</button>
+          </div>
         </div>
         <div class="remember-row" id="remember-row">
           <label class="remember-label"><input id="remember-input" type="checkbox" style="accent-color:var(--cyan)"/> Remember me</label>
@@ -39,13 +42,11 @@
         </div>
         <button class="submit-btn submit-login" id="submit-btn" onclick="handleLogin()" type="button">Login</button>
         <div class="login-status" id="login-status" role="status" aria-live="polite"></div>
-        <div class="security-note">Passwords are salted and hashed in your browser before being stored.</div>
         <div class="divider"><div class="divider-line"></div><span class="divider-text">or continue with</span><div class="divider-line"></div></div>
         <div class="social-grid google-social-grid">
           <div class="google-signin-slot" id="google-signin-button" aria-label="Continue with Google"></div>
         </div>
       </div>
     </div>
-    <div class="login-footer"><button class="back-link" onclick="showPage('home')">← Back to Home</button></div>
   </div>
 </div>

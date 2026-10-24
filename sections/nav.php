@@ -6,11 +6,11 @@
   </a>
   <ul>
     <li><a onclick="showPage('compatibility')">Compatibility Checker</a></li>
-    <li><a onclick="showPage('build')">Build Recs</a></li>
+    <li><a onclick="showPage('build')">Build Recommendations</a></li>
     <li><a onclick="showPage('pricing')">Part Pricing</a></li>
     <li><a onclick="showPage('troubleshoot')">Troubleshoot</a></li>
     <li><a onclick="showPage('PHchat')">PH Community</a></li>
-    <li id="nav-admin-link" style="display:none"><a onclick="showPage('admin')">Admin</a></li>
+    <li id="nav-admin-link" style="display:none"><a onclick="openAdminDashboard()">Admin</a></li>
   </ul>
   <div class="nav-actions">
     <button class="btn-login" id="nav-login-btn" onclick="showPage('login')">👤 Login</button>
@@ -24,12 +24,10 @@
           <div class="dropdown-name" id="dropdown-name">Juan Dela Cruz</div>
           <div class="dropdown-email" id="dropdown-email">juan@example.com</div>
         </div>
-        <button class="dropdown-item" onclick="showPage('profile');closeDropdown()">👤 My Profile</button>
-        <button class="dropdown-item" id="dropdown-admin-item" style="display:none" onclick="showPage('admin');closeDropdown()">Admin Console</button>
-        <button class="dropdown-item logout" onclick="handleLogout()">🚪 Log Out</button>
+        <button class="dropdown-item" onclick="showPage('profile');closeDropdown()">My Profile</button>
+        <button class="dropdown-item logout" onclick="handleLogout()">Log Out</button>
       </div>
     </div>
-    <button class="btn-start" onclick="showPage('compatibility')">Start Building</button>
   </div>
   <button class="hamburger" onclick="toggleMenu()" id="hamburger" aria-label="Menu">
     <span></span><span></span><span></span>
@@ -42,9 +40,7 @@
   <a onclick="showPage('pricing');closeMenu()">📍 Part Pricing by Location</a>
   <a onclick="showPage('troubleshoot');closeMenu()">🛠️ Troubleshooting</a>
   <a onclick="showPage('PHchat');closeMenu()">🌐 PH Community</a>
-  <a id="mobile-admin-link" style="display:none" onclick="showPage('admin');closeMenu()">Admin Console</a>
   <div class="mobile-menu-actions">
     <button class="btn-login" onclick="showPage('login');closeMenu()">👤 Login</button>
-    <button class="btn-start" onclick="showPage('compatibility');closeMenu()">⚡ Start Building</button>
   </div>
 </div>

@@ -26,11 +26,6 @@
           </div>
         </div>
       </div>
-      <div class="ai-info-cards">
-        <div class="ai-info-card"><div class="ai-info-emoji">🔍</div><div class="ai-info-num">Diagnosis</div><div class="ai-info-sub">Identify root cause</div></div>
-        <div class="ai-info-card"><div class="ai-info-emoji">🛠️</div><div class="ai-info-num">Step-by-step</div><div class="ai-info-sub">Clear fix instructions</div></div>
-        <div class="ai-info-card"><div class="ai-info-emoji">⚡</div><div class="ai-info-num">Instant</div><div class="ai-info-sub">AI answers fast</div></div>
-      </div>
     </div>
   </div>
   <footer>
