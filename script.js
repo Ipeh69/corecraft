@@ -1,5 +1,14 @@
 
 // ——— MOBILE MENU ———
+function applyColorTheme(theme,save){
+  theme=theme==='light'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',theme);
+  document.querySelectorAll('.theme-select').forEach(function(select){select.value=theme;});
+  if(save){try{localStorage.setItem('corecraft_theme',theme);}catch(error){}}
+}
+function setColorTheme(theme){applyColorTheme(theme,true);}
+applyColorTheme(document.documentElement.getAttribute('data-theme')||'dark',false);
+
 function toggleMenu(){document.getElementById('mobile-menu').classList.toggle('open')}
 function closeMenu(){document.getElementById('mobile-menu').classList.remove('open')}
 
@@ -2181,33 +2190,64 @@ async function getSavedBuildsMap(){
   return {source:'db',builds:map};
 }
 
-async function saveCurrentBuild(){
+let pendingBuildSaveComponents=[];
+function saveCurrentBuild(){
   syncComponentsFromFields();
-  const buildName=prompt('Name this build:','My PC Build');
-  if(!buildName)return;
-  const selected=components.filter(c=>c.status!=='empty').map(c=>({type:c.type,value:c.value}));
-  if(selected.length===0){alert('Please select at least one component');return}
-
-  const email=getSavedBuildsUserEmail();
-  if(email){
-    try{
-      await savedBuildsRequest('save',{user_email:email,build_name:buildName,components:selected});
-      alert(`✅ Build "${buildName}" saved to your account!`);
-    }catch(err){
-      alert('Failed to save to database: '+err.message);
-      return;
-    }
-  }else{
-    const builds_local=JSON.parse(localStorage.getItem('saved_builds')||'{}');
-    builds_local[buildName]={timestamp:new Date().toLocaleString(),components:selected};
-    localStorage.setItem('saved_builds',JSON.stringify(builds_local));
-    alert(`✅ Build "${buildName}" saved locally (guest mode).`);
-    recordActivity('💾','Saved build',buildName,'rgba(34,197,94,.1)');
-  }
-  corecraftTrack('build_save',buildName);
-  updateSavedBuildsList();
+  pendingBuildSaveComponents=components.filter(c=>c.status!=='empty').map(c=>({type:c.type,value:c.value}));
+  const modal=document.getElementById('save-build-modal');
+  if(!modal)return;
+  document.getElementById('save-build-modal-title').textContent='Name this build';
+  document.getElementById('save-build-name-form').hidden=false;
+  document.getElementById('save-build-result').hidden=true;
+  const error=document.getElementById('save-build-error');
+  error.textContent=pendingBuildSaveComponents.length?'':'Please select at least one component before saving.';
+  document.getElementById('save-build-confirm').disabled=!pendingBuildSaveComponents.length;
+  document.getElementById('save-build-name-input').value='My PC Build';
+  modal.classList.add('open');
+  if(pendingBuildSaveComponents.length)document.getElementById('save-build-name-input').focus();
 }
 
+function closeSaveBuildModal(){
+  const modal=document.getElementById('save-build-modal');
+  if(modal)modal.classList.remove('open');
+}
+
+function showBuildSaveResult(title,message){
+  document.getElementById('save-build-modal-title').textContent=title;
+  document.getElementById('save-build-name-form').hidden=true;
+  document.getElementById('save-build-result-message').textContent=message;
+  document.getElementById('save-build-result').hidden=false;
+}
+
+async function confirmSaveCurrentBuild(){
+  const input=document.getElementById('save-build-name-input');
+  const button=document.getElementById('save-build-confirm');
+  const buildName=input.value.trim();
+  const error=document.getElementById('save-build-error');
+  if(!buildName){error.textContent='Enter a name for this build.';input.focus();return;}
+  if(!pendingBuildSaveComponents.length){error.textContent='Please select at least one component before saving.';return;}
+  button.disabled=true;
+  button.textContent='Saving...';
+  const email=getSavedBuildsUserEmail();
+  try{
+    if(email){
+      await savedBuildsRequest('save',{user_email:email,build_name:buildName,components:pendingBuildSaveComponents});
+    }else{
+      const builds_local=JSON.parse(localStorage.getItem('saved_builds')||'{}');
+      builds_local[buildName]={timestamp:new Date().toLocaleString(),components:pendingBuildSaveComponents};
+      localStorage.setItem('saved_builds',JSON.stringify(builds_local));
+      recordActivity('💾','Saved build',buildName,'rgba(34,197,94,.1)');
+    }
+    corecraftTrack('build_save',buildName);
+    updateSavedBuildsList();
+    showBuildSaveResult('Build saved',email?'"'+buildName+'" was saved to your account.':'"'+buildName+'" was saved on this device.');
+  }catch(err){
+    showBuildSaveResult('Build not saved',err.message||'The build could not be saved. Please try again.');
+  }finally{
+    button.disabled=false;
+    button.textContent='Save Build';
+  }
+}
 async function openLoadBuildsModal(){
   let payload;
   try{

@@ -15,11 +15,11 @@
       </div>
       <button onclick="toggleEditMode()" id="edit-profile-btn" style="background:transparent;border:1px solid var(--border);color:var(--text);padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;white-space:nowrap" onmouseover="this.style.borderColor='var(--cyan)';this.style.color='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text)'">Edit Profile</button>
     </div>
-    <button class="btn-secondary" onclick="openLoadBuildsModal()" style="width:100%;padding:20px;margin-bottom:24px;font-size:17px;font-weight:700">📂 Saved Builds</button>
+    <button class="btn-secondary" onclick="openLoadBuildsModal()" style="width:100%;padding:20px;margin-bottom:24px;font-size:17px;font-weight:700">Saved Builds</button>
     <div class="grid-2" style="margin-bottom:24px">
       <!-- Account Info -->
       <div class="card" style="padding:28px" id="info-view-panel">
-        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px">👤 Account Info</div>
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px">Account Info</div>
         <div style="display:flex;flex-direction:column;gap:14px">
           <div>
             <div style="font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Full Name</div>
@@ -52,7 +52,7 @@
     </div>
     <!-- Recent Activity -->
     <div class="card" style="padding:28px;margin-bottom:24px">
-      <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px">🕒 Recent Activity</div>
+      <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px">Recent Activity</div>
       <div id="recent-activity-list" style="display:flex;flex-direction:column;gap:0"></div>
     </div>
   </div>
@@ -116,9 +116,27 @@
 </div>
 <div class="modal-overlay" id="saved-builds-modal">
   <div class="modal-box">
-    <div class="modal-title">📂 Saved Builds</div>
+    <div class="modal-title">Saved Builds</div>
     <div id="saved-builds-modal-list" style="max-height:400px;overflow-y:auto;margin:20px 0;"></div>
     <button class="modal-close" style="width:100%" onclick="closeSavedBuildsModal()">Close</button>
+  </div>
+</div>
+<div class="modal-overlay" id="save-build-modal" role="dialog" aria-modal="true" aria-labelledby="save-build-modal-title">
+  <div class="modal-box save-build-modal-box">
+    <div class="modal-title" id="save-build-modal-title">Name this build</div>
+    <div id="save-build-name-form">
+      <label class="save-build-label" for="save-build-name-input">Build name</label>
+      <input class="chat-textarea save-build-name-input" id="save-build-name-input" type="text" maxlength="100" value="My PC Build" placeholder="e.g. My Gaming Build" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmSaveCurrentBuild()}" />
+      <div class="save-build-error" id="save-build-error" role="alert"></div>
+      <div class="save-build-actions">
+        <button class="btn-secondary" type="button" onclick="closeSaveBuildModal()">Cancel</button>
+        <button class="btn-gradient" id="save-build-confirm" type="button" onclick="confirmSaveCurrentBuild()">Save Build</button>
+      </div>
+    </div>
+    <div id="save-build-result" class="save-build-result" hidden>
+      <p id="save-build-result-message"></p>
+      <button class="modal-close" type="button" onclick="closeSaveBuildModal()">Close</button>
+    </div>
   </div>
 </div>
 <div class="modal-overlay" id="saved-build-note-modal" role="dialog" aria-modal="true" aria-labelledby="saved-build-note-title">

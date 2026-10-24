@@ -63,7 +63,7 @@
       </div>
       <div class="compat-actions">
         <button class="btn-gradient" onclick="runCompatCheck()">✓ Check Compatibility</button>
-        <button class="btn-secondary" onclick="saveCurrentBuild()">💾 Save Build</button>
+        <button class="btn-secondary" onclick="saveCurrentBuild()">Save Build</button>
       </div>
       <div class="compat-header" style="margin-top:24px">
         <div class="compat-status" id="compat-status">✓ 0 of 6 Parts Compatible</div>

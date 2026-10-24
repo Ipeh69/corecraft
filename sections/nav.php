@@ -26,6 +26,10 @@
         </div>
         <button class="dropdown-item" onclick="showPage('profile');closeDropdown()">My Profile</button>
         <button class="dropdown-item logout" onclick="handleLogout()">Log Out</button>
+        <select class="theme-select dropdown-theme-select" aria-label="Color theme" onchange="setColorTheme(this.value)">
+          <option value="dark">Dark mode</option>
+          <option value="light">Light mode</option>
+        </select>
       </div>
     </div>
   </div>
@@ -41,6 +45,10 @@
   <a onclick="showPage('troubleshoot');closeMenu()">🛠️ Troubleshooting</a>
   <a onclick="showPage('PHchat');closeMenu()">🌐 PH Community</a>
   <div class="mobile-menu-actions">
+    <select class="theme-select mobile-theme-select" aria-label="Color theme" onchange="setColorTheme(this.value)">
+      <option value="dark">Dark mode</option>
+      <option value="light">Light mode</option>
+    </select>
     <button class="btn-login" onclick="showPage('login');closeMenu()">👤 Login</button>
   </div>
 </div>
