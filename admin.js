@@ -489,8 +489,8 @@ async function loadAdminUsers(){
     if(tbody){
       tbody.innerHTML=adminState.users.length?adminState.users.map(function(user,index){
         const isSelf=window._user&&user.email===window._user.email;
-        const roles=['user','verified','moderator','admin'];
-        const roleOptions=roles.map(function(r){return '<option value="'+r+'"'+(user.role===r?' selected':'')+'>'+r+'</option>';}).join('');
+        const roles=[['user','User'],['admin','Admin']];
+        const roleOptions=roles.map(function(r){return '<option value="'+r[0]+'"'+(user.role===r[0]?' selected':'')+'>'+r[1]+'</option>';}).join('');
         return '<tr>'+
           '<td><div class="strong">'+adminEsc(user.full_name)+(isSelf?' <span class="admin-tag info">you</span>':'')+'</div></td>'+
           '<td class="muted">'+adminEsc(user.email)+'</td>'+
