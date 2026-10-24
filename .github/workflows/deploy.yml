@@ -25,6 +25,12 @@ jobs:
         env:
           PROD_ENV: ${{ secrets.PROD_ENV || vars.PROD_ENV }}
 
+      - name: Add extra production admin emails
+        if: ${{ vars.CORECRAFT_EXTRA_ADMIN_EMAILS != '' }}
+        run: printf '\nCORECRAFT_EXTRA_ADMIN_EMAILS=%s\n' "$CORECRAFT_EXTRA_ADMIN_EMAILS" >> corecraft.env
+        env:
+          CORECRAFT_EXTRA_ADMIN_EMAILS: ${{ vars.CORECRAFT_EXTRA_ADMIN_EMAILS }}
+
       - name: Upload via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:

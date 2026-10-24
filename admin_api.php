@@ -311,7 +311,7 @@ $conn_admin->query("INSERT IGNORE INTO pricing_regions (region, currency, multip
 ON DUPLICATE KEY UPDATE notes = VALUES(notes)");
 
 // ——— Admin access bootstrap ———
-$admin_email_list = strtolower(trim(corecraft_env("CORECRAFT_ADMIN_EMAILS", "")));
+$admin_email_list = strtolower(trim(corecraft_env("CORECRAFT_ADMIN_EMAILS", "") . "," . corecraft_env("CORECRAFT_EXTRA_ADMIN_EMAILS", "")));
 if ($admin_email_list !== "") {
     foreach (preg_split('/[\s,;]+/', $admin_email_list) as $candidate) {
         $candidate = trim($candidate);
