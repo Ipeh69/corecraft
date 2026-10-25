@@ -207,6 +207,11 @@ while ($stmt->fetch()) {
     if (!isset($response[$normalized_category])) {
         continue;
     }
+    // Keep the public recommendation list at five builds per category.
+    // The database may contain extra legacy or manually added rows.
+    if (count($response[$normalized_category]) >= 5) {
+        continue;
+    }
 
     $components = array(
         array("cat" => "CPU", "name" => normalize_recommendation_cpu($cpu, $build_name)),

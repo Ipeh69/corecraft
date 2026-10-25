@@ -39,11 +39,11 @@
 </nav>
 <!-- Mobile Menu -->
 <div class="mobile-menu" id="mobile-menu">
-  <a onclick="showPage('compatibility');closeMenu()">⚡ Compatibility Checker</a>
-  <a onclick="showPage('build');closeMenu()">💡 Build Recommendations</a>
-  <a onclick="showPage('pricing');closeMenu()">📍 Part Pricing by Location</a>
-  <a onclick="showPage('troubleshoot');closeMenu()">🛠️ Troubleshooting</a>
-  <a onclick="showPage('PHchat');closeMenu()">🌐 PH Community</a>
+  <a onclick="showPage('compatibility');closeMenu()">Compatibility Checker</a>
+  <a onclick="showPage('build');closeMenu()">Build Recommendations</a>
+  <a onclick="showPage('pricing');closeMenu()">Part Pricing by Location</a>
+  <a onclick="showPage('troubleshoot');closeMenu()">Troubleshooting</a>
+  <a onclick="showPage('PHchat');closeMenu()">PH Community</a>
   <div class="mobile-menu-actions">
     <select class="theme-select mobile-theme-select" aria-label="Color theme" onchange="setColorTheme(this.value)">
       <option value="dark">Dark mode</option>
