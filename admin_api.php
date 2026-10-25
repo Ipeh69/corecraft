@@ -237,6 +237,13 @@ $conn_admin->query("CREATE TABLE IF NOT EXISTS communities (
     UNIQUE KEY uq_community_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 
+$conn_admin->query("CREATE TABLE IF NOT EXISTS community_deletion_tombstones (
+    name VARCHAR(80) NOT NULL,
+    deleted_by VARCHAR(190) NOT NULL,
+    deleted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+
 $conn_admin->query("CREATE TABLE IF NOT EXISTS community_messages (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     community VARCHAR(80) NOT NULL,
@@ -274,6 +281,19 @@ $conn_admin->query("CREATE TABLE IF NOT EXISTS community_comment_likes (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (comment_id, user_email),
     KEY idx_comment_likes_user (user_email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+
+$conn_admin->query("CREATE TABLE IF NOT EXISTS community_post_reports (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    post_id BIGINT UNSIGNED NOT NULL,
+    community VARCHAR(80) NOT NULL,
+    reporter_email VARCHAR(190) NOT NULL,
+    reason TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_post_reporter (post_id, reporter_email),
+    KEY idx_post_reports_status (status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 
 $conn_admin->query("CREATE TABLE IF NOT EXISTS private_messages (
@@ -417,7 +437,7 @@ if ($action === "track") {
 // report_create is open to any signed-in user (the community UI flags content).
 // Moderation actions are available to moderators; everything else requires a full admin.
 $member_actions = array("report_create");
-$moderator_actions = array("report_list", "report_resolve", "report_post_delete", "report_warn_user", "content_list", "content_delete");
+$moderator_actions = array("report_list", "report_resolve", "report_post_delete", "report_warn_user", "content_list", "content_delete", "community_moderation_list", "community_moderation_delete");
 if (in_array($action, $member_actions, true)) {
     // allowed for any authenticated account
 } elseif (in_array($action, $moderator_actions, true)) {
@@ -945,6 +965,113 @@ if ($action === "report_list") {
     }
     $stmt->close();
     admin_respond(array("success" => true, "reports" => $reports));
+}
+
+if ($action === "community_moderation_list") {
+    $result = $conn_admin->query("SELECT name, description, created_by, created_at, (created_by = 'system@corecraft.local') AS is_system FROM communities ORDER BY is_system ASC, created_at DESC, name ASC");
+    if (!$result) admin_respond(array("success" => false, "error" => "Failed to load communities"), 500);
+    $communities = array();
+    while ($row = $result->fetch_assoc()) $communities[] = $row;
+    admin_respond(array("success" => true, "communities" => $communities));
+}
+
+if ($action === "community_moderation_delete") {
+    $community = trim(admin_field($body, "name", ""));
+    if ($community === "" || strlen($community) > 80) admin_respond(array("success" => false, "error" => "Invalid community name"), 400);
+
+    $verify = $conn_admin->prepare("SELECT created_by FROM communities WHERE name = ? LIMIT 1");
+    if (!$verify) admin_respond(array("success" => false, "error" => "Failed to verify community"), 500);
+    $verify->bind_param("s", $community);
+    $verify->execute();
+    $verify->bind_result($community_creator);
+    if (!$verify->fetch()) {
+        $verify->close();
+        admin_respond(array("success" => false, "error" => "Community not found"), 404);
+    }
+    $verify->close();
+    $images = array();
+    $image_stmt = $conn_admin->prepare("SELECT image_path FROM community_posts WHERE community = ? AND image_path IS NOT NULL");
+    if ($image_stmt) {
+        $image_stmt->bind_param("s", $community);
+        $image_stmt->execute();
+        $image_result = $image_stmt->get_result();
+        while ($image_row = $image_result->fetch_assoc()) $images[] = $image_row["image_path"];
+        $image_stmt->close();
+    }
+
+    $conn_admin->autocommit(false);
+    if ($community_creator === "system@corecraft.local") {
+        $tombstone = $conn_admin->prepare("INSERT IGNORE INTO community_deletion_tombstones (name, deleted_by) VALUES (?, ?)");
+        if (!$tombstone) {
+            $conn_admin->rollback();
+            $conn_admin->autocommit(true);
+            admin_respond(array("success" => false, "error" => "Failed to prepare default community deletion"), 500);
+        }
+        $tombstone->bind_param("ss", $community, $email);
+        if (!$tombstone->execute()) {
+            $tombstone->close();
+            $conn_admin->rollback();
+            $conn_admin->autocommit(true);
+            admin_respond(array("success" => false, "error" => "Default community could not be removed"), 500);
+        }
+        $tombstone->close();
+    }
+    $cleanup_queries = array(
+        "DELETE FROM moderation_warning_deliveries WHERE report_id IN (SELECT id FROM moderation_reports WHERE community = ?)",
+        "DELETE FROM moderation_reports WHERE community = ?",
+        "DELETE FROM community_post_reports WHERE community = ?",
+        "DELETE FROM community_notifications WHERE community = ?",
+        "DELETE FROM community_comment_likes WHERE comment_id IN (SELECT c.id FROM community_post_comments c INNER JOIN community_posts p ON p.id = c.post_id WHERE p.community = ?)",
+        "DELETE FROM community_post_comments WHERE post_id IN (SELECT id FROM community_posts WHERE community = ?)",
+        "DELETE FROM community_post_likes WHERE post_id IN (SELECT id FROM community_posts WHERE community = ?)",
+        "DELETE FROM community_posts WHERE community = ?",
+        "DELETE FROM community_messages WHERE community = ?"
+    );
+    foreach ($cleanup_queries as $cleanup_sql) {
+        $cleanup = $conn_admin->prepare($cleanup_sql);
+        if (!$cleanup) {
+            $conn_admin->rollback();
+            $conn_admin->autocommit(true);
+            admin_respond(array("success" => false, "error" => "Failed to prepare community cleanup"), 500);
+        }
+        $cleanup->bind_param("s", $community);
+        if (!$cleanup->execute()) {
+            $cleanup->close();
+            $conn_admin->rollback();
+            $conn_admin->autocommit(true);
+            admin_respond(array("success" => false, "error" => "Community content could not be cleaned up"), 500);
+        }
+        $cleanup->close();
+    }
+    $delete = $conn_admin->prepare("DELETE FROM communities WHERE name = ?");
+    if (!$delete) {
+        $conn_admin->rollback();
+        $conn_admin->autocommit(true);
+        admin_respond(array("success" => false, "error" => "Failed to prepare community deletion"), 500);
+    }
+    $delete->bind_param("s", $community);
+    if (!$delete->execute() || $delete->affected_rows !== 1) {
+        $delete->close();
+        $conn_admin->rollback();
+        $conn_admin->autocommit(true);
+        admin_respond(array("success" => false, "error" => "Community could not be deleted"), 500);
+    }
+    $delete->close();
+    if (!$conn_admin->commit()) {
+        $conn_admin->rollback();
+        $conn_admin->autocommit(true);
+        admin_respond(array("success" => false, "error" => "Community deletion could not be saved"), 500);
+    }
+    $conn_admin->autocommit(true);
+
+    $image_directory = realpath(__DIR__ . DIRECTORY_SEPARATOR . "uploads" . DIRECTORY_SEPARATOR . "community_images");
+    foreach ($images as $image_path) {
+        if (!$image_directory || !preg_match('/^uploads\\/community_images\\/[A-Za-z0-9._-]+$/', $image_path)) continue;
+        $image_file = realpath(__DIR__ . DIRECTORY_SEPARATOR . str_replace("/", DIRECTORY_SEPARATOR, $image_path));
+        if ($image_file && strpos($image_file, $image_directory . DIRECTORY_SEPARATOR) === 0 && is_file($image_file)) @unlink($image_file);
+    }
+    admin_log($conn_admin, "warning", "moderation", "Deleted community " . $community . " and its content");
+    admin_respond(array("success" => true, "message" => "Community and its content were deleted"));
 }
 
 if ($action === "report_warn_user") {

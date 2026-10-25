@@ -116,6 +116,11 @@
       <section class="admin-view" id="admin-view-moderation">
         <div class="admin-cols">
           <div class="admin-card">
+            <div class="admin-card-title">Communities</div>
+            <p class="admin-hint">Moderators can remove any community and its content. Removed CoreCraft defaults will stay deleted.</p>
+            <div id="admin-community-list" class="admin-list"></div>
+          </div>
+          <div class="admin-card">
             <div class="admin-card-title with-actions">
               <span>Reported content</span>
               <select class="admin-input admin-select small" id="report-status-filter" onchange="loadAdminReports()">

@@ -293,6 +293,71 @@ function getShopListingsQuery(center,radius){
   return `[out:json][timeout:12];(${listings});out tags center;`;
 }
 
+function getTroubleTechnicianQuery(center){
+  const radius=10000;
+  const scope=`(around:${radius},${center.lat.toFixed(5)},${center.lng.toFixed(5)})`;
+  return `[out:json][timeout:12];(nwr["craft"="electronics_repair"]${scope};nwr["computer:repair"~"yes|only|software"]${scope};nwr["electronics_repair"~"computer",i]${scope};);out tags center;`;
+}
+
+function getTroubleCoordinates(){
+  try{
+    const saved=JSON.parse(localStorage.getItem('corecraft_last_location')||'null');
+    if(saved&&Number.isFinite(saved.lat)&&Number.isFinite(saved.lng)&&Date.now()-saved.time<86400000){
+      return Promise.resolve({lat:saved.lat,lng:saved.lng});
+    }
+  }catch(e){}
+  if(!navigator.geolocation||!window.isSecureContext)return Promise.resolve(null);
+  return new Promise(function(resolve){
+    navigator.geolocation.getCurrentPosition(function(position){
+      const center={lat:position.coords.latitude,lng:position.coords.longitude};
+      try{localStorage.setItem('corecraft_last_location',JSON.stringify({lat:center.lat,lng:center.lng,time:Date.now()}));}catch(e){}
+      resolve(center);
+    },function(){resolve(null);},{enableHighAccuracy:false,timeout:8000,maximumAge:600000});
+  });
+}
+
+async function fetchNearbyTechnicians(center){
+  const query=getTroubleTechnicianQuery(center);
+  const response=await fetch('overpass_proxy.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:query})});
+  if(!response.ok)throw new Error('Nearby repair listings are unavailable right now.');
+  const data=await response.json();
+  if(!Array.isArray(data.elements))throw new Error('Nearby repair listings are unavailable right now.');
+  const unique={};
+  data.elements.forEach(function(element){
+    const tags=element.tags||{};
+    const coordinates=getOSMCoordinates(element);
+    if(!coordinates||!isFinite(coordinates.lat)||!isFinite(coordinates.lon))return;
+    const distance=distanceMeters(center,{lat:coordinates.lat,lng:coordinates.lon});
+    if(distance>10000)return;
+    const computerRepair=String(tags['computer:repair']||'');
+    const repairType=String(tags.electronics_repair||'');
+    const genericRepair=tags.craft==='electronics_repair';
+    const computerSpecific=/yes|only|software/i.test(computerRepair)||/computer/i.test(repairType);
+    if(!genericRepair&&!computerSpecific)return;
+    if(/^(phone|mobile_phone)$/i.test(repairType)&&!computerSpecific)return;
+    const name=tags.name||tags.operator||'';
+    if(!name)return;
+    const key=(element.type||'')+'/'+(element.id||name);
+    unique[key]={name:name,address:getOSMAddress(tags)||tags['addr:full']||'Address not listed',lat:coordinates.lat,lon:coordinates.lon,distance:distance,computerSpecific:computerSpecific};
+  });
+  return Object.keys(unique).map(function(key){return unique[key];}).sort(function(a,b){return a.distance-b.distance;}).slice(0,6);
+}
+
+function buildTroubleTechnicianReply(center,area,listings,searchFailed){
+  const safeArea=escapeHtml(area||'your area');
+  if(!listings.length){
+    const searchUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent('computer repair technician near '+center.lat+','+center.lng);
+    const noListing=searchFailed?'Hindi ko ma-load ang repair listings ngayon.':'Wala akong nakitang nearby PC repair listing sa map data';
+    return `Sorry hindi gumana ang mga steps. ${noListing} para sa ${safeArea}. <a href="${searchUrl}" target="_blank" rel="noopener noreferrer">Search PC repair technicians on Google Maps</a>. Tawagan muna ang shop para kumpirmahin na nag-aayos sila ng PC at alamin ang presyo at oras bago pumunta. <small>Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</small>`;
+  }
+  const results=listings.map(function(place){
+    const label=place.computerSpecific?'Computer repair listing':'Electronics repair listing — confirm that they repair PCs';
+    const mapUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(place.name+' '+place.address);
+    return `<li><a href="${mapUrl}" target="_blank" rel="noopener noreferrer"><strong>${escapeHtml(place.name)}</strong></a> — ${escapeHtml((place.distance/1000).toFixed(1))} km, ${escapeHtml(place.address)} <span class="phchat-muted">(${label})</span></li>`;
+  }).join('');
+  return `Sorry hindi gumana ang mga steps. Narito ang malalapit na repair listings sa ${safeArea}:<ul>${results}</ul><small>OpenStreetMap listings ito at maaaring kulang o luma. Tawagan muna para kumpirmahin ang PC repair service, availability, at presyo bago pumunta. Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</small>`;
+}
+
 async function fetchShopListings(center,radius){
   const cacheKey='shops:'+center.lat.toFixed(2)+','+center.lng.toFixed(2)+','+radius;
   try{
@@ -1506,25 +1571,9 @@ async function askGemini(id,text){
   if(!response.ok||!data.reply)throw new Error(data.error||'Gemini request failed');
   return data.reply;
 }
-let troubleFails=0,troubleTopic='';
-const TROUBLE_FAIL_RE=/(still|didn'?t work|did not work|not work|doesn'?t work|no luck|same (problem|issue|error)|nothing (happen|change)|tried|failed|not fixed|won'?t (work|fix))/i;
-const TROUBLE_SOLVED_RE=/(fixed|solved|it works now|working now|thank)/i;
-const TROUBLE_VIDEOS=[
-  {re:/(turn on|power|boot|dead|won'?t start)/i,id:'sfs_bE2X73Q'},
-  {re:/(display|black screen|no signal|monitor)/i,id:'SrcFSrt5Ev8'},
-  {re:/(restart|reboot)/i,id:'bzV4WBuZdLU'},
-  {re:/(overheat|hot|temp|shut ?down)/i,id:'KYRIfyIlNmM'},
-  {re:/(bsod|blue screen)/i,id:'SlfytZOvtC8'},
-  {re:/(slow|lag)/i,id:'sZl6rNUBbAY'}
-];
-function troubleVideoHtml(topic){
-  const v=TROUBLE_VIDEOS.find(x=>x.re.test(topic));
-  if(!v){
-    const url='https://www.youtube.com/results?search_query='+encodeURIComponent('how to fix PC '+topic);
-    return `🎬 <a href="${url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Watch video tutorials</a>`;
-  }
-  return `<div style="position:relative;padding-bottom:56.25%;height:0;margin-top:8px"><iframe src="https://www.youtube.com/embed/${v.id}" title="Troubleshooting video" style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:8px" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>`;
-}
+let troubleTechSearchPending=false;
+const TROUBLE_FAIL_RE=/(?:didn['’]?t work|did not work|(?:steps?|it|that) (?:don['’]?t|do not|doesn['’]?t|does not) work|didn['’]?t (?:fix|help)|did not (?:fix|help)|still (?:not working|not fixed|broken|no display|(?:doesn['’]?t|does not|won['’]?t|will not) work|won['’]?t boot)|no luck|no (?:change|improvement)|same (?:problem|issue|error)|nothing (?:happened|changed)|not fixed|failed|won['’]?t (?:work|boot)|(?:di|hindi)(?: talaga| pa rin)? (?:gumana|nag.?work|gumagana|nagana|umubra|umayos)|(?:ayaw|wala) pa rin|ganun pa rin|nasubukan ko na lahat|tried (?:all|everything|the steps))/i;
+const TROUBLE_MATH_RE=/\b(math(?:ematics)?|arithmetic|algebra|geometry|trigonometry|calculus|equation|integral|derivative|probability|statistics|square root|factorial|solve for x|calculate|compute|evaluate|simplify|factor|solve)\b|\b\d+(?:\.\d+)?\s*(?:[+*\/^=×÷-])\s*\d+(?:\.\d+)?\b|\b\d+(?:\.\d+)?\s+(?:plus|minus|times|multiplied by|divided by)\s+\d+(?:\.\d+)?\b|^\s*[a-z0-9]+\s*(?:[+*\/^=×÷-]\s*[a-z0-9]+)+(?:\s*[?=])?\s*$/i;
 async function sendChat(id){
   const inp=document.getElementById(id+'-input');
   const text=inp.value.trim();if(!text)return;
@@ -1543,6 +1592,39 @@ async function sendChat(id){
   if(id==='trouble')recordActivity('🛠️','Asked troubleshooting AI',text,'rgba(34,197,94,.1)');
   if(id==='buildai')recordActivity('💡','Asked build recommendation AI',text,'rgba(8,124,255,.1)');
   addMsg(id,'user',displayText);inp.value='';
+  const needsTechnician=id==='trouble'&&!TROUBLE_MATH_RE.test(text)&&(TROUBLE_FAIL_RE.test(text)||troubleTechSearchPending);
+  if(needsTechnician){
+    const isTypedLocation=troubleTechSearchPending&&!TROUBLE_FAIL_RE.test(text);
+    document.getElementById(id+'-send').disabled=true;
+    addTyping(id);
+    let center=null,area=isTypedLocation?text:'';
+    try{
+      center=isTypedLocation?await geocodeShopSearchArea(text):await getTroubleCoordinates();
+      if(!center){
+        troubleTechSearchPending=true;
+        removeTyping(id);
+        addMsg(id,'ai','Sorry na hindi gumana ang steps. Para makahanap ako ng malapit na PC technician, i-type ang city o barangay mo. Puwede ring payagan ang location access ng browser, tapos ipadala ulit ang mensahe.');
+        return;
+      }
+      troubleTechSearchPending=false;
+      area=area||(await reverseGeocodePlace(center).catch(function(){return null;}))||'your current area';
+      const listings=await fetchNearbyTechnicians(center);
+      removeTyping(id);
+      addMsg(id,'ai',buildTroubleTechnicianReply(center,area,listings,false));
+    }catch(error){
+      removeTyping(id);
+      if(!center){
+        troubleTechSearchPending=true;
+        addMsg(id,'ai','Hindi ko mahanap ang location na iyon. Pakisend ang mas eksaktong city o barangay, halimbawa “Quezon City, Metro Manila.”');
+      }else{
+        troubleTechSearchPending=false;
+        addMsg(id,'ai',buildTroubleTechnicianReply(center,area,[],true));
+      }
+    }finally{
+      document.getElementById(id+'-send').disabled=false;
+    }
+    return;
+  }
   document.getElementById(id+'-send').disabled=true;
   addTyping(id);
   try{

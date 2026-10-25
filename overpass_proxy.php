@@ -16,8 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $payload = json_decode(file_get_contents('php://input'), true);
 $query = is_array($payload) && isset($payload['query']) ? trim((string)$payload['query']) : '';
-// Only allow the shop-listing queries this site generates, so this is not an open proxy.
-if ($query === '' || strlen($query) > 2500 || strpos($query, '[out:json]') !== 0 || strpos($query, '"shop"') === false) {
+// Only allow the shop and PC-repair listing queries this site generates.
+$hasAllowedListingTag = strpos($query, '"shop"') !== false
+    || strpos($query, '"craft"="electronics_repair"') !== false
+    || strpos($query, '"computer:repair"') !== false
+    || strpos($query, '"electronics_repair"') !== false;
+if ($query === '' || strlen($query) > 2500 || strpos($query, '[out:json]') !== 0 || !$hasAllowedListingTag) {
     overpassFail(422, 'Invalid query.');
 }
 

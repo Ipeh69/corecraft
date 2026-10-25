@@ -1,5 +1,5 @@
 // ——— CoreCraft Admin Console ———
-let adminState={view:'dashboard',components:[],rules:[],regions:[],users:[],reports:[],content:[]};
+let adminState={view:'dashboard',components:[],rules:[],regions:[],users:[],reports:[],communities:[],content:[]};
 
 function adminEsc(value){
   return String(value==null?'':value).replace(/[&<>"']/g,function(c){
@@ -79,7 +79,7 @@ function switchAdminView(view,button){
     components:['Component Catalog','Add, update and retire hardware parts and pricing.'],
     rules:['Compatibility Rules','Maintain the checks behind build compatibility.'],
     users:['Users & Roles','Manage accounts, roles and access.'],
-    moderation:['Moderation','Review reports and remove abusive content.'],
+    moderation:['Moderation','Review reports, remove abusive content, and manage communities.'],
     pricing:['Pricing Feeds','Sync regional prices used by AI estimation.'],
     analytics:['Analytics & Health','Usage trends, traffic and API health.'],
     logs:['System Logs','Errors, warnings and the admin audit trail.']
@@ -98,7 +98,7 @@ function loadAdminView(view){
   else if(view==='components')loadAdminComponents();
   else if(view==='rules')loadAdminRules();
   else if(view==='users')loadAdminUsers();
-  else if(view==='moderation')loadAdminReports();
+  else if(view==='moderation'){loadAdminReports();loadAdminCommunities();}
   else if(view==='pricing')loadAdminRegions();
   else if(view==='analytics')loadAdminAnalytics();
   else if(view==='logs')loadAdminLogs();
@@ -574,6 +574,36 @@ async function loadAdminReports(){
   }catch(error){
     if(list)list.innerHTML='<div class="admin-empty">'+adminEsc(error.message)+'</div>';
   }
+}
+
+async function loadAdminCommunities(){
+  const list=document.getElementById('admin-community-list');
+  if(!list)return;
+  list.innerHTML='<div class="admin-empty">Loading communities...</div>';
+  try{
+    const data=await adminApi('community_moderation_list');
+    adminState.communities=data.communities||[];
+    list.innerHTML=adminState.communities.length?adminState.communities.map(function(community,index){
+      const isSystem=Number(community.is_system)===1;
+      return '<div class="admin-list-row">'+
+        '<div class="grow"><div class="strong">'+adminEsc(community.name)+(isSystem?' <span class="admin-tag neutral">CoreCraft default</span>':'')+'</div>'+
+        '<div class="muted">'+adminEsc(community.description||'')+'</div>'+
+        '<div class="muted">'+(isSystem?'Built-in community':'Created by '+adminEsc(community.created_by||'member'))+' · '+adminEsc(community.created_at||'')+'</div></div>'+
+        '<button class="admin-icon-btn danger" onclick="deleteAdminCommunity('+index+')">Delete</button>'+
+      '</div>';
+    }).join(''):'<div class="admin-empty">No communities found.</div>';
+  }catch(error){list.innerHTML='<div class="admin-empty">'+adminEsc(error.message||'Could not load communities.')+'</div>';}
+}
+
+async function deleteAdminCommunity(index){
+  const community=adminState.communities[index];
+  if(!community)return;
+  if(!window.confirm('Delete “'+community.name+'” and permanently remove its posts, comments, likes, reports, and messages?'))return;
+  try{
+    const data=await adminApi('community_moderation_delete',{name:community.name});
+    setAdminStatus(data.message||'Community deleted','ok');
+    await loadAdminCommunities();
+  }catch(error){setAdminStatus(error.message||'Community could not be deleted','err');}
 }
 
 function checkReportedPost(index){

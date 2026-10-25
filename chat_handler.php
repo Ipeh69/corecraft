@@ -80,9 +80,14 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
   if (!$conn->query($create_communities_sql)) {
     $reply(array("success" => false, "error" => "Failed to prepare communities table"), 500);
   }
+  $conn->query("CREATE TABLE IF NOT EXISTS community_deletion_tombstones (name VARCHAR(80) NOT NULL, deleted_by VARCHAR(190) NOT NULL, deleted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (name)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+  $deleted_communities = array();
+  $deleted_result = $conn->query("SELECT name FROM community_deletion_tombstones");
+  if ($deleted_result) while ($deleted_row = $deleted_result->fetch_assoc()) $deleted_communities[$deleted_row["name"]] = true;
   $seed = $conn->prepare("INSERT IGNORE INTO communities (name, description, created_by) VALUES (?, ?, ?)");
   if ($seed) {
     foreach ($default_communities as $default) {
+      if (isset($deleted_communities[$default["name"]])) continue;
       $system_email = "system@corecraft.local";
       $seed->bind_param("sss", $default["name"], $default["description"], $system_email);
       $seed->execute();
