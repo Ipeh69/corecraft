@@ -11,6 +11,59 @@ function normalize_category($value) {
     return $cat;
 }
 
+function apply_recommendation_seed_once($conn) {
+    $migrationKey = "recommendations_seed_v2";
+    $conn->query("CREATE TABLE IF NOT EXISTS corecraft_migrations (
+        migration_key VARCHAR(100) NOT NULL PRIMARY KEY,
+        applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $check = $conn->prepare("SELECT migration_key FROM corecraft_migrations WHERE migration_key = ? LIMIT 1");
+    if ($check) {
+        $check->bind_param("s", $migrationKey);
+        $check->execute();
+        $check->store_result();
+        $alreadyApplied = $check->num_rows > 0;
+        $check->close();
+        if ($alreadyApplied) {
+            return;
+        }
+    }
+
+    $seedPath = __DIR__ . "/recommendations_seed_v2.php";
+    if (!is_file($seedPath)) {
+        return;
+    }
+    $seedSql = require $seedPath;
+    if (!is_string($seedSql) || !$conn->multi_query($seedSql)) {
+        return;
+    }
+
+    $seedSucceeded = true;
+    do {
+        $result = $conn->store_result();
+        if ($result instanceof mysqli_result) {
+            $result->free();
+        }
+        if (!$conn->more_results()) {
+            break;
+        }
+        if (!$conn->next_result()) {
+            $seedSucceeded = false;
+            break;
+        }
+    } while (true);
+
+    if ($seedSucceeded && !$conn->errno) {
+        $mark = $conn->prepare("INSERT IGNORE INTO corecraft_migrations (migration_key) VALUES (?)");
+        if ($mark) {
+            $mark->bind_param("s", $migrationKey);
+            $mark->execute();
+            $mark->close();
+        }
+    }
+}
+
 function normalize_recommendation_motherboard($motherboard, $ram) {
     $board = trim($motherboard);
     $memory = strtolower($ram);
@@ -132,6 +185,7 @@ if (!$conn || !is_object($conn)) {
 $conn->query("ALTER TABLE build_recommendations ADD COLUMN price DECIMAL(10,2) NOT NULL DEFAULT 0");
 $conn->query("ALTER TABLE build_recommendations ADD COLUMN pros TEXT NULL");
 $conn->query("ALTER TABLE build_recommendations ADD COLUMN cons TEXT NULL");
+apply_recommendation_seed_once($conn);
 
 $sql = "SELECT id, build_name, category, description, price, pros, cons, cpu, motherboard, ram, gpu, storage, psu
     FROM build_recommendations
