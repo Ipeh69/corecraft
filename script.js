@@ -853,6 +853,18 @@ function formatAIResponse(text){
     .replace(/\n/g,'<br>');
 }
 
+function formatPriceEstimateRanges(text){
+  function formatAmount(value){
+    const amount=String(value||'').trim();
+    if(!amount||/unverified|unknown|n\/a/i.test(amount))return amount.toUpperCase();
+    const numeric=Number(amount.replace(/[^\d.-]/g,''));
+    return Number.isFinite(numeric)&&numeric>0?'₱'+Math.round(numeric).toLocaleString('en-PH'):amount;
+  }
+  return String(text||'').replace(/^([^|\r\n]+)\s*\|\s*([^|\r\n]+)\s*\|\s*([^|\r\n]+)\s*$/gm,function(line,label,low,high){
+    return label.trim()+' - '+formatAmount(low)+' - '+formatAmount(high);
+  });
+}
+
 function getAICompatAnalysis(cpu,mb,ram,gpu,storage,psu,pccase){
   const cpuL=cpu.toLowerCase();
   const mbL=mb.toLowerCase();
@@ -2645,7 +2657,7 @@ async function requestSavedBuildPriceEstimate(savedComponents,typeLabels){
   try{
     const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       feature:'pricing',
-      message:`Estimate typical Philippine market price ranges for these exact PC components. Treat every amount as an AI estimate for reference only; do not claim live prices, current store listings, or stock. Reply with one line per component in this exact format: COMPONENT TYPE | LOW ESTIMATE PHP | HIGH ESTIMATE PHP. Use numbers only after each pipe. Add a TOTAL line with low and high estimates. If a component model is too vague, write UNVERIFIED for its range. Components:\n${parts}`
+      message:`Estimate typical Philippine market price ranges for these exact PC components. Treat every amount as an AI estimate for reference only; do not claim live prices, current store listings, or stock. Reply with one line per component in this exact format: COMPONENT TYPE - LOW ESTIMATE PHP - HIGH ESTIMATE PHP. Use hyphens as separators and never use vertical bars. Add a TOTAL line in the same format with low and high estimates. If a component model is too vague, write UNVERIFIED for its range. Components:\n${parts}`
     })});
     const responseText=await response.text();
     let data={};
@@ -2654,7 +2666,7 @@ async function requestSavedBuildPriceEstimate(savedComponents,typeLabels){
     }
     if(!response.ok||!data.reply)throw new Error(data.error||'AI estimate unavailable');
     if(requestId!==savedBuildPriceEstimateRequest)return;
-    estimate.innerHTML=`<div class="saved-build-estimate-content">${formatAIResponse(data.reply)}<p>AI-generated estimates for reference only. Prices vary by seller and date; check current listings before buying.</p></div>`;
+    estimate.innerHTML=`<div class="saved-build-estimate-content">${formatAIResponse(formatPriceEstimateRanges(data.reply))}<p>AI-generated estimates for reference only. Prices vary by seller and date; check current listings before buying.</p></div>`;
   }catch(error){
     if(requestId!==savedBuildPriceEstimateRequest)return;
     const message=document.createElement('div');

@@ -129,21 +129,23 @@ $requestBody = array(
 );
 
 if ($feature === 'trouble') {
-    $requestBody['generationConfig']['maxOutputTokens'] = 1536;
+    // Troubleshooting should be a quick conversational turn, not a long guide.
+    $requestBody['generationConfig']['maxOutputTokens'] = 512;
     $requestBody['generationConfig']['temperature'] = 0.5;
     $requestBody['system_instruction']['parts'][0]['text'] .= "\n\nConversation rule: acknowledge the user's latest observation, avoid canned/default answers, and ask a concise follow-up question whenever the next safe diagnostic step depends on missing information. Give only the next useful step or two, not a full generic guide.";
 }
 
 // The endpoint is stateless, so pass recent troubleshooting turns back to Gemini.
 if ($feature === 'trouble' && isset($payload['history']) && is_array($payload['history'])) {
-    $history = array_slice($payload['history'], -10);
+    // Keep enough context to avoid repeating fixes without resending a large transcript.
+    $history = array_slice($payload['history'], -6);
     $contents = array();
     foreach ($history as $turn) {
         if (!is_array($turn) || !isset($turn['role']) || !isset($turn['text'])) continue;
         $role = $turn['role'] === 'assistant' ? 'model' : ($turn['role'] === 'user' ? 'user' : '');
         $turnText = trim((string)$turn['text']);
         if ($role === '' || $turnText === '') continue;
-        $contents[] = array('role' => $role, 'parts' => array(array('text' => substr($turnText, 0, 4000))));
+        $contents[] = array('role' => $role, 'parts' => array(array('text' => substr($turnText, 0, 1200))));
     }
     if (count($contents) > 0) $requestBody['contents'] = $contents;
 }
@@ -157,12 +159,14 @@ if ($useGoogleSearch) {
     $requestBody['tools'] = array(array('google_search' => new stdClass()));
 }
 
-$fallbackModels = array('gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash');
+$fallbackModels = array('gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash');
 $configuredModels = defined('CORECRAFT_GEMINI_MODELS') ? CORECRAFT_GEMINI_MODELS : '';
 $models = array();
 // Keep server .env overrides first, then append every built-in fallback so an
 // older, shorter deployment setting cannot silently disable model failover.
-foreach (array_merge(explode(',', $configuredModels), $fallbackModels) as $model) {
+// Put the low-latency Flash-Lite model first, then try deployment overrides and
+// the remaining fallbacks if it is unavailable or out of quota.
+foreach (array_merge($fallbackModels, explode(',', $configuredModels)) as $model) {
     $model = trim($model);
     if ($model !== '' && !in_array($model, $models, true)) $models[] = $model;
 }
@@ -194,6 +198,7 @@ $statusCode = 0;
 $gemini = array();
 $lastError = 'Gemini returned an error.';
 $searchFallback = false;
+$requestStartedAt = microtime(true);
 for ($attempt = 0; $attempt < 2; $attempt++) {
 if ($attempt === 1) {
     // Live search failed (e.g. free-tier quota): retry as a plain, clearly labeled estimate.
@@ -204,6 +209,9 @@ if ($attempt === 1) {
     $requestBody['system_instruction'] = array('parts' => array(array('text' => $fallbackNote)));
 }
 foreach ($models as $model) {
+    // Keep ordinary AI requests within roughly three seconds. Fast quota errors
+    // can still fall through to another model while there is time left.
+    if (!$useGoogleSearch && microtime(true) - $requestStartedAt >= 2.5) break;
     $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($model) . ':generateContent?key=' . rawurlencode($apiKey);
     $ch = curl_init($url);
     curl_setopt_array($ch, array(
@@ -211,8 +219,8 @@ foreach ($models as $model) {
         CURLOPT_HTTPHEADER => array('Content-Type: application/json'),
         CURLOPT_POSTFIELDS => json_encode($requestBody),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CONNECTTIMEOUT => 20,
-        CURLOPT_TIMEOUT => $feature === 'trouble' ? 30 : 90,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_TIMEOUT => $useGoogleSearch ? 90 : 3,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ));
