@@ -1411,13 +1411,14 @@ function renderBuilds(type){
   const minimumBudget=20000;
   const maxBudget=Number(document.getElementById('build-budget')?.value||0);
   const allItems = Array.isArray(builds[type]) ? builds[type] : [];
-  const withinBudget = allItems.filter(b=>b.budget>=minimumBudget&&(!maxBudget||b.budget<=maxBudget));
+  const applyBudgetFilter=maxBudget>=minimumBudget;
+  const withinBudget = allItems.filter(b=>b.budget>=minimumBudget&&(!applyBudgetFilter||b.budget<=maxBudget));
   const items = withinBudget.filter(b=>b.compatibility && b.compatibility.verified);
   if (items.length === 0) {
     document.getElementById('build-content').innerHTML = `
       <div class="build-card">
         <div class="build-card-title">${withinBudget.length ? 'Recommendations need compatibility details' : 'No recommendations yet'}</div>
-        <p style="margin-top:10px;color:var(--muted)">${withinBudget.length ? 'These builds are hidden until their CPU, motherboard, memory, graphics, storage, and power supply can be checked.' : maxBudget ? 'No verified build from ₱20,000 up matches your maximum budget.' : 'No verified recommended builds found for this category.'}</p>
+        <p style="margin-top:10px;color:var(--muted)">${withinBudget.length ? 'These builds are hidden until their CPU, motherboard, memory, graphics, storage, and power supply can be checked.' : maxBudget ? 'No verified build from &#8369;20,000 up matches your maximum budget.' : 'No verified recommended builds found for this category.'}</p>
       </div>`;
     return;
   }
@@ -1429,7 +1430,7 @@ function renderBuilds(type){
       </div>
       <p style="color:var(--green);font-size:13px;font-weight:700;margin-bottom:12px">✓ Core compatibility checked: CPU socket, RAM generation, graphics, storage type, and PSU wattage.</p>
       <p style="color:var(--muted);line-height:1.7;margin-bottom:14px">${b.description || 'No description available.'}</p>
-      ${b.budget ? `<div style="font-size:18px;font-weight:800;color:var(--cyan);margin-bottom:14px">Estimated budget: ₱${b.budget.toLocaleString()}</div>` : ''}
+      ${b.budget ? `<div style="font-size:18px;font-weight:800;color:var(--cyan);margin-bottom:14px">Estimated budget: <span style="color:var(--cyan)">&#8369;</span>${Number(b.budget).toLocaleString()}</div>` : ''}
       <div class="build-pros-cons" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
         <div style="padding:12px;background:rgba(34,197,94,.08);border-left:3px solid var(--green)"><strong style="color:var(--green)">Pros</strong><div style="font-size:13px;color:var(--muted);margin-top:5px">${escapeHtml(b.pros)}</div></div>
         <div style="padding:12px;background:rgba(255,107,53,.08);border-left:3px solid var(--orange)"><strong style="color:var(--orange)">Cons</strong><div style="font-size:13px;color:var(--muted);margin-top:5px">${escapeHtml(b.cons)}</div></div>
@@ -1569,6 +1570,7 @@ function initPHChat(){
   activePHChat=localStorage.getItem('corecraft_active_phchat')||PHCHAT_COMMUNITIES[0].id;
   if(!PHCHAT_COMMUNITIES.some(c=>c.id===activePHChat))activePHChat=PHCHAT_COMMUNITIES[0].id;
   loadPHChatCommunities();
+  loadPHNotifications(false);
   if(!phChatPoll)phChatPoll=setInterval(function(){
     const page=document.getElementById('page-PHchat');
     if(page&&page.classList.contains('active')&&window._user){
@@ -1578,6 +1580,7 @@ function initPHChat(){
         loadDMConversations();
         if(activeDMEmail)loadPrivateMessages();
       }
+      loadPHNotifications(!!(document.getElementById('phchat-notifications-view')&&document.getElementById('phchat-notifications-view').classList.contains('active')));
     }
   },5000);
 }
@@ -1658,14 +1661,17 @@ function selectFeedCommunity(name){
   loadCommunityPosts();
 }
 
-function switchPHChatView(view,button){
+function switchPHChatView(view,button,skipViewLoad){
   document.querySelectorAll('.phchat-view').forEach(function(panel){panel.classList.remove('active');});
   document.querySelectorAll('.phchat-tab').forEach(function(tab){tab.classList.remove('active');tab.setAttribute('aria-selected','false');});
   const panel=document.getElementById('phchat-'+view+'-view');
   if(panel)panel.classList.add('active');
   if(button){button.classList.add('active');button.setAttribute('aria-selected','true');}
-  if(view==='posts')loadCommunityPosts();
-  if(view==='messages')loadDMConversations();
+  if(!skipViewLoad){
+    if(view==='posts')loadCommunityPosts();
+    if(view==='messages')loadDMConversations();
+    if(view==='notifications')loadPHNotifications(true);
+  }
 }
 
 function previewCommunityImage(input){
@@ -1719,7 +1725,7 @@ async function publishCommunityPost(){
 let postLoadSeq=0;
 let renderedPostsSignature='';
 
-async function loadCommunityPosts(silent){
+async function loadCommunityPosts(silent,focusPostId){
   const container=document.getElementById('community-post-list');
   const select=document.getElementById('feed-community');
   if(!container||!window._user)return;
@@ -1731,7 +1737,9 @@ async function loadCommunityPosts(silent){
     container.innerHTML='<div class="card" style="padding:18px;color:var(--muted)">Loading community posts...</div>';
   }
   try{
-    const data=await phCommunityRequest('post_list',{community:community});
+    const request={community:community};
+    if(Number(focusPostId)>0)request.post_id=Number(focusPostId);
+    const data=await phCommunityRequest('post_list',request);
     // Ignore responses from older requests or a community the user already left.
     if(seq!==postLoadSeq||feedCommunityName()!==community)return;
     const posts=data.posts||[];
@@ -1935,6 +1943,58 @@ async function loadDMConversations(){
     updateMessagesUnreadDot(unreadTotal);
     container.innerHTML=conversations.map(function(item){const unread=Number(item.unread_count)||0;return `<button type="button" class="dm-user-button ${activeDMEmail===item.email?'active':''}" onclick="openPrivateConversation(decodeURIComponent('${encodeURIComponent(item.email)}'),decodeURIComponent('${encodeURIComponent(item.name)}'))"><strong>${escapeHtml(item.name)}</strong>${unread?'<span class="dm-unread-dot" aria-label="Unread messages"></span>':''}<span class="dm-user-email">${escapeHtml(item.email)}</span></button>`;}).join('')||'<span class="phchat-muted">No conversations yet</span>';
   }catch(error){container.innerHTML=`<span class="phchat-muted">${escapeHtml(error.message||'Could not load messages')}</span>`;}
+}
+
+async function loadPHNotifications(markRead=false){
+  const container=document.getElementById('phchat-notification-list');
+  if(!container||!window._user)return;
+  try{
+    const data=await phCommunityRequest('notifications_list',{mark_read:!!markRead});
+    updateNotificationsUnreadDot(data.unread_count||0);
+    const notifications=Array.isArray(data.notifications)?data.notifications:[];
+    container.innerHTML=notifications.map(function(item){
+      const warning=item.notification_type==='warning';
+      const mark=warning?'!':item.notification_type==='like'?'♥':'•';
+      const postId=Number(item.post_id)||0;
+      const postLink=postId?`data-notification-post-id="${postId}" data-notification-community="${escapeHtml(item.community||'')}" role="link" tabindex="0" aria-label="Open related post" title="Open related post" onclick="openCommunityNotificationPost(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();openCommunityNotificationPost(this)}"`:'';
+      return `<article class="phchat-notification ${warning?'warning':''} ${item.read_at?'':'unread'}" ${postLink}><span class="phchat-notification-mark" aria-hidden="true">${mark}</span><div><div class="phchat-notification-message">${escapeHtml(item.message||'You have a new community notification.')}</div><div class="phchat-notification-meta"><span>${escapeHtml(item.community||'PH Community')}</span><time>${formatChatTime(item.created_at)}</time></div></div></article>`;
+    }).join('')||'<div class="phchat-notification-empty">You’re all caught up. Likes, comments, replies, and admin warnings will appear here.</div>';
+  }catch(error){
+    container.innerHTML=`<div class="phchat-notification-empty">${escapeHtml(error.message||'Could not load notifications.')}</div>`;
+  }
+}
+
+async function openCommunityNotificationPost(notification){
+  const postId=Number(notification&&notification.dataset.notificationPostId)||0;
+  const community=notification&&notification.dataset.notificationCommunity||'';
+  if(!postId||!community)return;
+  const select=document.getElementById('feed-community');
+  if(!select||!PHCHAT_COMMUNITIES.some(function(item){return item.id===community;})){
+    showPHChatNotice('Post unavailable','This post or its community is no longer available.');
+    return;
+  }
+  select.value=community;
+  activePHChat=community;
+  localStorage.setItem('corecraft_active_phchat',community);
+  renderPHChatFeedCommunities();
+  switchPHChatView('posts',document.getElementById('phchat-posts-tab'),true);
+  await loadCommunityPosts(true,postId);
+  const post=document.querySelector('.phchat-post[data-post-id="'+postId+'"]');
+  if(!post){
+    showPHChatNotice('Post unavailable','This post may have been removed or expired.');
+    return;
+  }
+  post.scrollIntoView({behavior:'smooth',block:'center'});
+  post.classList.add('phchat-notification-post-target');
+  window.setTimeout(function(){post.classList.remove('phchat-notification-post-target');},2200);
+}
+
+function updateNotificationsUnreadDot(unreadCount){
+  const dot=document.getElementById('phchat-notifications-unread-dot');
+  const tab=document.getElementById('phchat-notifications-tab');
+  const hasUnread=Number(unreadCount)>0;
+  if(dot)dot.hidden=!hasUnread;
+  if(tab)tab.setAttribute('aria-label',hasUnread?'Notifications, unread notifications':'Notifications');
 }
 
 function updateMessagesUnreadDot(unreadCount){
@@ -2258,7 +2318,11 @@ async function openLoadBuildsModal(){
   }
   const buildsMap=payload.builds;
   const list=Object.entries(buildsMap);
-  if(list.length===0){alert('No saved builds yet. Save your first build!');return}
+  if(list.length===0){
+    document.getElementById('saved-builds-modal-list').innerHTML='<div class="saved-builds-empty"><strong>No saved builds yet</strong><span>Save your first build to see its components here.</span></div>';
+    document.getElementById('saved-builds-modal').classList.add('open');
+    return;
+  }
   const html=list.map(([name,data])=>`
     <div style="padding:15px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div style="flex:1;min-width:200px">
@@ -2490,16 +2554,23 @@ async function requestSavedBuildPriceEstimate(savedComponents,typeLabels){
   }).join('\n');
   try{
     const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      feature:'general',
+      feature:'pricing',
       message:`Estimate typical Philippine market price ranges for these exact PC components. Treat every amount as an AI estimate for reference only; do not claim live prices, current store listings, or stock. Reply with one line per component in this exact format: COMPONENT TYPE | LOW ESTIMATE PHP | HIGH ESTIMATE PHP. Use numbers only after each pipe. Add a TOTAL line with low and high estimates. If a component model is too vague, write UNVERIFIED for its range. Components:\n${parts}`
     })});
-    const data=await response.json();
+    const responseText=await response.text();
+    let data={};
+    try{data=JSON.parse(responseText)}catch(_){
+      throw new Error(response.ok?'The AI service returned an unreadable response.':'The AI service returned an invalid response (HTTP '+response.status+').');
+    }
     if(!response.ok||!data.reply)throw new Error(data.error||'AI estimate unavailable');
     if(requestId!==savedBuildPriceEstimateRequest)return;
     estimate.innerHTML=`<div class="saved-build-estimate-content">${formatAIResponse(data.reply)}<p>AI-generated estimates for reference only. Prices vary by seller and date; check current listings before buying.</p></div>`;
   }catch(error){
     if(requestId!==savedBuildPriceEstimateRequest)return;
-    estimate.innerHTML='<div class="saved-build-estimate-content">AI price estimate is unavailable right now. Try loading this build again later.</div>';
+    const message=document.createElement('div');
+    message.className='saved-build-estimate-content';
+    message.textContent='AI price estimate is unavailable: '+(error&&error.message?error.message:'Unknown error.');
+    estimate.replaceChildren(message);
   }
 }
 function closeSavedBuildNote(){

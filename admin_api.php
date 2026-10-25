@@ -167,6 +167,20 @@ $conn_admin->query("CREATE TABLE IF NOT EXISTS moderation_warning_deliveries (
     KEY idx_warning_recipient (recipient_email, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 
+$conn_admin->query("CREATE TABLE IF NOT EXISTS community_notifications (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    recipient_email VARCHAR(190) NOT NULL,
+    actor_email VARCHAR(190) NULL,
+    notification_type VARCHAR(24) NOT NULL,
+    post_id BIGINT UNSIGNED NULL,
+    community VARCHAR(80) NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_community_notifications_recipient (recipient_email, read_at, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+
 $conn_admin->query("CREATE TABLE IF NOT EXISTS system_logs (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     level VARCHAR(20) NOT NULL DEFAULT 'info',
@@ -761,7 +775,8 @@ if ($action === "rule_delete") {
 if ($action === "user_list") {
     $search = trim(admin_field($body, "search", ""));
     $role_filter = trim(admin_field($body, "role", ""));
-    $sql = "SELECT u.id, u.full_name, u.email, u.role, u.status, u.created_at, u.last_login_at,
+    $sql = "SELECT u.id, u.full_name, u.email, u.role, u.status, u.created_at,
+        COALESCE(u.last_login_at, (SELECT MAX(t.created_at) FROM auth_tokens t WHERE t.user_email = u.email)) AS last_login_at,
         (SELECT COUNT(*) FROM user_saved_builds b WHERE b.user_email = u.email) AS saved_builds
         FROM users u WHERE 1 = 1";
     $types = "";
@@ -927,28 +942,28 @@ if ($action === "report_list") {
 if ($action === "report_warn_user") {
     $report_id = (int) admin_field($body, "id", 0);
     if ($report_id <= 0) admin_respond(array("success" => false, "error" => "Invalid report"), 400);
-    $stmt = $conn_admin->prepare("SELECT p.user_email, r.community, r.reason FROM moderation_reports r INNER JOIN community_posts p ON p.id = CAST(r.content_ref AS UNSIGNED) AND p.community = r.community WHERE r.id = ? AND r.content_type = 'community_post' AND r.status = 'open' LIMIT 1");
+    $stmt = $conn_admin->prepare("SELECT p.id, p.user_email, r.community, r.reason FROM moderation_reports r INNER JOIN community_posts p ON p.id = CAST(r.content_ref AS UNSIGNED) AND p.community = r.community WHERE r.id = ? AND r.content_type = 'community_post' AND r.status = 'open' LIMIT 1");
     if (!$stmt) admin_respond(array("success" => false, "error" => "Could not find the reported post"), 500);
     $stmt->bind_param("i", $report_id);
     $stmt->execute();
-    $stmt->bind_result($recipient_email, $community, $report_reason);
+    $stmt->bind_result($post_id, $recipient_email, $community, $report_reason);
     if (!$stmt->fetch()) {
         $stmt->close();
         admin_respond(array("success" => false, "error" => "The open report or its post could not be found"), 404);
     }
     $stmt->close();
     $recipient_email = strtolower($recipient_email);
-    $warning_message = "CORECRAFT MODERATION WARNING\n\nA post you shared in " . $community . " was reported for: " . $report_reason . ". Please review the community guidelines and keep future posts respectful and relevant. Repeated violations may lead to content removal or account restrictions.";
+    $warning_message = "A post you shared in " . $community . " was reported for: " . $report_reason . ". Please review the community guidelines and keep future posts respectful and relevant. Repeated violations may lead to content removal or account restrictions.";
     $conn_admin->autocommit(false);
-    $message_stmt = $conn_admin->prepare("INSERT INTO private_messages (sender_email, recipient_email, message) VALUES (?, ?, ?)");
-    if (!$message_stmt) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Could not prepare the warning message"), 500); }
-    $message_stmt->bind_param("sss", $email, $recipient_email, $warning_message);
-    if (!$message_stmt->execute()) {
-        $message_stmt->close(); $conn_admin->rollback();
-        admin_respond(array("success" => false, "error" => "Could not send the warning message"), 500);
+    $notification = $conn_admin->prepare("INSERT INTO community_notifications (recipient_email, actor_email, notification_type, post_id, community, message) VALUES (?, ?, 'warning', ?, ?, ?)");
+    if (!$notification) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Could not prepare the warning notification"), 500); }
+    $notification->bind_param("ssiss", $recipient_email, $email, $post_id, $community, $warning_message);
+    if (!$notification->execute()) {
+        $notification->close(); $conn_admin->rollback();
+        admin_respond(array("success" => false, "error" => "Could not send the warning notification"), 500);
     }
-    $message_id = $message_stmt->insert_id;
-    $message_stmt->close();
+    $notification_id = $notification->insert_id;
+    $notification->close();
     $delivery = $conn_admin->prepare("INSERT INTO moderation_warning_deliveries (report_id, recipient_email, sent_by) VALUES (?, ?, ?)");
     if (!$delivery) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Could not record the warning"), 500); }
     $delivery->bind_param("iss", $report_id, $recipient_email, $email);
@@ -961,7 +976,7 @@ if ($action === "report_warn_user") {
     $conn_admin->commit();
     $conn_admin->autocommit(true);
     admin_log($conn_admin, "warning", "moderation", "Sent a community warning to " . $recipient_email . " for report #" . $report_id);
-    admin_respond(array("success" => true, "message" => "Warning sent to the post author in Messages", "message_id" => $message_id));
+    admin_respond(array("success" => true, "message" => "Warning sent to the post author in Community notifications", "notification_id" => $notification_id));
 }
 
 if ($action === "report_resolve") {

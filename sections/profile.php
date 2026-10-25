@@ -58,7 +58,7 @@
   </div>
   <footer>
     <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
-    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
+    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div>
   </footer>
 </div>
 <div class="modal-overlay" id="profile-email-warning" role="alertdialog" aria-modal="true" aria-labelledby="profile-email-warning-title" aria-describedby="profile-email-warning-message">
@@ -114,9 +114,9 @@
     </div>
   </div>
 </div>
-<div class="modal-overlay" id="saved-builds-modal">
+<div class="modal-overlay" id="saved-builds-modal" role="dialog" aria-modal="true" aria-labelledby="saved-builds-modal-title">
   <div class="modal-box">
-    <div class="modal-title">Saved Builds</div>
+    <div class="modal-title" id="saved-builds-modal-title">Saved Builds</div>
     <div id="saved-builds-modal-list" style="max-height:400px;overflow-y:auto;margin:20px 0;"></div>
     <button class="modal-close" style="width:100%" onclick="closeSavedBuildsModal()">Close</button>
   </div>

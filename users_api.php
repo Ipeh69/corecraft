@@ -49,6 +49,10 @@ $role_column = $conn_users->query("SHOW COLUMNS FROM users LIKE 'role'");
 if ($role_column && $role_column->num_rows === 0) {
     $conn_users->query("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'");
 }
+$last_login_column = $conn_users->query("SHOW COLUMNS FROM users LIKE 'last_login_at'");
+if ($last_login_column && $last_login_column->num_rows === 0) {
+    $conn_users->query("ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL");
+}
 
 $token_table_sql = "CREATE TABLE IF NOT EXISTS auth_tokens (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -97,6 +101,12 @@ function issue_auth_token($conn, $email) {
         return false;
     }
     $stmt->close();
+    $touch = $conn->prepare("UPDATE users SET last_login_at = NOW() WHERE email = ?");
+    if ($touch) {
+        $touch->bind_param("s", $email);
+        $touch->execute();
+        $touch->close();
+    }
     return $token;
 }
 
@@ -228,12 +238,6 @@ if ($action === "login") {
     $stmt->close();
     if ($account_status === "banned") {
         respond(array("success" => false, "error" => "This account has been suspended. Contact the CoreCraft administrator."), 403);
-    }
-    $touch = $conn_users->prepare("UPDATE users SET last_login_at = NOW() WHERE email = ?");
-    if ($touch) {
-        $touch->bind_param("s", $stored_email);
-        $touch->execute();
-        $touch->close();
     }
     $auth_token = issue_auth_token($conn_users, $stored_email);
     if ($auth_token === false) {

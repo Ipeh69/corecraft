@@ -75,6 +75,6 @@
   </div>
   <footer>
     <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
-    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
+    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div>
   </footer>
 </div>

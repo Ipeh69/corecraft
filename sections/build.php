@@ -15,9 +15,8 @@
       <button class="build-tab" data-type="home" onclick="switchBuild('home',this)">Home/Office</button>
     </div>
     <div class="budget-filter card">
-      <div class="budget-filter-copy"><strong>Find a build within your budget</strong><span>Lowest listed build: ₱20,000 (estimated).</span></div>
-      <label for="build-budget">Maximum budget</label>
-      <div class="budget-input-wrap"><span>₱</span><input id="build-budget" type="number" min="20000" step="1000" oninput="renderBuilds(getActiveBuildType())" /></div>
+      <div class="budget-filter-copy"><strong>Find a build within your budget</strong><span>Lowest listed build: <span class="budget-peso">&#8369;</span>20,000 (estimated).</span></div>
+      <div class="budget-input-wrap"><span aria-hidden="true">&#8369;</span><input id="build-budget" type="number" min="20000" step="1000" aria-label="Maximum budget" oninput="renderBuilds(getActiveBuildType())" /></div>
       <button type="button" class="btn-secondary" onclick="document.getElementById('build-budget').value='';renderBuilds(getActiveBuildType())">Clear</button>
     </div>
     <div id="build-content"></div>
@@ -25,6 +24,6 @@
   </div>
   <footer>
     <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
-    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
+    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div>
   </footer>
 </div>

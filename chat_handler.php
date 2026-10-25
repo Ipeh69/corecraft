@@ -90,6 +90,60 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
   if (!$conn->query("CREATE TABLE IF NOT EXISTS community_post_reports (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, post_id BIGINT UNSIGNED NOT NULL, community VARCHAR(80) NOT NULL, reporter_email VARCHAR(190) NOT NULL, reason TEXT NOT NULL, status VARCHAR(20) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), UNIQUE KEY uq_post_reporter (post_id, reporter_email), KEY idx_post_reports_status (status, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8")) {
     $reply(array("success" => false, "error" => "Failed to prepare post reports table"), 500);
   }
+  if (!$conn->query("CREATE TABLE IF NOT EXISTS community_notifications (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    recipient_email VARCHAR(190) NOT NULL,
+    actor_email VARCHAR(190) NULL,
+    notification_type VARCHAR(24) NOT NULL,
+    post_id BIGINT UNSIGNED NULL,
+    community VARCHAR(80) NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_community_notifications_recipient (recipient_email, read_at, created_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8")) {
+    $reply(array("success" => false, "error" => "Failed to prepare community notifications"), 500);
+  }
+  $create_notification = function ($recipient, $actor, $type, $post_id, $community_name, $message) use ($conn) {
+    if (strtolower($recipient) === strtolower($actor)) return;
+    $notification = $conn->prepare("INSERT INTO community_notifications (recipient_email, actor_email, notification_type, post_id, community, message) VALUES (?, ?, ?, ?, ?, ?)");
+    if (!$notification) return;
+    $notification->bind_param("sssiss", $recipient, $actor, $type, $post_id, $community_name, $message);
+    $notification->execute();
+    $notification->close();
+  };
+
+  if ($action === "notifications_list") {
+    $mark_read = !empty($body["mark_read"]);
+    $unread_count = 0;
+    $count_stmt = $conn->prepare("SELECT COUNT(*) FROM community_notifications WHERE recipient_email = ? AND read_at IS NULL");
+    if ($count_stmt) {
+      $count_stmt->bind_param("s", $email);
+      $count_stmt->execute();
+      $count_stmt->bind_result($unread_count);
+      $count_stmt->fetch();
+      $count_stmt->close();
+    }
+    $stmt = $conn->prepare("SELECT n.id, n.actor_email, COALESCE(u.full_name, 'CoreCraft Admin') AS actor_name, n.notification_type, n.post_id, n.community, n.message, n.created_at, n.read_at FROM community_notifications n LEFT JOIN users u ON u.email = n.actor_email WHERE n.recipient_email = ? ORDER BY n.id DESC LIMIT 100");
+    if (!$stmt) $reply(array("success" => false, "error" => "Failed to load notifications"), 500);
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $notifications = array();
+    while ($row = $result->fetch_assoc()) $notifications[] = $row;
+    $stmt->close();
+    if ($mark_read && $unread_count > 0) {
+      $read_stmt = $conn->prepare("UPDATE community_notifications SET read_at = NOW() WHERE recipient_email = ? AND read_at IS NULL");
+      if ($read_stmt) {
+        $read_stmt->bind_param("s", $email);
+        $read_stmt->execute();
+        $read_stmt->close();
+      }
+      $unread_count = 0;
+    }
+    $reply(array("success" => true, "notifications" => $notifications, "unread_count" => (int) $unread_count));
+  }
 
   if ($action === "dm_user_search") {
     $search = trim(isset($body["query"]) ? $body["query"] : "");
@@ -344,9 +398,12 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
   }
 
   if ($action === "post_list") {
-    $stmt = $conn->prepare("SELECT p.id, p.user_email, u.full_name AS sender_name, p.body, p.image_path, p.created_at, (SELECT COUNT(*) FROM community_post_likes l WHERE l.post_id = p.id) AS like_count, (SELECT COUNT(*) FROM community_post_likes l WHERE l.post_id = p.id AND l.user_email = ?) AS liked FROM community_posts p INNER JOIN users u ON u.email = p.user_email WHERE p.community = ? ORDER BY p.id DESC LIMIT 50");
+    $focus_post_id = isset($body["post_id"]) ? (int) $body["post_id"] : 0;
+    $post_filter = $focus_post_id > 0 ? " AND p.id = ?" : "";
+    $stmt = $conn->prepare("SELECT p.id, p.user_email, u.full_name AS sender_name, p.body, p.image_path, p.created_at, (SELECT COUNT(*) FROM community_post_likes l WHERE l.post_id = p.id) AS like_count, (SELECT COUNT(*) FROM community_post_likes l WHERE l.post_id = p.id AND l.user_email = ?) AS liked FROM community_posts p INNER JOIN users u ON u.email = p.user_email WHERE p.community = ?" . $post_filter . " ORDER BY p.id DESC LIMIT 50");
     if (!$stmt) $reply(array("success" => false, "error" => "Failed to load posts"), 500);
-    $stmt->bind_param("ss", $email, $community);
+    if ($focus_post_id > 0) $stmt->bind_param("ssi", $email, $community, $focus_post_id);
+    else $stmt->bind_param("ss", $email, $community);
     $stmt->execute();
     $result = $stmt->get_result();
     $posts = array();
@@ -513,12 +570,12 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
 
   if ($action === "post_like" || $action === "post_comment" || $action === "post_comment_reply") {
     $post_id = isset($body["post_id"]) ? (int) $body["post_id"] : 0;
-    $post_check = $conn->prepare("SELECT id FROM community_posts WHERE id = ? AND community = ? LIMIT 1");
+    $post_check = $conn->prepare("SELECT user_email FROM community_posts WHERE id = ? AND community = ? LIMIT 1");
     if (!$post_check) $reply(array("success" => false, "error" => "Failed to verify post"), 500);
     $post_check->bind_param("is", $post_id, $community);
     $post_check->execute();
-    $post_check->store_result();
-    if ($post_check->num_rows !== 1) {
+    $post_check->bind_result($post_owner_email);
+    if (!$post_check->fetch()) {
       $post_check->close();
       $reply(array("success" => false, "error" => "Post was not found in this community"), 404);
     }
@@ -539,6 +596,18 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
       }
       $stmt->bind_param("is", $post_id, $email);
       $stmt->execute();
+      if ($liked) {
+        $actor_stmt = $conn->prepare("SELECT full_name FROM users WHERE email = ? LIMIT 1");
+        $actor_name = "Someone";
+        if ($actor_stmt) {
+          $actor_stmt->bind_param("s", $email);
+          $actor_stmt->execute();
+          $actor_stmt->bind_result($found_actor_name);
+          if ($actor_stmt->fetch()) $actor_name = $found_actor_name;
+          $actor_stmt->close();
+        }
+        $create_notification($post_owner_email, $email, "like", $post_id, $community, $actor_name . " liked your post.");
+      }
       $stmt->close();
       $reply(array("success" => true, "liked" => $liked));
     }
@@ -570,6 +639,33 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
       $reply(array("success" => false, "error" => "Comment could not be posted"), 500);
     }
     $stmt->close();
+    $actor_stmt = $conn->prepare("SELECT full_name FROM users WHERE email = ? LIMIT 1");
+    $actor_name = "Someone";
+    if ($actor_stmt) {
+      $actor_stmt->bind_param("s", $email);
+      $actor_stmt->execute();
+      $actor_stmt->bind_result($found_actor_name);
+      if ($actor_stmt->fetch()) $actor_name = $found_actor_name;
+      $actor_stmt->close();
+    }
+    $comment_preview = preg_replace('/\\s+/', ' ', $comment);
+    if (strlen($comment_preview) > 120) $comment_preview = substr($comment_preview, 0, 117) . "...";
+    $notification_text = $action === "post_comment_reply"
+      ? $actor_name . " replied to a comment on your post: " . $comment_preview
+      : $actor_name . " commented on your post: " . $comment_preview;
+    $create_notification($post_owner_email, $email, "comment", $post_id, $community, $notification_text);
+    if ($action === "post_comment_reply" && (int) $parent_comment_id > 0) {
+      $parent_author_stmt = $conn->prepare("SELECT user_email FROM community_post_comments WHERE id = ? LIMIT 1");
+      if ($parent_author_stmt) {
+        $parent_author_stmt->bind_param("i", $parent_comment_id);
+        $parent_author_stmt->execute();
+        $parent_author_stmt->bind_result($parent_author_email);
+        if ($parent_author_stmt->fetch() && strtolower($parent_author_email) !== strtolower($post_owner_email)) {
+          $create_notification($parent_author_email, $email, "comment", $post_id, $community, $actor_name . " replied to your comment: " . $comment_preview);
+        }
+        $parent_author_stmt->close();
+      }
+    }
     $reply(array("success" => true));
   }
 

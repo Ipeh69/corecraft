@@ -6,7 +6,8 @@
     <div class="section-title">PH Community</div>
     <div class="section-sub">Share builds and concerns, connect with PC builders, and message members across the Philippines.</div>
     <div class="phchat-tabs" role="tablist">
-      <button class="phchat-tab active" type="button" role="tab" aria-selected="true" onclick="switchPHChatView('posts',this)">Posts</button>
+      <button class="phchat-tab active" id="phchat-posts-tab" type="button" role="tab" aria-selected="true" onclick="switchPHChatView('posts',this)">Posts</button>
+      <button class="phchat-tab" id="phchat-notifications-tab" type="button" role="tab" aria-selected="false" onclick="switchPHChatView('notifications',this)">Notifications<span class="phchat-unread-dot" id="phchat-notifications-unread-dot" aria-label="Unread notifications" hidden></span></button>
       <button class="phchat-tab" id="phchat-messages-tab" type="button" role="tab" aria-selected="false" onclick="switchPHChatView('messages',this)">Messages<span class="phchat-unread-dot" id="phchat-messages-unread-dot" aria-label="Unread messages" hidden></span></button>
     </div>
     <section id="phchat-posts-view" class="phchat-view active">
@@ -31,6 +32,12 @@
         </div>
       </div>
     </section>
+    <section id="phchat-notifications-view" class="phchat-view">
+      <div class="card phchat-notification-panel">
+        <div class="phchat-notification-heading"><strong>Notifications</strong><span>Likes, comments, replies, and community warnings for your posts.</span></div>
+        <div id="phchat-notification-list" class="phchat-notification-list" aria-live="polite"><div class="phchat-muted">Loading notifications...</div></div>
+      </div>
+    </section>
     <section id="phchat-messages-view" class="phchat-view">
       <div class="phchat-dm-layout">
         <aside class="card phchat-dm-sidebar">
@@ -50,7 +57,7 @@
   </div>
   <footer>
     <span>© 2026 CoreCraft · BS Information Technology Capstone</span>
-    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a></div>
+    <div class="footer-links"><a href="about.html">About</a><a href="contact.html">Contact</a><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div>
   </footer>
 </div>
 <div class="modal-overlay" id="phchat-report-modal" role="dialog" aria-modal="true" aria-labelledby="phchat-report-title" aria-describedby="phchat-report-description">
