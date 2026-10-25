@@ -140,13 +140,15 @@ if ($useGoogleSearch) {
     $requestBody['tools'] = array(array('google_search' => new stdClass()));
 }
 
-$configuredModels = defined('CORECRAFT_GEMINI_MODELS') ? CORECRAFT_GEMINI_MODELS : 'gemini-3.8-flash,gemini-3.5-flash-lite,gemini-3.6-flash,gemini-3.1-flash-lite,gemini-2.5-flash';
+$fallbackModels = array('gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash');
+$configuredModels = defined('CORECRAFT_GEMINI_MODELS') ? CORECRAFT_GEMINI_MODELS : '';
 $models = array();
-foreach (explode(',', $configuredModels) as $model) {
+// Keep server .env overrides first, then append every built-in fallback so an
+// older, shorter deployment setting cannot silently disable model failover.
+foreach (array_merge(explode(',', $configuredModels), $fallbackModels) as $model) {
     $model = trim($model);
-    if ($model !== '') $models[] = $model;
+    if ($model !== '' && !in_array($model, $models, true)) $models[] = $model;
 }
-if (count($models) === 0) $models = array('gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-2.5-flash');
 
 // Old bundled PHP/OpenSSL (e.g. WAMP with PHP 5.3) cannot verify modern TLS; use the system curl.exe, which still verifies certificates.
 function geminiPostWithCurlExe($url, $json) {
@@ -228,7 +230,7 @@ if ($statusCode < 200 || $statusCode >= 300) {
     $quotaHint = ($useGoogleSearch && $statusCode === 429)
         ? ' Live web search (Google Search grounding) needs a Gemini API key on a paid/billing-enabled plan; the free tier has no grounding quota.'
         : '';
-    echo json_encode(array('error' => 'All configured Gemini models failed: ' . $lastError . $quotaHint));
+    echo json_encode(array('error' => 'All configured Gemini models failed. Tried: ' . implode(', ', $models) . '. Last error: ' . $lastError . $quotaHint));
     exit;
 }
 
