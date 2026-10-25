@@ -348,14 +348,14 @@ function buildTroubleTechnicianReply(center,area,listings,searchFailed){
   if(!listings.length){
     const searchUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent('computer repair technician near '+center.lat+','+center.lng);
     const noListing=searchFailed?'Hindi ko ma-load ang repair listings ngayon.':'Wala akong nakitang nearby PC repair listing sa map data';
-    return `Mas ligtas ipasuri ito sa malapit na PC technician. ${noListing} para sa ${safeArea}. <a href="${searchUrl}" target="_blank" rel="noopener noreferrer">Search PC repair technicians on Google Maps</a>. Tawagan muna ang shop para kumpirmahin na nag-aayos sila ng PC at alamin ang presyo at oras bago pumunta. <small>Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</small>`;
+    return `Sorry hindi gumana ang mga steps. ${noListing} para sa ${safeArea}. <a href="${searchUrl}" target="_blank" rel="noopener noreferrer">Search PC repair technicians on Google Maps</a>. Tawagan muna ang shop para kumpirmahin na nag-aayos sila ng PC at alamin ang presyo at oras bago pumunta. <small>Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</small>`;
   }
   const results=listings.map(function(place){
     const label=place.computerSpecific?'Computer repair listing':'Electronics repair listing — confirm that they repair PCs';
     const mapUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(place.name+' '+place.address);
     return `<li><a href="${mapUrl}" target="_blank" rel="noopener noreferrer"><strong>${escapeHtml(place.name)}</strong></a> — ${escapeHtml((place.distance/1000).toFixed(1))} km, ${escapeHtml(place.address)} <span class="phchat-muted">(${label})</span></li>`;
   }).join('');
-  return `Mas ligtas ipasuri ito sa malapit na PC technician. Narito ang malalapit na repair listings sa ${safeArea}:<ul>${results}</ul><small>OpenStreetMap listings ito at maaaring kulang o luma. Tawagan muna para kumpirmahin ang PC repair service, availability, at presyo bago pumunta. Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</small>`;
+  return `Sorry hindi gumana ang mga steps. Narito ang malalapit na repair listings sa ${safeArea}:<ul>${results}</ul><small>OpenStreetMap listings ito at maaaring kulang o luma. Tawagan muna para kumpirmahin ang PC repair service, availability, at presyo bago pumunta. Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</small>`;
 }
 
 async function fetchShopListings(center,radius){
@@ -1527,7 +1527,7 @@ renderBuildIdeas();
 // ——— AI CHAT (shared engine) ———
 let troubleInit=false,compatInit=false,buildaiInit=false;
 function initChat(id){
-  if(id==='trouble'){troubleInit=true;addMsg('trouble','ai',`Hi! I'm CoreCraft's Basic Troubleshooting Assistant. I can help with simple, safe checks. If a component may be faulty, I can help you find a nearby PC technician.\n\nDescribe what's happening — e.g.:\n• "PC won't boot, no display"\n• "Keeps restarting randomly"\n• "Very slow after Windows update"`)}
+  if(id==='trouble'){troubleInit=true;addMsg('trouble','ai',`Hi! I'm CoreCraft's Troubleshooting AI Bot. Tell me your PC problem and I will guide you step-by-step to fix it.\n\nDescribe what's happening — e.g.:\n• "PC won't boot, no display"\n• "Keeps restarting randomly"\n• "Very slow after Windows update"`)}
   if(id==='compat'){compatInit=true;addMsg('compat','ai',`Hi! I'm your Compatibility AI. Enter your PC parts in the fields above and I will analyze socket compatibility, RAM type, PSU wattage, and GPU fitment for your system.\n\nTry:\n• "Check my build compatibility"\n• "Why is my RAM incompatible?"\n• "What PSU do I need for my GPU?"`)}
   if(id==='buildai'){buildaiInit=true;addMsg('buildai','ai',`Hi! I'm CoreCraft's AI Build Recommendation Engine.\n\nTell me your requirements:\n• Budget (e.g. ₱50,000)
 • Purpose (gaming, work, streaming, editing)
@@ -1584,7 +1584,6 @@ async function askGemini(id,text){
   return data.reply;
 }
 let troubleTechSearchPending=false;
-const TROUBLE_COMPONENT_FAULT_RE=/\b(?:components?|parts?|hardware|cpu|processor|motherboard|mainboard|ram|memory|gpu|graphics card|video card|psu|power supply|ssd|hdd|storage|fan|cooler)\b.{0,60}\b(?:problems?|issues?|faulty|fault|broken|damaged|dead|died|failed|failure|bad|malfunctioning|not working|isn.?t working|doesn.?t work|won.?t work|overheat(?:ing|s)?|sira|sirang|defective|defect|patay|sunog|nasira|ayaw gumana|smoking|burnt)\b|\b(?:problems?|issues?|faulty|fault|broken|damaged|dead|died|failed|failure|defective|defect|sunog|amoy sunog|may usok|may sparks|nabasa|natapunan ng tubig)\b.{0,60}\b(?:components?|parts?|hardware|cpu|processor|motherboard|mainboard|ram|memory|gpu|graphics card|video card|psu|power supply|ssd|hdd|storage|fan|cooler)\b|\b(?:amoy sunog|may usok|may sparks|sparking|smoke|smoking|burnt|burning smell|liquid spill|natapunan ng tubig|nakuryente)\b)/i;
 const TROUBLE_FAIL_RE=/(?:didn['’]?t work|did not work|(?:steps?|it|that) (?:don['’]?t|do not|doesn['’]?t|does not) work|didn['’]?t (?:fix|help)|did not (?:fix|help)|still (?:not working|not fixed|broken|no display|(?:doesn['’]?t|does not|won['’]?t|will not) work|won['’]?t boot)|no luck|no (?:change|improvement)|same (?:problem|issue|error)|nothing (?:happened|changed)|not fixed|failed|won['’]?t (?:work|boot)|(?:di|hindi)(?: talaga| pa rin)? (?:gumana|nag.?work|gumagana|nagana|umubra|umayos)|(?:ayaw|wala) pa rin|ganun pa rin|nasubukan ko na lahat|tried (?:all|everything|the steps))/i;
 const TROUBLE_MATH_RE=/\b(math(?:ematics)?|arithmetic|algebra|geometry|trigonometry|calculus|equation|integral|derivative|probability|statistics|square root|factorial|solve for x|calculate|compute|evaluate|simplify|factor|solve)\b|\b\d+(?:\.\d+)?\s*(?:[+*\/^=×÷-])\s*\d+(?:\.\d+)?\b|\b\d+(?:\.\d+)?\s+(?:plus|minus|times|multiplied by|divided by)\s+\d+(?:\.\d+)?\b|^\s*[a-z0-9]+\s*(?:[+*\/^=×÷-]\s*[a-z0-9]+)+(?:\s*[?=])?\s*$/i;
 async function sendChat(id){
@@ -1605,18 +1604,9 @@ async function sendChat(id){
   if(id==='trouble')recordActivity('🛠️','Asked troubleshooting AI',text,'rgba(34,197,94,.1)');
   if(id==='buildai')recordActivity('💡','Asked build recommendation AI',text,'rgba(8,124,255,.1)');
   addMsg(id,'user',displayText);inp.value='';
-  const componentFault=id==='trouble'&&!TROUBLE_MATH_RE.test(text)&&TROUBLE_COMPONENT_FAULT_RE.test(text);
-  const needsTechnician=id==='trouble'&&!TROUBLE_MATH_RE.test(text)&&(componentFault||TROUBLE_FAIL_RE.test(text)||troubleTechSearchPending);
+  const needsTechnician=id==='trouble'&&!TROUBLE_MATH_RE.test(text)&&(TROUBLE_FAIL_RE.test(text)||troubleTechSearchPending);
   if(needsTechnician){
-    if(componentFault&&!troubleTechSearchPending){
-      troubleTechSearchPending=true;
-      const prompt=/\b(?:sira|sirang|nasira|patay|ayaw|hindi|di|yung|akin|problema|umiinit|amoy|sunog|nabasa|natapunan)\b/i.test(text)
-        ?'Mukhang may problema sa component. Para ligtas, ipasuri ito sa malapit na PC technician sa halip na subukang kumpunihin mag-isa. Anong city o barangay ka? Hahanapan kita ng repair listings.'
-        :'This sounds like a component issue. For safety, please have a nearby PC technician inspect it instead of trying to repair it yourself. What city or barangay are you in? I’ll look for nearby repair listings.';
-      addMsg(id,'ai',prompt);
-      return;
-    }
-    const isTypedLocation=troubleTechSearchPending&&!TROUBLE_FAIL_RE.test(text)&&!componentFault;
+    const isTypedLocation=troubleTechSearchPending&&!TROUBLE_FAIL_RE.test(text);
     document.getElementById(id+'-send').disabled=true;
     addTyping(id);
     let center=null,area=isTypedLocation?text:'';
@@ -2784,12 +2774,29 @@ function getBuildAIResponse(msg){
 }
 
 function getTroubleResponse(msg){
-  const text=String(msg||'').toLowerCase();
-  if(/\b(?:component|hardware|cpu|processor|motherboard|ram|memory|gpu|graphics card|psu|power supply|ssd|hdd|storage)\b/.test(text)){
-    return 'This may involve a PC component. For safety, have a nearby technician inspect it. Share your city or barangay so nearby repair listings can be found.';
+  const m=msg.toLowerCase();
+  if(m.includes('won\'t turn')||m.includes('wont turn')||m.includes('no power')||m.includes('not turning')){
+    return `🔴 **PC Won't Turn On — Fix Guide:**\n\n**Step 1: Check Power**\n• Ensure PSU switch is ON (rear of PC)\n• Check power cable is firmly plugged in\n• Test the wall outlet with another device\n\n**Step 2: Check Connections**\n• Reseat the 24-pin ATX motherboard connector\n• Reseat the 8-pin CPU power connector\n• Check front panel power button cable on motherboard\n\n**Step 3: Minimal Boot Test**\n• Remove all components except 1 RAM stick\n• Remove GPU, use onboard video if available\n• Try to boot — if it works, add parts one by one\n\n**Step 4: PSU Test**\n• Use a PSU tester, or short the green wire to ground on the 24-pin connector\n\n💡 Most common cause: loose 24-pin or 8-pin connector`;
   }
-  return 'I can help with basic, non-invasive checks such as checking external cables, the power outlet, or an error message. I cannot guide component repairs. If you suspect a hardware fault, share your city or barangay to find nearby PC repair listings.';
+  if(m.includes('no display')||m.includes('black screen')||m.includes('no signal')||m.includes('blank')){
+    return `🖥️ **No Display / Black Screen — Fix Guide:**\n\n**Step 1: Check Cables**\n• Ensure HDMI/DisplayPort cable is firmly connected\n• Connect cable to GPU (not motherboard) if GPU is installed\n• Try a different cable or port\n\n**Step 2: Check RAM**\n• Reseat RAM sticks — most common cause!\n• Try with only 1 stick in slot A2 (or as per manual)\n• Try each stick individually\n\n**Step 3: Check GPU**\n• Reseat the GPU in PCIe slot\n• Ensure GPU power connectors are plugged in\n• Test with another monitor or TV\n\n**Step 4: BIOS**\n• Clear CMOS (remove battery 30 sec or use CLRTC jumper)\n• Check if your CPU has integrated graphics — unplug GPU and test\n\n💡 80% of black screen issues are caused by unseated RAM!`;
+  }
+  if(m.includes('restart')||m.includes('restarting')||m.includes('reboots')||m.includes('random shutdown')){
+    return `🔄 **Random Restarts — Fix Guide:**\n\n**Most Likely Causes:**\n\n**1. Overheating**\n• Check CPU temps using HWMonitor (download free)\n• CPU over 90°C at load = thermal issue\n• Reapply thermal paste if CPU cooler is old\n\n**2. PSU Failing**\n• Insufficient wattage for your components\n• Failing PSU = instability under load\n• Test with a known-good PSU\n\n**3. RAM Issues**\n• Run Windows Memory Diagnostic (search in Start)\n• Or boot MemTest86 from USB — let it run overnight\n\n**4. Windows / Driver Issue**\n• Update GPU drivers (DDU clean uninstall first)\n• Check Event Viewer > Windows Logs > System for errors\n\n5. **Dust buildup** — clean fans and heatsinks with compressed air`;
+  }
+  if(m.includes('overheat')||m.includes('hot')||m.includes('temperature')||m.includes('shutting down')){
+    return `🌡️ **Overheating — Diagnosis & Fix:**\n\n**Check Temps First:**\n• Download HWMonitor or HWiNFO64 (free)\n• Normal CPU idle: 30–50°C\n• Normal CPU load: 65–80°C\n• Danger zone: above 90°C\n\n**Common Fixes:**\n\n**1. Thermal Paste**\n• Remove CPU cooler, clean old paste with isopropyl alcohol\n• Apply small pea-sized amount of new paste\n• Remount cooler firmly\n\n**2. Airflow**\n• Ensure case has front intake + rear exhaust fans\n• Check for cable blockage inside case\n• Minimum: 2 fans for budget builds\n\n**3. CPU Cooler**\n• Stock AMD cooler is okay for non-X CPUs\n• Upgrade to Hyper 212 (₱1,800) for better temps\n\n**4. Case**\n• Avoid placing PC in enclosed spaces\n• Keep 15cm+ space behind PC for exhaust`;
+  }
+  if(m.includes('bsod')||m.includes('blue screen')||m.includes('stop code')){
+    return `💙 **Blue Screen of Death (BSOD) — Fix Guide:**\n\n**Step 1: Note the Stop Code**\n• Read the error code on the blue screen\n• Common codes: MEMORY_MANAGEMENT, IRQL_NOT_LESS_OR_EQUAL, CRITICAL_PROCESS_DIED\n\n**Step 2: Update Drivers**\n• GPU driver issues cause most BSODs\n• Use DDU (Display Driver Uninstaller) to clean uninstall GPU drivers\n• Reinstall latest drivers from NVIDIA/AMD website\n\n**Step 3: Check RAM**\n• Run Windows Memory Diagnostic\n• Run MemTest86 for thorough test\n\n**Step 4: Check Storage**\n• Run CrystalDiskInfo — check SSD/HDD health\n• Run CHKDSK in Command Prompt as admin\n\n**Step 5: Windows Repair**\n• Run: sfc /scannow in admin Command Prompt\n• Run: DISM /Online /Cleanup-Image /RestoreHealth\n\n💡 Check the Windows Event Viewer for the exact error that triggered the crash.`;
+  }
+  if(m.includes('slow')||m.includes('lag')||m.includes('sluggish')||m.includes('freeze')){
+    return `🐌 **PC Running Slow — Fix Plan:**\n\n**Step 1: Check Resource Usage**\n• Open Task Manager (Ctrl+Shift+Esc)\n• Check CPU, RAM, Disk usage\n• If disk is at 100% — this is the #1 cause\n\n**Step 2: Disk Issues**\n• If using HDD — replace with SSD (huge improvement)\n• Check disk health with CrystalDiskInfo\n• Run disk cleanup and defrag (HDD only, not SSD)\n\n**Step 3: RAM**\n• 8GB RAM is minimum for modern use\n• Close unused browser tabs and background apps\n\n**Step 4: Startup Programs**\n• Open Task Manager > Startup tab\n• Disable unnecessary startup programs\n\n**Step 5: Malware Scan**\n• Run Windows Defender full scan\n• Or use Malwarebytes (free)\n\n**Step 6: Thermal Throttling**\n• Check CPU temps — hot CPU slows itself down\n• Clean dust, reapply thermal paste`;
+  }
+  return `🛠️ **Troubleshooting Bot Ready**\n\nTell me your PC problem and I will help fix it step-by-step.\n• When does the problem occur?\n• Any error messages or codes?\n• Did it happen after a change (new part, update)?\n\nOr try one of the common issues:\n• PC won't turn on\n• No display / black screen\n• Random restarts\n• Overheating\n• Blue screen (BSOD)\n• PC running slow`;
 }
+
+// ——— LOGIN ———
 let isSignup=false;
 let authAttempts=0;
 let authLockoutUntil=0;

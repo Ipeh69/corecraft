@@ -4,7 +4,7 @@
     <button class="back-link" onclick="showPage('home')" style="margin-bottom:28px">← Back to Home</button>
     <div class="label-tag">Feature 4 · AI Powered</div>
     <div class="section-title">Basic Troubleshooting</div>
-    <div class="section-sub">Get help with basic, safe checks. For suspected component faults, find a nearby PC technician.</div>
+    <div class="section-sub">Tell the bot your PC problem and get step-by-step repair guidance to fix it.</div>
     <div class="ai-page-wrap">
       <div class="chat-wrap">
         <div class="chat-messages" id="trouble-messages"></div>
@@ -21,7 +21,7 @@
         </div>
         <div class="chat-input-wrap">
           <div class="chat-row">
-            <textarea id="trouble-input" class="chat-textarea" rows="2" placeholder="Describe what is happening; I can suggest basic safe checks." onkeydown="handleKey(event,'trouble')"></textarea>
+            <textarea id="trouble-input" class="chat-textarea" rows="2" placeholder="Describe your PC problem and I will help you fix it..." onkeydown="handleKey(event,'trouble')"></textarea>
             <button class="send-btn" id="trouble-send" onclick="sendChat('trouble')">Send</button>
           </div>
         </div>
