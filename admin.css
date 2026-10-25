@@ -164,3 +164,74 @@
   .admin-main{padding:20px 18px 50px}
   .admin-modal .admin-form-grid{grid-template-columns:1fr}
 }
+
+@media (max-width: 600px) {
+  .admin-main {
+    padding: 16px 12px 40px;
+  }
+
+  .admin-side {
+    padding: 14px 12px;
+    gap: 12px;
+  }
+
+  .admin-nav {
+    margin: 0 -2px;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-nav-item {
+    flex: 0 0 auto;
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+
+  .admin-head,
+  .admin-head-actions {
+    align-items: stretch;
+  }
+
+  .admin-head-actions {
+    flex-wrap: wrap;
+  }
+
+  .admin-rule-list,
+  .admin-cols,
+  .admin-chart-row.even {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-card,
+  .admin-modal {
+    padding: 16px;
+  }
+
+  .admin-toolbar > *,
+  .admin-form-grid > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .admin-modal-overlay {
+    padding: 10px;
+  }
+
+  .admin-modal {
+    max-height: calc(100vh - 20px);
+    max-height: calc(100dvh - 20px);
+  }
+
+  .admin-modal-actions {
+    justify-content: stretch;
+  }
+
+  .admin-modal-actions .admin-btn {
+    flex: 1 1 120px;
+  }
+
+  .admin-access-denied {
+    margin: 32px 12px;
+    padding: 22px 16px;
+  }
+}
