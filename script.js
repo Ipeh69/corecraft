@@ -1492,7 +1492,16 @@ function getGeminiContext(id){
 async function askGemini(id,text){
   if(id==='PHchat') return getPHChatResponse(text);
   const feature=id==='PHchat'?'phchat':id;
-  const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({feature,message:text,context:getGeminiContext(id)})});
+  const payload={feature,message:text,context:getGeminiContext(id)};
+  if(id==='trouble'){
+    const wrap=document.getElementById('trouble-messages');
+    payload.history=wrap?Array.from(wrap.querySelectorAll('.msg.user,.msg.ai')).map(function(node){
+      const role=node.classList.contains('user')?'user':'assistant';
+      const turnText=(node.innerText||node.textContent||'').trim();
+      return turnText?{role,text:turnText}:null;
+    }).filter(Boolean).slice(-10):[];
+  }
+  const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const data=await response.json();
   if(!response.ok||!data.reply)throw new Error(data.error||'Gemini request failed');
   return data.reply;
@@ -1534,32 +1543,19 @@ async function sendChat(id){
   if(id==='trouble')recordActivity('🛠️','Asked troubleshooting AI',text,'rgba(34,197,94,.1)');
   if(id==='buildai')recordActivity('💡','Asked build recommendation AI',text,'rgba(8,124,255,.1)');
   addMsg(id,'user',displayText);inp.value='';
-  let troubleExtra='';
-  if(id==='trouble'){
-    if(TROUBLE_SOLVED_RE.test(text)){troubleFails=0;troubleTopic='';}
-    else if(TROUBLE_FAIL_RE.test(text)&&troubleTopic){
-      troubleFails++;
-      if(troubleFails>=3){
-        addMsg(id,'ai',`I'm sorry, the basic steps haven't fixed it after ${troubleFails} tries. This is likely beyond basic troubleshooting (possible failed hardware such as PSU, motherboard, RAM, GPU or storage).\n\n**Please stop here and take it to an expert or a trusted PC repair shop.** Continuing to open or test parts yourself could cause more damage or void your warranty.\n\n• Tell the shop everything you already tried\n• Back up your data first if the drive still works\n• If it's under warranty, contact the seller or manufacturer\n\n${troubleVideoHtml(troubleTopic)}`);
-        troubleFails=0;
-        return;
-      }
-      troubleExtra=`\n\n**Still stuck? (Attempt ${troubleFails} of 3)** Watch this video guide:\n${troubleVideoHtml(troubleTopic)}\nIf 3 attempts don't work, I'll recommend an expert or repair shop.`;
-    }else{troubleTopic=text;troubleFails=0;}
-  }
   document.getElementById(id+'-send').disabled=true;
   addTyping(id);
   try{
-    const reply=await askGemini(id,id==='trouble'&&troubleFails?`${text}\n(Context: the user already tried basic fixes for "${troubleTopic}" ${troubleFails} time(s) without success. Suggest different steps.)`:text);
+    const reply=await askGemini(id,text);
     removeTyping(id);
-    addMsg(id,'ai',reply+troubleExtra);
+    addMsg(id,'ai',reply);
   }catch(error){
     removeTyping(id);
     let reply = '';
-    if(id==='trouble') reply = getTroubleResponse(text);
+    if(id==='trouble') reply = "I can't reach the troubleshooting AI right now, so I don't want to give you a generic or potentially unsafe fix. Please try sending that again in a moment. Error: "+(error.message||'Gemini request failed');
     else if(id==='compat') reply = getCompatResponse(text);
     else if(id==='buildai') reply = getBuildAIResponse(text);
-    addMsg(id,'ai',reply+troubleExtra);
+    addMsg(id,'ai',reply);
   }finally{
     document.getElementById(id+'-send').disabled=false;
   }
