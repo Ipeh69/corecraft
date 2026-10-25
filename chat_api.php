@@ -2,6 +2,9 @@
 ob_start();
 require_once __DIR__ . "/database_users.php";
 
+// Return TIMESTAMP columns in UTC; the browser formats them in Manila time.
+$conn_users->query("SET time_zone = '+00:00'");
+
 header("Content-Type: application/json; charset=UTF-8");
 
 function chat_respond($payload, $status_code = 200) {

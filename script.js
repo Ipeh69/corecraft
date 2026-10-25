@@ -1469,7 +1469,7 @@ function addMsg(id,type,text){
 function formatChatTime(value){
   const date=new Date(String(value).replace(' ','T')+'Z');
   if(Number.isNaN(date.getTime()))return '';
-  return date.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  return date.toLocaleTimeString('en-PH', {hour:'numeric',minute:'2-digit',timeZone:'Asia/Manila'});
 }
 function addTyping(id){
   const wrap=document.getElementById(id+'-messages');
@@ -1776,6 +1776,11 @@ function renderCommunityPosts(posts,container){
     const author=post.sender_name||'CoreCraft user';
     const initials=author.trim().split(/\s+/).map(function(part){return part.charAt(0);}).join('').toUpperCase().slice(0,2)||'C';
     const image=post.image_path?`<img class="phchat-post-image" src="${escapeHtml(post.image_path)}" alt="Image shared by ${escapeHtml(post.sender_name)}" loading="lazy">`:'';
+    const commentHeart=function(comment){
+      const commentId=Number(comment.id);
+      const liked=Number(comment.liked)>0;
+      return `<button type="button" class="phchat-comment-heart ${liked?'liked':''}" onclick="toggleCommentLike(${postId},${commentId})" aria-label="${liked?'Remove heart':'Heart'} on comment" aria-pressed="${liked?'true':'false'}" title="${liked?'Remove heart':'Heart this comment'}">${liked?'♥':'♡'} <span>${Number(comment.like_count)||0}</span></button>`;
+    };
     const commentHtml=comments.map(function(comment){
       const commentId=Number(comment.id);
       const isOwnComment=window._user&&String(comment.user_email||'').toLowerCase()===String(window._user.email||'').toLowerCase();
@@ -1783,12 +1788,19 @@ function renderCommunityPosts(posts,container){
       const replies=(comment.replies||[]).map(function(reply){
         const replyId=Number(reply.id);
         const canDeleteReply=window._user&&String(reply.user_email||'').toLowerCase()===String(window._user.email||'').toLowerCase();
-        return `<div class="phchat-reply"><div class="phchat-comment-content"><strong>${escapeHtml(reply.sender_name||'Member')}:</strong> ${escapeHtml(reply.comment)}</div>${canDeleteReply&&replyId?`<button type="button" class="phchat-comment-delete" onclick="deleteCommunityComment(${postId},${replyId})" aria-label="Delete your reply">Delete</button>`:''}</div>`;
+        return `<div class="phchat-reply"><div class="phchat-comment-content"><strong>${escapeHtml(reply.sender_name||'Member')}:</strong> ${escapeHtml(reply.comment)}</div><div class="phchat-comment-tools">${commentHeart(reply)}${canDeleteReply&&replyId?`<button type="button" class="phchat-comment-delete" onclick="deleteCommunityComment(${postId},${replyId})" aria-label="Delete your reply">Delete</button>`:''}</div></div>`;
       }).join('');
-      return `<div class="phchat-comment"><div class="phchat-comment-row"><div class="phchat-comment-content"><strong>${escapeHtml(comment.sender_name||'Member')}:</strong> ${escapeHtml(comment.comment)}</div><div class="phchat-comment-tools">${deleteButton}<button type="button" class="phchat-comment-reply-button" onclick="toggleCommentReplyForm(this)">Reply</button></div></div>${replies?`<div class="phchat-replies">${replies}</div>`:''}<form class="phchat-reply-form" hidden onsubmit="submitCommentReply(event,${postId},${commentId})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a reply..." required><button class="phchat-action-button" type="submit">Reply</button></form></div>`;
+      return `<div class="phchat-comment"><div class="phchat-comment-row"><div class="phchat-comment-content"><strong>${escapeHtml(comment.sender_name||'Member')}:</strong> ${escapeHtml(comment.comment)}</div><div class="phchat-comment-tools">${commentHeart(comment)}${deleteButton}<button type="button" class="phchat-comment-reply-button" onclick="toggleCommentReplyForm(this)">Reply</button></div></div>${replies?`<div class="phchat-replies">${replies}</div>`:''}<form class="phchat-reply-form" hidden onsubmit="submitCommentReply(event,${postId},${commentId})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a reply..." required><button class="phchat-action-button" type="submit">Reply</button></form></div>`;
     }).join('');
     return `<article class="card phchat-post" data-post-id="${postId}"><header class="phchat-post-header"><div class="phchat-post-identity"><span class="phchat-post-avatar" aria-hidden="true">${escapeHtml(initials)}</span><div class="phchat-post-byline"><span class="phchat-post-author">${escapeHtml(author)}</span><time>${formatChatTime(post.created_at)}</time></div></div></header>${post.body?`<div class="phchat-post-body">${escapeHtml(post.body)}</div>`:''}${image}<div class="phchat-post-actions"><button type="button" class="phchat-action-button ${Number(post.liked)?'liked':''}" onclick="togglePostLike(${postId})">${Number(post.liked)?'♥ Liked':'♡ Like'} <span>${Number(post.like_count)||0}</span></button><button type="button" class="phchat-comment-count" aria-haspopup="dialog" onclick="togglePostComments(this)">${totalCommentCount} comment${totalCommentCount===1?'':'s'}</button><button type="button" class="phchat-action-button phchat-post-report" onclick="reportCommunityPost(${postId})">Report</button></div><div class="modal-overlay phchat-comments-modal" role="dialog" aria-modal="true" aria-label="Comments" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal-box phchat-comment-section"><div class="phchat-comments-modal-header"><div class="modal-title">Comments (${totalCommentCount})</div><button type="button" class="btn-secondary" onclick="this.closest('.phchat-comments-modal').classList.remove('open')">Close</button></div><div class="phchat-comments">${commentHtml||'<div class="phchat-empty-comments">No comments yet. Start the conversation.</div>'}</div><form class="phchat-comment-form" onsubmit="submitPostComment(event,${postId})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a comment..." required><button class="phchat-action-button" type="submit">Comment</button></form></div></div></article>`;
   }).join('');
+}
+
+async function toggleCommentLike(postId,commentId){
+  try{
+    await phCommunityRequest('post_comment_like',{community:feedCommunityName(),post_id:postId,comment_id:commentId});
+    await reloadPostCommentsInModal(postId);
+  }catch(error){showPHChatNotice('Could not heart comment',error.message||'The comment heart could not be saved.');}
 }
 
 async function deleteCommunityPost(postId){

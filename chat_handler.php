@@ -2,6 +2,8 @@
 // Chat, DM, community and post API. Loaded by index.php (requests to index.php?chat_api).
 
 if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
+  // Return TIMESTAMP columns in UTC; the browser formats them in Manila time.
+  if (isset($conn) && $conn) $conn->query("SET time_zone = '+00:00'");
   $contains_foul_language = function ($text) {
     $text = strtolower((string) $text);
     $text = strtr($text, array("0" => "o", "1" => "i", "3" => "e", "4" => "a", "5" => "s", "@" => "a", "$" => "s"));
@@ -289,6 +291,7 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
 
     $cleanup_queries = array(
       "DELETE FROM community_post_reports WHERE community = ?",
+      "DELETE FROM community_comment_likes WHERE comment_id IN (SELECT c.id FROM community_post_comments c INNER JOIN community_posts p ON p.id = c.post_id WHERE p.community = ?)",
       "DELETE FROM community_post_comments WHERE post_id IN (SELECT id FROM community_posts WHERE community = ?)",
       "DELETE FROM community_post_likes WHERE post_id IN (SELECT id FROM community_posts WHERE community = ?)",
       "DELETE FROM community_posts WHERE community = ?",
@@ -340,6 +343,7 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
   $conn->query("CREATE TABLE IF NOT EXISTS community_posts (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, community VARCHAR(80) NOT NULL, user_email VARCHAR(190) NOT NULL, body TEXT NOT NULL, image_path VARCHAR(255) NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), KEY idx_posts_community (community, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
   $conn->query("CREATE TABLE IF NOT EXISTS community_post_likes (post_id BIGINT UNSIGNED NOT NULL, user_email VARCHAR(190) NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (post_id, user_email), KEY idx_post_likes_user (user_email)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
   $conn->query("CREATE TABLE IF NOT EXISTS community_post_comments (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, post_id BIGINT UNSIGNED NOT NULL, parent_comment_id BIGINT UNSIGNED NULL, user_email VARCHAR(190) NOT NULL, comment TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), KEY idx_post_comments (post_id, created_at), KEY idx_comment_replies (parent_comment_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+  $conn->query("CREATE TABLE IF NOT EXISTS community_comment_likes (comment_id BIGINT UNSIGNED NOT NULL, user_email VARCHAR(190) NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (comment_id, user_email), KEY idx_comment_likes_user (user_email)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
   $comment_parent_column = $conn->query("SHOW COLUMNS FROM community_post_comments LIKE 'parent_comment_id'");
   if ($comment_parent_column && $comment_parent_column->num_rows === 0) {
     $conn->query("ALTER TABLE community_post_comments ADD COLUMN parent_comment_id BIGINT UNSIGNED NULL AFTER post_id, ADD KEY idx_comment_replies (parent_comment_id)");
@@ -360,6 +364,7 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     $expired->free();
     if (count($expired_ids) > 0) {
       $id_list = implode(",", $expired_ids);
+      $conn->query("DELETE FROM community_comment_likes WHERE comment_id IN (SELECT id FROM community_post_comments WHERE post_id IN ($id_list))");
       $conn->query("DELETE FROM community_post_comments WHERE post_id IN ($id_list)");
       $conn->query("DELETE FROM community_post_likes WHERE post_id IN ($id_list)");
       $conn->query("DELETE FROM community_post_reports WHERE post_id IN ($id_list)");
@@ -410,9 +415,9 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     while ($row = $result->fetch_assoc()) {
       $post_id = (int) $row["id"];
       $row["comments"] = array();
-        $comments_stmt = $conn->prepare("SELECT c.id, c.parent_comment_id, c.user_email, u.full_name AS sender_name, c.comment, c.created_at FROM community_post_comments c INNER JOIN users u ON u.email = c.user_email WHERE c.post_id = ? ORDER BY c.id ASC LIMIT 300");
+        $comments_stmt = $conn->prepare("SELECT c.id, c.parent_comment_id, c.user_email, u.full_name AS sender_name, c.comment, c.created_at, (SELECT COUNT(*) FROM community_comment_likes cl WHERE cl.comment_id = c.id) AS like_count, (SELECT COUNT(*) FROM community_comment_likes cl WHERE cl.comment_id = c.id AND cl.user_email = ?) AS liked FROM community_post_comments c INNER JOIN users u ON u.email = c.user_email WHERE c.post_id = ? ORDER BY c.id ASC LIMIT 300");
       if ($comments_stmt) {
-        $comments_stmt->bind_param("i", $post_id);
+        $comments_stmt->bind_param("si", $email, $post_id);
         $comments_stmt->execute();
         $comments_result = $comments_stmt->get_result();
         $comment_indexes = array();
@@ -455,6 +460,7 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
 
     $conn->autocommit(false);
     $cleanup_queries = array(
+      "DELETE FROM community_comment_likes WHERE comment_id IN (SELECT id FROM community_post_comments WHERE post_id = ?)",
       "DELETE FROM community_post_comments WHERE post_id = ?",
       "DELETE FROM community_post_likes WHERE post_id = ?",
       "DELETE FROM community_post_reports WHERE post_id = ?"
@@ -556,6 +562,8 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
       $reply(array("success" => false, "error" => "Comment not found or you are not its author"), 404);
     }
     $check->close();
+    $likes = $conn->prepare("DELETE FROM community_comment_likes WHERE comment_id IN (SELECT id FROM community_post_comments WHERE post_id = ? AND (id = ? OR parent_comment_id = ?))");
+    if ($likes) { $likes->bind_param("iii", $post_id, $comment_id, $comment_id); $likes->execute(); $likes->close(); }
     if ($parent_comment_id === null) {
       $replies = $conn->prepare("DELETE FROM community_post_comments WHERE parent_comment_id = ? AND post_id = ?");
       if ($replies) { $replies->bind_param("ii", $comment_id, $post_id); $replies->execute(); $replies->close(); }
@@ -566,6 +574,41 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     if (!$stmt->execute()) { $stmt->close(); $reply(array("success" => false, "error" => "Comment could not be deleted"), 500); }
     $stmt->close();
     $reply(array("success" => true));
+  }
+
+  if ($action === "post_comment_like") {
+    $comment_id = isset($body["comment_id"]) ? (int) $body["comment_id"] : 0;
+    $post_id = isset($body["post_id"]) ? (int) $body["post_id"] : 0;
+    if ($comment_id < 1 || $post_id < 1) $reply(array("success" => false, "error" => "Invalid comment"), 400);
+    $verify = $conn->prepare("SELECT c.id FROM community_post_comments c INNER JOIN community_posts p ON p.id = c.post_id WHERE c.id = ? AND c.post_id = ? AND p.community = ? LIMIT 1");
+    if (!$verify) $reply(array("success" => false, "error" => "Failed to verify comment"), 500);
+    $verify->bind_param("iis", $comment_id, $post_id, $community);
+    $verify->execute();
+    $verify->store_result();
+    $exists = $verify->num_rows === 1;
+    $verify->close();
+    if (!$exists) $reply(array("success" => false, "error" => "Comment was not found in this community"), 404);
+    $check = $conn->prepare("SELECT comment_id FROM community_comment_likes WHERE comment_id = ? AND user_email = ? LIMIT 1");
+    $check->bind_param("is", $comment_id, $email);
+    $check->execute();
+    $check->store_result();
+    if ($check->num_rows > 0) {
+      $check->close();
+      $stmt = $conn->prepare("DELETE FROM community_comment_likes WHERE comment_id = ? AND user_email = ?");
+      $liked = false;
+    } else {
+      $check->close();
+      $stmt = $conn->prepare("INSERT IGNORE INTO community_comment_likes (comment_id, user_email) VALUES (?, ?)");
+      $liked = true;
+    }
+    if (!$stmt) $reply(array("success" => false, "error" => "Failed to update comment heart"), 500);
+    $stmt->bind_param("is", $comment_id, $email);
+    if (!$stmt->execute()) { $stmt->close(); $reply(array("success" => false, "error" => "Comment heart could not be saved"), 500); }
+    $stmt->close();
+    $count = $conn->prepare("SELECT COUNT(*) FROM community_comment_likes WHERE comment_id = ?");
+    $like_count = 0;
+    if ($count) { $count->bind_param("i", $comment_id); $count->execute(); $count->bind_result($like_count); $count->fetch(); $count->close(); }
+    $reply(array("success" => true, "liked" => $liked, "like_count" => (int) $like_count));
   }
 
   if ($action === "post_like" || $action === "post_comment" || $action === "post_comment_reply") {

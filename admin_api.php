@@ -268,6 +268,14 @@ $conn_admin->query("CREATE TABLE IF NOT EXISTS community_post_comments (
     KEY idx_post_comments (post_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 
+$conn_admin->query("CREATE TABLE IF NOT EXISTS community_comment_likes (
+    comment_id BIGINT UNSIGNED NOT NULL,
+    user_email VARCHAR(190) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (comment_id, user_email),
+    KEY idx_comment_likes_user (user_email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+
 $conn_admin->query("CREATE TABLE IF NOT EXISTS private_messages (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     sender_email VARCHAR(190) NOT NULL,
@@ -1021,6 +1029,8 @@ if ($action === "report_post_delete") {
         admin_respond(array("success" => false, "error" => "Reported post is no longer available"), 404);
     }
     $post->close();
+    $comment_likes = $conn_admin->prepare("DELETE FROM community_comment_likes WHERE comment_id IN (SELECT id FROM community_post_comments WHERE post_id = ?)");
+    if ($comment_likes) { $comment_likes->bind_param("i", $post_id); $comment_likes->execute(); $comment_likes->close(); }
     foreach (array("community_post_comments", "community_post_likes") as $table) {
         $cleanup = $conn_admin->prepare("DELETE FROM " . $table . " WHERE post_id = ?");
         if (!$cleanup) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Failed to prepare post cleanup"), 500); }
@@ -1142,12 +1152,17 @@ if ($action === "content_delete") {
     $deleted = $stmt->affected_rows;
     $stmt->close();
     if ($type === "posts" && $deleted > 0) {
+        $comment_likes = $conn_admin->prepare("DELETE FROM community_comment_likes WHERE comment_id IN (SELECT id FROM community_post_comments WHERE post_id = ?)");
+        if ($comment_likes) { $comment_likes->bind_param("i", $item_id); $comment_likes->execute(); $comment_likes->close(); }
         $cleanup = $conn_admin->prepare("DELETE FROM community_post_comments WHERE post_id = ?");
         if ($cleanup) {
             $cleanup->bind_param("i", $item_id);
             $cleanup->execute();
             $cleanup->close();
         }
+    } elseif ($type === "comments" && $deleted > 0) {
+        $cleanup = $conn_admin->prepare("DELETE FROM community_comment_likes WHERE comment_id = ?");
+        if ($cleanup) { $cleanup->bind_param("i", $item_id); $cleanup->execute(); $cleanup->close(); }
     }
     admin_log($conn_admin, "warning", "moderation", "Removed " . $type . " item #" . $item_id);
     admin_respond(array("success" => true, "deleted" => $deleted > 0));
