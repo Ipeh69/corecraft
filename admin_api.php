@@ -1,6 +1,32 @@
 <?php
 // CoreCraft admin API: catalog, compatibility rules, moderation, pricing feeds and analytics.
 // Standalone JSON endpoint (admin_api.php). Requires an authenticated admin (or moderator) session.
+$admin_api_initial_buffer_level = ob_get_level();
+ob_start();
+ini_set("display_errors", "0");
+ini_set("log_errors", "1");
+
+function admin_clear_output()
+{
+    $initial_level = isset($GLOBALS["admin_api_initial_buffer_level"]) ? (int) $GLOBALS["admin_api_initial_buffer_level"] : 0;
+    while (ob_get_level() > $initial_level) {
+        ob_end_clean();
+    }
+}
+
+register_shutdown_function(function () {
+    $error = error_get_last();
+    $fatal_types = array(E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR);
+    if ($error && in_array($error["type"], $fatal_types, true)) {
+        admin_clear_output();
+        if (!headers_sent()) {
+            header("Content-Type: application/json; charset=UTF-8");
+        }
+        http_response_code(500);
+        echo json_encode(array("success" => false, "error" => "The admin service encountered a server error. Check the PHP error log."));
+    }
+});
+
 require_once __DIR__ . "/config.php";
 
 $conn_admin = new mysqli(CORECRAFT_DB_HOST, CORECRAFT_DB_USER, CORECRAFT_DB_PASSWORD, CORECRAFT_DB_NAME);
@@ -18,6 +44,8 @@ header("Content-Type: application/json; charset=UTF-8");
 
 function admin_respond($payload, $status_code = 200)
 {
+    admin_clear_output();
+    header("Content-Type: application/json; charset=UTF-8");
     http_response_code($status_code);
     echo json_encode($payload);
     exit;

@@ -26,8 +26,16 @@ async function adminApi(action,payload){
   }catch(error){
     throw new Error('Could not reach admin_api.php ('+(error&&error.message?error.message:'network error')+')');
   }
+  const responseText=await response.text();
   let data;
-  try{data=await response.json();}catch(error){throw new Error('The admin service returned an invalid response (HTTP '+response.status+')');}
+  try{data=JSON.parse(responseText);}catch(error){
+    const contentType=response.headers.get('content-type')||'unknown content type';
+    const preview=responseText.trim().slice(0,120).toLowerCase();
+    let reason='non-JSON response ('+contentType+')';
+    if(/^(<br\s*\/?\s*>\s*)*<(b|strong)>?(warning|notice|fatal error|parse error)/.test(preview))reason='PHP warning or error printed before the JSON';
+    else if(/^</.test(preview))reason='HTML page returned; check the PHP route or login redirect';
+    throw new Error('Admin service returned a '+reason+' (HTTP '+response.status+')');
+  }
   if(!data||typeof data!=='object')throw new Error('Unexpected admin response');
   if(!response.ok||!data.success)throw new Error(data.error||('Request failed (HTTP '+response.status+')'));
   return data;
