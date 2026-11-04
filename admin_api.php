@@ -1180,8 +1180,16 @@ if ($action === "report_post_delete") {
     $post->execute();
     $post->bind_result($image_path);
     if (!$post->fetch()) {
-        $post->close(); $conn_admin->rollback();
-        admin_respond(array("success" => false, "error" => "Reported post is no longer available"), 404);
+        $post->close();
+        $resolve_missing = $conn_admin->prepare("UPDATE moderation_reports SET status = 'resolved', resolved_by = ?, resolved_at = NOW() WHERE id = ? AND status = 'open'");
+        if (!$resolve_missing) { $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Failed to close report"), 500); }
+        $resolve_missing->bind_param("si", $email, $report_id);
+        if (!$resolve_missing->execute()) { $resolve_missing->close(); $conn_admin->rollback(); admin_respond(array("success" => false, "error" => "Failed to close report"), 500); }
+        $resolve_missing->close();
+        $conn_admin->commit();
+        $conn_admin->autocommit(true);
+        admin_log($conn_admin, "info", "moderation", "Closed report #" . $report_id . " because post #" . $post_id . " was already unavailable");
+        admin_respond(array("success" => true, "message" => "Reported post is already unavailable; report closed"));
     }
     $post->close();
     $comment_likes = $conn_admin->prepare("DELETE FROM community_comment_likes WHERE comment_id IN (SELECT id FROM community_post_comments WHERE post_id = ?)");

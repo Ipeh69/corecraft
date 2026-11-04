@@ -500,10 +500,11 @@
     .divider-text{color:#6b7280;font-size:13px;white-space:nowrap}
     .social-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .google-social-grid{grid-template-columns:1fr;justify-items:stretch}
-    .google-signin-slot{width:100%;height:48px;min-height:48px;display:flex;align-items:center;justify-content:stretch;overflow:hidden;padding:0;line-height:0;background:transparent;border:0;border-radius:8px;box-sizing:border-box;transition:box-shadow .2s}
+    .google-signin-slot{width:100%;min-height:48px;display:flex;align-items:center;justify-content:center;overflow:visible;padding:0;line-height:0;background:transparent;border:0;border-radius:8px;box-sizing:border-box;transition:box-shadow .2s}
     .google-signin-slot:hover{box-shadow:0 4px 20px rgba(0,229,255,.25)}
-    .google-signin-slot > div{width:100%!important;height:48px!important;flex:1}
-    .google-signin-slot iframe{width:100%!important;height:48px!important;margin:0!important;display:block!important}
+    .google-signin-slot > div{width:100%!important;min-height:48px!important;display:flex!important;align-items:center!important;justify-content:center!important;flex:1}
+    .google-signin-slot iframe{width:100%!important;min-height:48px!important;margin:0 auto!important;display:block!important}
+    #credential_picker_container{left:50%!important;right:auto!important;transform:translateX(-50%)!important;max-width:calc(100vw - 32px)!important}
     .google-signin-unconfigured{padding:8px;border:1px dashed #4b5563;border-radius:8px;color:var(--muted);font-size:11px;text-align:center;overflow-wrap:anywhere}
     .social-btn{padding:10px 16px;background:rgba(3,7,18,.5);border:1px solid #374151;border-radius:8px;color:#d1d5db;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;font-family:'DM Sans',sans-serif}
     .social-btn:hover{background:#111827;border-color:#4b5563}
