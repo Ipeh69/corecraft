@@ -761,9 +761,9 @@ async function deleteReportedPost(index){
   const report=adminState.reports[index];
   if(!report)return;
   try{
-    await adminApi('report_post_delete',{id:report.id});
+    const data=await adminApi('report_post_delete',{id:report.id});
     closeAdminModal();
-    setAdminStatus('Post deleted and report closed','ok');
+    setAdminStatus((data&&data.message)?data.message:'Post deleted and report closed','ok');
     loadAdminReports();
   }catch(error){adminModalStatus(error.message,'err');}
 }
