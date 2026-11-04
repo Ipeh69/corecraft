@@ -25,6 +25,8 @@
           <div class="dropdown-email" id="dropdown-email">juan@example.com</div>
         </div>
         <button class="dropdown-item" onclick="showPage('profile');closeDropdown()">My Profile</button>
+        <button class="dropdown-item" id="dropdown-role-switch-item" style="display:none" onclick="toggleAdminMode()">Switch to Admin</button>
+        <button class="dropdown-item" id="dropdown-admin-item" style="display:none" onclick="openAdminDashboard();closeDropdown()">Admin Console</button>
         <button class="dropdown-item logout" onclick="handleLogout()">Log Out</button>
         <select class="theme-select dropdown-theme-select" aria-label="Color theme" onchange="setColorTheme(this.value)">
           <option value="dark">Dark mode</option>
@@ -44,6 +46,7 @@
   <a onclick="showPage('pricing');closeMenu()">Part Pricing by Location</a>
   <a onclick="showPage('troubleshoot');closeMenu()">Troubleshooting</a>
   <a onclick="showPage('PHchat');closeMenu()">PH Community</a>
+  <a id="mobile-admin-link" style="display:none" onclick="openAdminDashboard();closeMenu()">Admin Console</a>
   <div class="mobile-menu-actions">
     <select class="theme-select mobile-theme-select" aria-label="Color theme" onchange="setColorTheme(this.value)">
       <option value="dark">Dark mode</option>
@@ -52,3 +55,4 @@
     <button class="btn-login" onclick="showPage('login');closeMenu()">👤 Login</button>
   </div>
 </div>
+

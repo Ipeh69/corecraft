@@ -1,5 +1,5 @@
 // ——— CoreCraft Admin Console ———
-let adminState={view:'dashboard',components:[],rules:[],regions:[],users:[],reports:[],communities:[],content:[]};
+let adminState={view:'dashboard',components:[],recommendations:[],rules:[],regions:[],users:[],reports:[],communities:[],content:[]};
 
 function adminEsc(value){
   return String(value==null?'':value).replace(/[&<>"']/g,function(c){
@@ -64,13 +64,18 @@ function adminModalStatus(message,type){
 
 // ——— Entry point (called from showPage) ———
 function initAdminPage(){
-  if(!window._user||!window._user.isAdmin){showPage('home');return;}
+  if(!canAccessAdminConsole()){showPage('home');return;}
   const who=document.getElementById('admin-side-user');
   if(who)who.textContent=window._user.name||'Admin';
   switchAdminView(adminState.view,document.querySelector('.admin-nav-item[data-admin-view="'+adminState.view+'"]'));
 }
 
 function openAdminDashboard(){
+  if(window._user&&window._user.isAdmin&&window._user.activeRole!=='admin'){
+    window._user.activeRole='admin';
+    setStoredAdminMode('admin');
+    updateAdminNav(true);
+  }
   adminState.view='dashboard';
   showPage('admin');
 }
@@ -86,6 +91,7 @@ function switchAdminView(view,button){
     dashboard:['Dashboard','Platform health at a glance.'],
     components:['Component Catalog','Add, update and retire hardware parts and pricing.'],
     rules:['Compatibility Rules','Maintain the checks behind build compatibility.'],
+    recommendations:['Build Recommendations','Manage build templates, part selections, and target budgets.'],
     users:['Users & Roles','Manage accounts, roles and access.'],
     moderation:['Moderation','Review reports, remove abusive content, and manage communities.'],
     pricing:['Pricing Feeds','Sync regional prices used by AI estimation.'],
@@ -104,6 +110,7 @@ function switchAdminView(view,button){
 function loadAdminView(view){
   if(view==='dashboard')loadAdminDashboard();
   else if(view==='components')loadAdminComponents();
+  else if(view==='recommendations')loadAdminRecommendations();
   else if(view==='rules')loadAdminRules();
   else if(view==='users')loadAdminUsers();
   else if(view==='moderation'){loadAdminReports();loadAdminCommunities();}
@@ -380,6 +387,108 @@ async function deleteComponent(index){
     await adminApi('component_delete',{id:component.id});
     setAdminStatus('Component deleted','ok');
     loadAdminComponents();
+  }catch(error){
+    setAdminStatus(error.message,'err');
+  }
+}
+
+
+// ——— Build recommendations ———
+async function loadAdminRecommendations(){
+  const tbody=document.getElementById('admin-recommendation-rows');
+  setAdminStatus('Loading build recommendations…');
+  try{
+    const data=await adminApi('recommendation_list',{search:adminVal('recommendation-search'),category:adminVal('recommendation-category-filter')});
+    adminState.recommendations=data.recommendations||[];
+    if(tbody){
+      tbody.innerHTML=adminState.recommendations.length?adminState.recommendations.map(function(rec,index){
+        return '<tr>'+
+          '<td><span class="admin-tag neutral">'+adminEsc(rec.category||'—')+'</span></td>'+
+          '<td><div class="strong">'+adminEsc(rec.build_name||'')+'</div><div class="muted truncate">'+adminEsc(rec.description||'')+'</div></td>'+
+          '<td>₱'+Number(rec.price||0).toLocaleString()+'</td>'+
+          '<td>'+adminEsc(rec.cpu||'—')+'</td>'+
+          '<td>'+adminEsc(rec.gpu||'—')+'</td>'+
+          '<td>'+adminEsc(rec.storage||'—')+'</td>'+
+          '<td>'+adminEsc(rec.updated_at||'—')+'</td>'+
+          '<td><div class="admin-row-actions">'+
+            '<button class="admin-icon-btn" onclick="openRecommendationForm('+index+')">Edit</button>'+
+            '<button class="admin-icon-btn danger" onclick="deleteRecommendation('+index+')">Delete</button>'+
+          '</div></td>'+
+        '</tr>';
+      }).join(''):'<tr><td colspan="8"><div class="admin-empty">No recommendations match this filter.</div></td></tr>';
+    }
+    setAdminStatus(adminState.recommendations.length+' recommendations loaded','ok');
+  }catch(error){
+    setAdminStatus(error.message,'err');
+    if(tbody)tbody.innerHTML='<tr><td colspan="8"><div class="admin-empty">'+adminEsc(error.message)+'</div></td></tr>';
+  }
+}
+
+function openRecommendationForm(index){
+  const editing=(typeof index==='number'&&adminState.recommendations[index])?adminState.recommendations[index]:null;
+  const categories=['gaming','office','students','streaming','editing','workstation','home'];
+  const categoryOptions=categories.map(function(cat){return '<option value="'+cat+'"'+(editing&&editing.category===cat?' selected':'')+'>'+cat+'</option>';}).join('');
+  adminModal(
+    '<div class="admin-modal-title">'+(editing?'Edit build recommendation':'New build recommendation')+'</div>'+
+    '<p class="admin-modal-hint">Edit build name, item list, and target price shown in Build Recommendations.</p>'+
+    '<div class="admin-form-grid">'+
+      '<label class="admin-label">Category<select id="br-category">'+categoryOptions+'</select></label>'+
+      '<label class="admin-label">Estimated budget (PHP)<input id="br-price" type="number" min="0" step="100" value="'+adminEsc(editing?editing.price:0)+'"/></label>'+
+      '<label class="admin-label full">Build name<input id="br-build-name" value="'+adminEsc(editing?editing.build_name:'')+'" placeholder="e.g. Gaming Value 1080p"/></label>'+
+      '<label class="admin-label full">Description<textarea id="br-description" rows="3" placeholder="Short summary shown to users">'+adminEsc(editing?editing.description:'')+'</textarea></label>'+
+      '<label class="admin-label">CPU<input id="br-cpu" value="'+adminEsc(editing?editing.cpu:'')+'"/></label>'+
+      '<label class="admin-label">Motherboard<input id="br-motherboard" value="'+adminEsc(editing?editing.motherboard:'')+'"/></label>'+
+      '<label class="admin-label">RAM<input id="br-ram" value="'+adminEsc(editing?editing.ram:'')+'"/></label>'+
+      '<label class="admin-label">GPU<input id="br-gpu" value="'+adminEsc(editing?editing.gpu:'')+'"/></label>'+
+      '<label class="admin-label">Storage<input id="br-storage" value="'+adminEsc(editing?editing.storage:'')+'"/></label>'+
+      '<label class="admin-label">PSU<input id="br-psu" value="'+adminEsc(editing?editing.psu:'')+'"/></label>'+
+      '<label class="admin-label full">Pros<input id="br-pros" value="'+adminEsc(editing&&editing.pros?editing.pros:'')+'" placeholder="Optional"/></label>'+
+      '<label class="admin-label full">Cons<input id="br-cons" value="'+adminEsc(editing&&editing.cons?editing.cons:'')+'" placeholder="Optional"/></label>'+
+    '</div>'+
+    '<div class="admin-modal-status" id="admin-modal-status"></div>'+
+    '<div class="admin-modal-actions">'+
+      '<button class="admin-btn" onclick="closeAdminModal()">Cancel</button>'+
+      '<button class="admin-btn primary" onclick="saveRecommendationModal('+(editing?editing.id:0)+')">'+(editing?'Save recommendation':'Create recommendation')+'</button>'+
+    '</div>'
+  );
+}
+
+async function saveRecommendationModal(id){
+  adminModalStatus('Saving…');
+  try{
+    const data=await adminApi('recommendation_save',{
+      id:id||0,
+      category:adminVal('br-category'),
+      build_name:adminVal('br-build-name'),
+      description:adminVal('br-description'),
+      price:adminVal('br-price'),
+      cpu:adminVal('br-cpu'),
+      motherboard:adminVal('br-motherboard'),
+      ram:adminVal('br-ram'),
+      gpu:adminVal('br-gpu'),
+      storage:adminVal('br-storage'),
+      psu:adminVal('br-psu'),
+      pros:adminVal('br-pros'),
+      cons:adminVal('br-cons')
+    });
+    adminModalStatus(data.message||'Saved','ok');
+    setAdminStatus(data.message||'Recommendation saved','ok');
+    setTimeout(closeAdminModal,400);
+    loadAdminRecommendations();
+  }catch(error){
+    adminModalStatus(error.message,'err');
+  }
+}
+
+async function deleteRecommendation(index){
+  const recommendation=adminState.recommendations[index];
+  if(!recommendation)return;
+  if(!window.confirm('Delete "'+recommendation.build_name+'" from build recommendations?'))return;
+  setAdminStatus('Deleting recommendation…');
+  try{
+    await adminApi('recommendation_delete',{id:recommendation.id});
+    setAdminStatus('Recommendation deleted','ok');
+    loadAdminRecommendations();
   }catch(error){
     setAdminStatus(error.message,'err');
   }

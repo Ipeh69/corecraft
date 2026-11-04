@@ -8,6 +8,7 @@
       </div>
       <nav class="admin-nav">
         <button class="admin-nav-item" data-admin-view="users" onclick="switchAdminView('users',this)">Users &amp; Roles</button>
+        <button class="admin-nav-item" data-admin-view="recommendations" onclick="switchAdminView('recommendations',this)">Build Recommendations</button>
         <button class="admin-nav-item" data-admin-view="moderation" onclick="switchAdminView('moderation',this)">Moderation</button>
         <button class="admin-nav-item" data-admin-view="logs" onclick="switchAdminView('logs',this)">System Logs</button>
       </nav>
@@ -91,6 +92,32 @@
         <div id="admin-rule-list" class="admin-rule-list"></div>
       </section>
 
+
+      <!-- Build Recommendations -->
+      <section class="admin-view" id="admin-view-recommendations">
+        <div class="admin-toolbar">
+          <input class="admin-input" id="recommendation-search" type="search" placeholder="Search build name or component…" onkeyup="if(event.key==='Enter')loadAdminRecommendations()"/>
+          <select class="admin-input admin-select" id="recommendation-category-filter" onchange="loadAdminRecommendations()">
+            <option value="">All categories</option>
+            <option value="gaming">Gaming</option>
+            <option value="office">Office</option>
+            <option value="students">Students</option>
+            <option value="streaming">Streaming</option>
+            <option value="editing">Editing</option>
+            <option value="workstation">Workstation</option>
+            <option value="home">Home</option>
+          </select>
+          <button class="admin-btn primary" onclick="openRecommendationForm()">+ New recommendation</button>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr><th>Category</th><th>Build</th><th>Budget (PHP)</th><th>CPU</th><th>GPU</th><th>Storage</th><th>Updated</th><th></th></tr>
+            </thead>
+            <tbody id="admin-recommendation-rows"></tbody>
+          </table>
+        </div>
+      </section>
       <!-- Users -->
       <section class="admin-view" id="admin-view-users">
         <div class="admin-toolbar">

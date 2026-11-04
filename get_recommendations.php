@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once "database.php";
 
 header("Content-Type: application/json; charset=UTF-8");
@@ -13,21 +13,27 @@ function normalize_category($value) {
 
 function apply_recommendation_seed_once($conn) {
     $migrationKey = "recommendations_seed_v2";
-    $conn->query("CREATE TABLE IF NOT EXISTS corecraft_migrations (
+    $created = $conn->query("CREATE TABLE IF NOT EXISTS corecraft_migrations (
         migration_key VARCHAR(100) NOT NULL PRIMARY KEY,
         applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+
+    if (!$created) {
+        return;
+    }
 
     $check = $conn->prepare("SELECT migration_key FROM corecraft_migrations WHERE migration_key = ? LIMIT 1");
-    if ($check) {
-        $check->bind_param("s", $migrationKey);
-        $check->execute();
-        $check->store_result();
-        $alreadyApplied = $check->num_rows > 0;
-        $check->close();
-        if ($alreadyApplied) {
-            return;
-        }
+    if (!$check) {
+        return;
+    }
+
+    $check->bind_param("s", $migrationKey);
+    $check->execute();
+    $check->store_result();
+    $alreadyApplied = $check->num_rows > 0;
+    $check->close();
+    if ($alreadyApplied) {
+        return;
     }
 
     $seedPath = __DIR__ . "/recommendations_seed_v2.php";
@@ -207,11 +213,6 @@ while ($stmt->fetch()) {
     if (!isset($response[$normalized_category])) {
         continue;
     }
-    // Keep the public recommendation list at five builds per category.
-    // The database may contain extra legacy or manually added rows.
-    if (count($response[$normalized_category]) >= 5) {
-        continue;
-    }
 
     $components = array(
         array("cat" => "CPU", "name" => normalize_recommendation_cpu($cpu, $build_name)),
@@ -246,3 +247,8 @@ foreach ($response as $category_name => $category_recommendations) {
 }
 
 echo json_encode($response);
+
+
+
+
+

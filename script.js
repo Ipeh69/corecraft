@@ -26,7 +26,7 @@ let PHCHAT_COMMUNITIES=[
 function showPage(name){
   if(protected_.includes(name)&&!isLoggedIn){pendingPage=name;showPage('login');return}
   // The admin console is never reachable without an admin role.
-  if(name==='admin'&&(!window._user||!window._user.isAdmin))name='home';
+  if(name==='admin'&&!canAccessAdminConsole())name='home';
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const el=document.getElementById('page-'+name);
     if(el)el.classList.add('active');
@@ -2802,6 +2802,7 @@ let authAttempts=0;
 let authLockoutUntil=0;
 const AUTH_USERS_KEY='corecraft_users';
 const AUTH_SESSION_KEY='corecraft_session';
+const ADMIN_MODE_KEY_PREFIX='corecraft_admin_mode';
 const MAX_ATTEMPTS=5;
 const LOCKOUT_MS=10*60*1000;
 const GOOGLE_CLIENT_ID=window.CORECRAFT_GOOGLE_CLIENT_ID||'';
@@ -2962,7 +2963,7 @@ async function hashPassword(password,salt){
 function setActiveUser(user, rememberMe=false){
   const firstName=user.name.split(' ')[0];
   const initials=user.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
-  window._user={name:user.name,email:user.email,authToken:user.auth_token||'',initials,firstName};
+  window._user={name:user.name,email:user.email,authToken:user.auth_token||'',initials,firstName,isAdmin:false,adminRole:'user',activeRole:'user'};
   document.getElementById('dropdown-name').textContent=user.name;
   document.getElementById('dropdown-email').textContent=user.email;
   document.getElementById('user-displayname').textContent=firstName;
@@ -2983,6 +2984,33 @@ function setActiveUser(user, rememberMe=false){
   }
   refreshAdminAccess();
 }
+function getAdminModeStorageKey(){
+  return window._user&&window._user.email?ADMIN_MODE_KEY_PREFIX+'_'+window._user.email.toLowerCase():'';
+}
+function getStoredAdminMode(){
+  const key=getAdminModeStorageKey();
+  if(!key)return 'user';
+  try{return localStorage.getItem(key)==='admin'?'admin':'user';}catch(error){return 'user';}
+}
+function setStoredAdminMode(mode){
+  const key=getAdminModeStorageKey();
+  if(!key)return;
+  try{localStorage.setItem(key,mode==='admin'?'admin':'user');}catch(error){}
+}
+function canAccessAdminConsole(){
+  return !!(window._user&&window._user.isAdmin&&window._user.activeRole==='admin');
+}
+function updateAdminRoleSwitchLabel(){
+  const button=document.getElementById('dropdown-role-switch-item');
+  if(!button)return;
+  if(!window._user||!window._user.isAdmin){
+    button.style.display='none';
+    return;
+  }
+  const inAdminMode=canAccessAdminConsole();
+  button.style.display='';
+  button.textContent=inAdminMode?'Switch to User View':'Switch to Admin Console';
+}
 // Asks the admin API whether the signed-in account holds an admin/moderator role,
 // then reveals the admin entry points. The API enforces this server-side regardless.
 async function refreshAdminAccess(){
@@ -2993,16 +3021,37 @@ async function refreshAdminAccess(){
     const isAdmin=!!(data&&data.success&&data.is_admin);
     window._user.isAdmin=isAdmin;
     window._user.adminRole=(data&&data.role)?data.role:'user';
+    const savedMode=getStoredAdminMode();
+    window._user.activeRole=isAdmin&&savedMode==='admin'?'admin':'user';
+    if(!isAdmin)window._user.activeRole='user';
     updateAdminNav(isAdmin);
   }catch(error){
+    if(window._user){
+      window._user.isAdmin=false;
+      window._user.adminRole='user';
+      window._user.activeRole='user';
+    }
     updateAdminNav(false);
   }
 }
 function updateAdminNav(isAdmin){
+  const showAdminLinks=!!(isAdmin&&canAccessAdminConsole());
   ['nav-admin-link','mobile-admin-link','dropdown-admin-item'].forEach(function(id){
     const el=document.getElementById(id);
-    if(el)el.style.display=isAdmin?'':'none';
+    if(el)el.style.display=showAdminLinks?'':'none';
   });
+  updateAdminRoleSwitchLabel();
+  if(window._user&&window._user.firstName)updateMobileMenu(true,window._user.firstName);
+}
+function toggleAdminMode(){
+  if(!window._user||!window._user.isAdmin)return;
+  const nextMode=canAccessAdminConsole()?'user':'admin';
+  window._user.activeRole=nextMode;
+  setStoredAdminMode(nextMode);
+  updateAdminNav(true);
+  closeDropdown();
+  if(nextMode==='admin')openAdminDashboard();
+  else if(document.getElementById('page-admin')?.classList.contains('active'))showPage('home');
 }
 // Records lightweight usage analytics consumed by the admin dashboard.
 function corecraftTrack(eventType,detail){
@@ -3140,7 +3189,7 @@ function saveProfile(){
   }
   const initials=newName.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
   const firstName=newName.split(' ')[0];
-  window._user={name:newName,email:newEmail,authToken:window._user.authToken||'',initials,firstName};
+  window._user={name:newName,email:newEmail,authToken:window._user.authToken||'',initials,firstName,isAdmin:!!window._user.isAdmin,adminRole:window._user.adminRole||'user',activeRole:window._user.activeRole||'user'};
   // Update nav
   document.getElementById('dropdown-name').textContent=newName;
   document.getElementById('dropdown-email').textContent=newEmail;
@@ -3174,18 +3223,22 @@ function updateMobileMenu(loggedIn,firstName){
   if(!actions)return;
   if(loggedIn){
     const initials=(firstName||'').split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+    const canSwitch=!!(window._user&&window._user.isAdmin);
+    const inAdminMode=canAccessAdminConsole();
+    const switchButton=canSwitch?`<button class="btn-login" style="justify-content:center;border:1px solid var(--border);background:var(--bg2);color:var(--text);width:100%;margin-top:10px" onclick="toggleAdminMode();closeMenu()">${inAdminMode?'Switch to User View':'Switch to Admin Console'}</button>`:'';
     actions.innerHTML=`
       <div style="padding:12px 0;border-top:1px solid var(--border);margin-top:8px">
         <button class="mobile-signed-btn" onclick="showPage('profile');closeMenu()">
           <div class="mobile-signed-avatar" style="background:linear-gradient(135deg,var(--blue),var(--cyan))">${initials}</div>
-          <div style="text-align:left"><div style="font-weight:700;color:var(--text)">${firstName}</div><div style="font-size:12px;color:var(--muted)">Signed in</div></div>
-          <div style="margin-left:auto;color:var(--muted);font-weight:700">▾</div>
+          <div style="text-align:left"><div style="font-weight:700;color:var(--text)">${firstName}</div><div style="font-size:12px;color:var(--muted)">${inAdminMode?'Admin mode':'Signed in'}</div></div>
+          <div style="margin-left:auto;color:var(--muted);font-weight:700">&#9662;</div>
         </button>
+        ${switchButton}
         <button class="btn-login" style="justify-content:center;border:1px solid var(--border);background:#ef4444;color:white;width:100%;margin-top:10px" onclick="handleLogout();closeMenu()">Log Out</button>
       </div>`;
   }else{
     actions.innerHTML=`
-      <button class="btn-login" onclick="showPage('login');closeMenu()">👤 Login</button>
+      <button class="btn-login" onclick="showPage('login');closeMenu()">Login</button>
       `;
   }
 }
