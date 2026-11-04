@@ -244,6 +244,29 @@ $conn_admin->query("CREATE TABLE IF NOT EXISTS builds (
     UNIQUE KEY uq_build_name_category (build_name, category)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 
+$conn_admin->query("CREATE TABLE IF NOT EXISTS build_recommendations (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    build_name VARCHAR(120) NOT NULL,
+    category VARCHAR(40) NOT NULL,
+    description TEXT NOT NULL,
+    cpu VARCHAR(160) NOT NULL,
+    motherboard VARCHAR(160) NOT NULL,
+    ram VARCHAR(160) NOT NULL,
+    gpu VARCHAR(160) NOT NULL,
+    storage VARCHAR(160) NOT NULL,
+    psu VARCHAR(160) NOT NULL,
+    price DECIMAL(10,2) NOT NULL DEFAULT 0,
+    pros TEXT NULL,
+    cons TEXT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_recommendation_category (category),
+    KEY idx_recommendation_price (price)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+admin_ensure_column($conn_admin, "build_recommendations", "price", "ALTER TABLE build_recommendations ADD COLUMN price DECIMAL(10,2) NOT NULL DEFAULT 0");
+admin_ensure_column($conn_admin, "build_recommendations", "pros", "ALTER TABLE build_recommendations ADD COLUMN pros TEXT NULL");
+admin_ensure_column($conn_admin, "build_recommendations", "cons", "ALTER TABLE build_recommendations ADD COLUMN cons TEXT NULL");
+admin_ensure_column($conn_admin, "build_recommendations", "updated_at", "ALTER TABLE build_recommendations ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
 $conn_admin->query("CREATE TABLE IF NOT EXISTS user_saved_builds (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_email VARCHAR(190) NOT NULL,
@@ -742,6 +765,122 @@ if ($action === "component_bulk_price") {
     admin_respond(array("success" => true, "affected" => $affected, "message" => "Updated " . $affected . " component prices"));
 }
 
+// ——— Build recommendation CRUD ———
+if ($action === "recommendation_list") {
+    $search = trim(admin_field($body, "search", ""));
+    $category = trim(admin_field($body, "category", ""));
+    $sql = "SELECT id, build_name, category, description, price, cpu, motherboard, ram, gpu, storage, psu, pros, cons, updated_at FROM build_recommendations WHERE 1 = 1";
+    $params = array();
+    $types = "";
+
+    if ($category !== "") {
+        $sql .= " AND category = ?";
+        $params[] = $category;
+        $types .= "s";
+    }
+    if ($search !== "") {
+        $sql .= " AND (build_name LIKE ? OR description LIKE ? OR cpu LIKE ? OR motherboard LIKE ? OR ram LIKE ? OR gpu LIKE ? OR storage LIKE ? OR psu LIKE ?)";
+        $like = "%" . $search . "%";
+        for ($i = 0; $i < 8; $i++) {
+            $params[] = $like;
+            $types .= "s";
+        }
+    }
+
+    $sql .= " ORDER BY category ASC, price ASC, id ASC LIMIT 500";
+    $stmt = $conn_admin->prepare($sql);
+    if (!$stmt) {
+        admin_respond(array("success" => false, "error" => "Failed to load build recommendations"), 500);
+    }
+
+    if ($types !== "") {
+        $bind = array_merge(array($types), $params);
+        $refs = array();
+        foreach ($bind as $key => $value) {
+            $refs[$key] = &$bind[$key];
+        }
+        call_user_func_array(array($stmt, "bind_param"), $refs);
+    }
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $items = array();
+    while ($row = $result->fetch_assoc()) {
+        $items[] = $row;
+    }
+    $stmt->close();
+    admin_respond(array("success" => true, "recommendations" => $items));
+}
+
+if ($action === "recommendation_save") {
+    $recommendation_id = (int) admin_field($body, "id", 0);
+    $build_name = trim(admin_field($body, "build_name", ""));
+    $category = trim(admin_field($body, "category", ""));
+    $description = trim(admin_field($body, "description", ""));
+    $cpu = trim(admin_field($body, "cpu", ""));
+    $motherboard = trim(admin_field($body, "motherboard", ""));
+    $ram = trim(admin_field($body, "ram", ""));
+    $gpu = trim(admin_field($body, "gpu", ""));
+    $storage = trim(admin_field($body, "storage", ""));
+    $psu = trim(admin_field($body, "psu", ""));
+    $pros = trim(admin_field($body, "pros", ""));
+    $cons = trim(admin_field($body, "cons", ""));
+    $price = (float) admin_field($body, "price", 0);
+
+    $allowed_categories = array("gaming", "office", "students", "streaming", "editing", "workstation", "home");
+    if ($build_name === "" || $description === "" || !in_array($category, $allowed_categories, true)) {
+        admin_respond(array("success" => false, "error" => "Category, build name, and description are required"), 400);
+    }
+    if ($cpu === "" || $motherboard === "" || $ram === "" || $gpu === "" || $storage === "" || $psu === "") {
+        admin_respond(array("success" => false, "error" => "CPU, motherboard, RAM, GPU, storage, and PSU are required"), 400);
+    }
+
+    if ($recommendation_id > 0) {
+        $stmt = $conn_admin->prepare("UPDATE build_recommendations SET build_name = ?, category = ?, description = ?, price = ?, cpu = ?, motherboard = ?, ram = ?, gpu = ?, storage = ?, psu = ?, pros = ?, cons = ? WHERE id = ?");
+        if (!$stmt) {
+            admin_respond(array("success" => false, "error" => "Failed to update recommendation"), 500);
+        }
+        $stmt->bind_param("sssdssssssssi", $build_name, $category, $description, $price, $cpu, $motherboard, $ram, $gpu, $storage, $psu, $pros, $cons, $recommendation_id);
+        $ok = $stmt->execute();
+        $stmt->close();
+        if (!$ok) {
+            admin_respond(array("success" => false, "error" => "Could not update recommendation"), 500);
+        }
+        admin_log($conn_admin, "info", "recommendations", "Updated build recommendation #" . $recommendation_id . " (" . $build_name . ")");
+        admin_respond(array("success" => true, "id" => $recommendation_id, "message" => "Build recommendation updated"));
+    }
+
+    $stmt = $conn_admin->prepare("INSERT INTO build_recommendations (build_name, category, description, price, cpu, motherboard, ram, gpu, storage, psu, pros, cons) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    if (!$stmt) {
+        admin_respond(array("success" => false, "error" => "Failed to create recommendation"), 500);
+    }
+    $stmt->bind_param("sssdssssssss", $build_name, $category, $description, $price, $cpu, $motherboard, $ram, $gpu, $storage, $psu, $pros, $cons);
+    $ok = $stmt->execute();
+    $new_id = (int) $stmt->insert_id;
+    $stmt->close();
+    if (!$ok) {
+        admin_respond(array("success" => false, "error" => "Could not create recommendation"), 500);
+    }
+    admin_log($conn_admin, "info", "recommendations", "Created build recommendation #" . $new_id . " (" . $build_name . ")");
+    admin_respond(array("success" => true, "id" => $new_id, "message" => "Build recommendation created"));
+}
+
+if ($action === "recommendation_delete") {
+    $recommendation_id = (int) admin_field($body, "id", 0);
+    if ($recommendation_id <= 0) {
+        admin_respond(array("success" => false, "error" => "Missing recommendation id"), 400);
+    }
+    $stmt = $conn_admin->prepare("DELETE FROM build_recommendations WHERE id = ?");
+    if (!$stmt) {
+        admin_respond(array("success" => false, "error" => "Failed to delete recommendation"), 500);
+    }
+    $stmt->bind_param("i", $recommendation_id);
+    $stmt->execute();
+    $deleted = $stmt->affected_rows;
+    $stmt->close();
+    admin_log($conn_admin, "warning", "recommendations", "Deleted build recommendation #" . $recommendation_id);
+    admin_respond(array("success" => true, "deleted" => $deleted > 0));
+}
 // ——— Compatibility rule maintenance ———
 if ($action === "rules_list") {
     $result = $conn_admin->query("SELECT id, rule_key, name, category, severity, logic_summary, is_enabled, updated_at FROM compatibility_rules ORDER BY category ASC, name ASC");
