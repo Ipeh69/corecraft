@@ -13,7 +13,7 @@
     <li id="nav-admin-link" style="display:none"><a onclick="openAdminDashboard()">Admin</a></li>
   </ul>
   <div class="nav-actions">
-    <button class="btn-login" id="nav-login-btn" onclick="showPage('login')">ðŸ‘¤ Login</button>
+    <button class="btn-login" id="nav-login-btn" onclick="showPage('login')">Login</button>
     <div class="user-dropdown" id="user-dropdown">
       <button class="user-pill" onclick="toggleDropdown()" id="user-pill">
         <div class="user-avatar" id="user-avatar">J</div>
@@ -52,7 +52,7 @@
       <option value="dark">Dark mode</option>
       <option value="light">Light mode</option>
     </select>
-    <button class="btn-login" onclick="showPage('login');closeMenu()">ðŸ‘¤ Login</button>
+    <button class="btn-login" onclick="showPage('login');closeMenu()">Login</button>
   </div>
 </div>
 

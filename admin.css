@@ -164,3 +164,27 @@
   .admin-main{padding:20px 18px 50px}
   .admin-modal .admin-form-grid{grid-template-columns:1fr}
 }
+
+@media (max-width:768px){
+  .admin-main{padding:16px 12px 42px}
+  .admin-head{flex-direction:column;align-items:flex-start;gap:10px}
+  .admin-h1{font-size:21px}
+  .admin-view-note{font-size:13px}
+  .admin-nav{gap:6px;padding-bottom:8px}
+  .admin-nav-item{padding:10px 11px;font-size:13px}
+  .admin-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .admin-stat{padding:14px;border-radius:14px}
+  .admin-stat-value{font-size:22px}
+  .admin-card{padding:14px;border-radius:14px}
+  .admin-card-title{font-size:14px}
+  .admin-chart{height:220px}
+  .admin-donut{width:160px;height:160px}
+}
+
+@media (max-width:480px){
+  .admin-main{padding:14px 10px 36px}
+  .admin-stat-grid{grid-template-columns:1fr}
+  .admin-head-actions{width:100%;justify-content:space-between}
+  .admin-legend{gap:8px;font-size:11px}
+  .admin-chart{height:200px}
+}
