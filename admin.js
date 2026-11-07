@@ -1,4 +1,4 @@
-﻿// â€”â€”â€” CoreCraft Admin â€”â€”â€”
+//  CoreCraft Admin 
 let adminState={view:'dashboard',components:[],recommendations:[],rules:[],regions:[],users:[],reports:[],communities:[],content:[]};
 
 function adminEsc(value){
@@ -62,30 +62,7 @@ function adminModalStatus(message,type){
   if(el){el.textContent=message||'';el.className='admin-modal-status'+(type?' '+type:'');}
 }
 
-function adminConfirmDialog(title,message,confirmLabel,cancelLabel,isDanger){
-  return new Promise(function(resolve){
-    const modalTitle=title||'Confirm action';
-    const modalMessage=message||'Are you sure you want to continue?';
-    const okLabel=confirmLabel||'Confirm';
-    const noLabel=cancelLabel||'Cancel';
-    const confirmClass=isDanger?'admin-btn danger':'admin-btn primary';
-    const finish=function(result){closeAdminModal();resolve(result);};
-    adminModal(
-      '<div class="admin-modal-title">'+adminEsc(modalTitle)+'</div>'+
-      '<p class="admin-modal-hint">'+adminEsc(modalMessage)+'</p>'+
-      '<div class="admin-modal-actions">'+
-        '<button type="button" id="admin-confirm-cancel" class="admin-btn">'+adminEsc(noLabel)+'</button>'+
-        '<button type="button" id="admin-confirm-ok" class="'+confirmClass+'">'+adminEsc(okLabel)+'</button>'+
-      '</div>'
-    );
-    const cancelButton=document.getElementById('admin-confirm-cancel');
-    const okButton=document.getElementById('admin-confirm-ok');
-    if(cancelButton)cancelButton.addEventListener('click',function(){finish(false);});
-    if(okButton)okButton.addEventListener('click',function(){finish(true);});
-  });
-}
-
-// â€”â€”â€” Entry point (called from showPage) â€”â€”â€”
+//  Entry point (called from showPage) 
 function initAdminPage(){
   if(!canAccessAdminConsole()){showPage('home');return;}
   const who=document.getElementById('admin-side-user');
@@ -143,7 +120,7 @@ function loadAdminView(view){
 }
 function refreshAdminView(){loadAdminView(adminState.view);}
 
-// â€”â€”â€” Charts (inline SVG) â€”â€”â€”
+//  Charts (inline SVG) 
 const ADMIN_PALETTE=['#00bfff','#a78bfa','#ff6b35','#22c55e','#f472b6','#facc15','#38bdf8'];
 const ADMIN_EVENT_LABELS={search:'Searches',build_check:'Build checks',build_save:'Build saves',compat_fail:'Compat fails'};
 function adminShortDate(d){const p=d.split('-');return p[1]+'/'+p[2];}
@@ -176,7 +153,7 @@ function adminAreaChart(el,labels,series){
     const line=adminSmoothPath(pts);
     svg+='<path d="'+line+' L'+pts[pts.length-1][0]+','+(H-B)+' L'+pts[0][0]+','+(H-B)+' Z" fill="url(#'+uid+i+')"/>';
     svg+='<path d="'+line+'" fill="none" stroke="'+s.color+'" stroke-width="2.4" stroke-linecap="round"/>';
-    pts.forEach(function(p,j){svg+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.4" fill="'+s.color+'" class="admin-dot"><title>'+adminEsc(s.name+labels[j]+': '+s.values[j])+'</title></circle>';});
+    pts.forEach(function(p,j){svg+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.4" fill="'+s.color+'" class="admin-dot"><title>'+adminEsc(s.name+'  '+labels[j]+': '+s.values[j])+'</title></circle>';});
   });
   el.innerHTML=svg+'</svg>';
 }
@@ -244,11 +221,11 @@ function renderAdminGradCards(el,charts){
     {tone:1,label:'Searches (14d)',value:adminSum(searches),sub:'Part lookups',spark:searches},
     {tone:2,label:'Build checks (14d)',value:adminSum(checks),sub:'Compatibility runs',spark:checks},
     {tone:3,label:'Build saves (14d)',value:adminSum(saves),sub:'Saved configurations',spark:saves},
-    {tone:4,label:'Sign-ups (14d)',value:adminSum(signups),sub:'New accounts · '+adminSum(fails)+' compat fails',spark:signups}
+    {tone:4,label:'Sign-ups (14d)',value:adminSum(signups),sub:'New accounts  '+adminSum(fails)+' compat fails',spark:signups}
   ]);
 }
 
-// â€”â€”â€” Dashboard â€”â€”â€”
+//  Dashboard 
 async function loadAdminDashboard(){
   const grid=document.getElementById('admin-stat-grid');
   setAdminStatus('Loading dashboard');
@@ -279,7 +256,7 @@ async function loadAdminDashboard(){
     const logsEl=document.getElementById('admin-recent-logs');
     if(logsEl){
       logsEl.innerHTML=(o.recent_logs||[]).length?(o.recent_logs||[]).map(function(log){
-        return '<div class="admin-list-row"><span class="admin-tag '+adminLevelClass(log.level)+'">'+adminEsc(log.level)+'</span><div class="grow"><div class="truncate">'+adminEsc(log.message)+'</div><div class="muted">'+adminEsc(log.source)+adminEsc(log.created_at)+'</div></div></div>';
+        return '<div class="admin-list-row"><span class="admin-tag '+adminLevelClass(log.level)+'">'+adminEsc(log.level)+'</span><div class="grow"><div class="truncate">'+adminEsc(log.message)+'</div><div class="muted">'+adminEsc(log.source)+'  '+adminEsc(log.created_at)+'</div></div></div>';
       }).join(''):'<div class="admin-empty">No activity recorded yet.</div>';
     }
     const charts=o.charts||{};
@@ -305,7 +282,7 @@ function adminLevelClass(level){
   return 'info';
 }
 
-// â€”â€”â€” Components â€”â€”â€”
+//  Components 
 async function loadAdminComponents(){
   const tbody=document.getElementById('admin-component-rows');
   setAdminStatus('Loading catalog');
@@ -317,12 +294,12 @@ async function loadAdminComponents(){
         return '<tr>'+
           '<td>'+adminEsc(c.category)+'</td>'+
           '<td><div class="strong">'+adminEsc(c.brand)+'</div><div class="muted">'+adminEsc(c.model)+'</div></td>'+
-          '<td>'+adminEsc(c.socket||'â€”')+'</td>'+
-          '<td>'+adminEsc(c.tdp_watts!=null?c.tdp_watts:'â€”')+'</td>'+
-          '<td>'+adminEsc(c.form_factor||'â€”')+'</td>'+
-          '<td>â‚±'+Number(c.price_php||0).toLocaleString()+'</td>'+
+          '<td>'+adminEsc(c.socket||'')+'</td>'+
+          '<td>'+adminEsc(c.tdp_watts!=null?c.tdp_watts:'')+'</td>'+
+          '<td>'+adminEsc(c.form_factor||'')+'</td>'+
+          '<td>'+Number(c.price_php||0).toLocaleString()+'</td>'+
           '<td>$'+Number(c.price_usd||0).toLocaleString()+'</td>'+
-          '<td>'+adminEsc(c.stock_status||'â€”')+'</td>'+
+          '<td>'+adminEsc(c.stock_status||'')+'</td>'+
           '<td>'+(c.is_active?'<span class="admin-tag ok">Active</span>':'<span class="admin-tag neutral">Retired</span>')+'</td>'+
           '<td><div class="admin-row-actions">'+
             '<button class="admin-icon-btn" onclick="openComponentForm('+index+')">Edit</button>'+
@@ -356,7 +333,7 @@ function openComponentForm(index){
       '<label class="admin-label">TDP (watts)<input id="cf-tdp" type="number" min="0" value="'+adminEsc(editing&&editing.tdp_watts!=null?editing.tdp_watts:'')+'"/></label>'+
       '<label class="admin-label">Form factor<input id="cf-form" value="'+adminEsc(editing&&editing.form_factor?editing.form_factor:'')+'" placeholder="ATX / mATX / DIMM"/></label>'+
       '<label class="admin-label">Stock<select id="cf-stock">'+stockOptions+'</select></label>'+
-      '<label class="admin-label">Price $‚±<input id="cf-php" type="number" step="0.01" min="0" value="'+adminEsc(editing?editing.price_php:0)+'"/></label>'+
+      '<label class="admin-label">Price <input id="cf-php" type="number" step="0.01" min="0" value="'+adminEsc(editing?editing.price_php:0)+'"/></label>'+
       '<label class="admin-label">Price $<input id="cf-usd" type="number" step="0.01" min="0" value="'+adminEsc(editing?editing.price_usd:0)+'"/></label>'+
       '<label class="admin-label">Status<select id="cf-active"><option value="1"'+(!editing||editing.is_active?' selected':'')+'>Active</option><option value="0"'+(editing&&!editing.is_active?' selected':'')+'>Retired</option></select></label>'+
       '<label class="admin-label full">Specs (JSON)<textarea id="cf-specs" rows="4" placeholder=\'{"chipset":"B650"}\'>'+adminEsc(specs)+'</textarea></label>'+
@@ -416,7 +393,7 @@ async function deleteComponent(index){
 }
 
 
-// â€”â€”â€” Build recommendations â€”â€”â€”
+//  Build recommendations 
 async function loadAdminRecommendations(){
   const tbody=document.getElementById('admin-recommendation-rows');
   setAdminStatus('Loading build recommendations');
@@ -426,13 +403,13 @@ async function loadAdminRecommendations(){
     if(tbody){
       tbody.innerHTML=adminState.recommendations.length?adminState.recommendations.map(function(rec,index){
         return '<tr>'+
-          '<td><span class="admin-tag neutral">'+adminEsc(rec.category||'â€”')+'</span></td>'+
+          '<td><span class="admin-tag neutral">'+adminEsc(rec.category||'')+'</span></td>'+
           '<td><div class="strong">'+adminEsc(rec.build_name||'')+'</div><div class="muted truncate">'+adminEsc(rec.description||'')+'</div></td>'+
-          '<td>â‚±'+Number(rec.price||0).toLocaleString()+'</td>'+
-          '<td>'+adminEsc(rec.cpu||'â€”')+'</td>'+
-          '<td>'+adminEsc(rec.gpu||'â€”')+'</td>'+
-          '<td>'+adminEsc(rec.storage||'â€”')+'</td>'+
-          '<td>'+adminEsc(rec.updated_at||'â€”')+'</td>'+
+          '<td>'+Number(rec.price||0).toLocaleString()+'</td>'+
+          '<td>'+adminEsc(rec.cpu||'')+'</td>'+
+          '<td>'+adminEsc(rec.gpu||'')+'</td>'+
+          '<td>'+adminEsc(rec.storage||'')+'</td>'+
+          '<td>'+adminEsc(rec.updated_at||'')+'</td>'+
           '<td><div class="admin-row-actions">'+
             '<button class="admin-icon-btn" onclick="openRecommendationForm('+index+')">Edit</button>'+
             '<button class="admin-icon-btn danger" onclick="deleteRecommendation('+index+')">Delete</button>'+
@@ -477,7 +454,7 @@ function openRecommendationForm(index){
 }
 
 async function saveRecommendationModal(id){
-  adminModalStatus('Savingâ€¦');
+  adminModalStatus('Saving');
   try{
     const data=await adminApi('recommendation_save',{
       id:id||0,
@@ -507,7 +484,7 @@ async function deleteRecommendation(index){
   const recommendation=adminState.recommendations[index];
   if(!recommendation)return;
   if(!window.confirm('Delete "'+recommendation.build_name+'" from build recommendations?'))return;
-  setAdminStatus('Deleting recommendationâ€¦');
+  setAdminStatus('Deleting recommendation');
   try{
     await adminApi('recommendation_delete',{id:recommendation.id});
     setAdminStatus('Recommendation deleted','ok');
@@ -521,10 +498,10 @@ function openBulkPrice(){
   switchAdminView('pricing',document.querySelector('.admin-nav-item[data-admin-view="pricing"]'));
 }
 
-// â€”â€”â€” Compatibility rules â€”â€”â€”
+//  Compatibility rules 
 async function loadAdminRules(){
   const list=document.getElementById('admin-rule-list');
-  setAdminStatus('Loading rulesâ€¦');
+  setAdminStatus('Loading rules');
   try{
     const data=await adminApi('rules_list');
     adminState.rules=data.rules||[];
@@ -563,7 +540,7 @@ function openRuleForm(index){
       '<label class="admin-label">Severity<select id="rf-severity">'+severityOptions+'</select></label>'+
       '<label class="admin-label full">Name<input id="rf-name" value="'+adminEsc(editing?editing.name:'')+'" placeholder="Short rule title"/></label>'+
       '<label class="admin-label full">Category<input id="rf-category" value="'+adminEsc(editing?editing.category:'general')+'" placeholder="e.g. power"/></label>'+
-      '<label class="admin-label full">Logic summary<textarea id="rf-summary" rows="4" placeholder="Describe what the rule checksâ€¦">'+adminEsc(editing?editing.logic_summary:'')+'</textarea></label>'+
+      '<label class="admin-label full">Logic summary<textarea id="rf-summary" rows="4" placeholder="Describe what the rule checks">'+adminEsc(editing?editing.logic_summary:'')+'</textarea></label>'+
       '<label class="admin-label">Enabled<select id="rf-enabled"><option value="1"'+(!editing||editing.is_enabled?' selected':'')+'>Enabled</option><option value="0"'+(editing&&!editing.is_enabled?' selected':'')+'>Disabled</option></select></label>'+
     '</div>'+
     '<div class="admin-modal-status" id="admin-modal-status"></div>'+
@@ -575,7 +552,7 @@ function openRuleForm(index){
 }
 
 async function saveRuleModal(id){
-  adminModalStatus('Savingâ€¦');
+  adminModalStatus('Saving');
   try{
     const data=await adminApi('rule_save',{
       id:id||0,
@@ -619,10 +596,10 @@ async function deleteRule(index){
   }
 }
 
-// â€”â€”â€” Users & roles â€”â€”â€”
+//  Users & roles 
 async function loadAdminUsers(){
   const tbody=document.getElementById('admin-user-rows');
-  setAdminStatus('Loading usersâ€¦');
+  setAdminStatus('Loading users');
   try{
     const data=await adminApi('user_list',{search:adminVal('user-search'),role:adminVal('user-role-filter')});
     adminState.users=data.users||[];
@@ -637,8 +614,8 @@ async function loadAdminUsers(){
           '<td><select class="admin-input admin-select small" onchange="setUserRole('+index+',this.value)">'+roleOptions+'</select></td>'+
           '<td>'+(user.status==='banned'?'<span class="admin-tag error">banned</span>':'<span class="admin-tag ok">active</span>')+'</td>'+
           '<td>'+Number(user.saved_builds||0)+'</td>'+
-          '<td class="muted">'+adminEsc(user.created_at||'â€”')+'</td>'+
-          '<td class="muted">'+adminEsc(user.last_login_at||'â€”')+'</td>'+
+          '<td class="muted">'+adminEsc(user.created_at||'')+'</td>'+
+          '<td class="muted">'+adminEsc(user.last_login_at||'')+'</td>'+
           '<td><div class="admin-row-actions">'+
             (user.status==='banned'
               ?'<button class="admin-icon-btn" onclick="setUserStatus('+index+',\'active\')">Reactivate</button>'
@@ -692,10 +669,10 @@ async function deleteUser(index){
   }
 }
 
-// â€”â€”â€” Moderation â€”â€”â€”
+//  Moderation 
 async function loadAdminReports(){
   const list=document.getElementById('admin-report-list');
-  setAdminStatus('Loading reportsâ€¦');
+  setAdminStatus('Loading reports');
   try{
     const data=await adminApi('report_list',{status:adminVal('report-status-filter')});
     adminState.reports=data.reports||[];
@@ -703,9 +680,9 @@ async function loadAdminReports(){
       list.innerHTML=adminState.reports.length?adminState.reports.map(function(report,index){
         const open=report.status==='open';
         return '<div class="admin-list-row">'+
-          '<div class="grow"><div class="strong">'+adminEsc(report.content_type.replace(/_/g,' '))+' Â· '+adminEsc(report.content_ref)+'</div>'+
+          '<div class="grow"><div class="strong">'+adminEsc(report.content_type.replace(/_/g,' '))+'  '+adminEsc(report.content_ref)+'</div>'+
           '<div class="muted">'+adminEsc(report.reason)+'</div>'+
-          '<div class="muted">by '+adminEsc(report.reported_by)+(report.community?' Â· '+adminEsc(report.community):'')+' Â· '+adminEsc(report.created_at)+'</div></div>'+
+          '<div class="muted">by '+adminEsc(report.reported_by)+(report.community?'  '+adminEsc(report.community):'')+'  '+adminEsc(report.created_at)+'</div></div>'+
           '<span class="admin-tag '+(report.status==='open'?'warning':(report.status==='resolved'?'ok':'neutral'))+'">'+adminEsc(report.status)+'</span>'+
           (open?'<div class="admin-row-actions"><button class="admin-icon-btn" onclick="checkReportedPost('+index+')">Check post</button></div>':'')+
         '</div>';
@@ -728,7 +705,7 @@ async function loadAdminCommunities(){
       return '<div class="admin-list-row">'+
         '<div class="grow"><div class="strong">'+adminEsc(community.name)+(isSystem?' <span class="admin-tag neutral">CoreCraft default</span>':'')+'</div>'+
         '<div class="muted">'+adminEsc(community.description||'')+'</div>'+
-        '<div class="muted">'+(isSystem?'Built-in community':'Created by '+adminEsc(community.created_by||'member'))+' Â· '+adminEsc(community.created_at||'')+'</div></div>'+
+        '<div class="muted">'+(isSystem?'Built-in community':'Created by '+adminEsc(community.created_by||'member'))+'  '+adminEsc(community.created_at||'')+'</div></div>'+
         '<button class="admin-icon-btn danger" onclick="deleteAdminCommunity('+index+')">Delete</button>'+
       '</div>';
     }).join(''):'<div class="admin-empty">No communities found.</div>';
@@ -738,14 +715,7 @@ async function loadAdminCommunities(){
 async function deleteAdminCommunity(index){
   const community=adminState.communities[index];
   if(!community)return;
-  const approved=await adminConfirmDialog(
-    'Delete community',
-    'Delete "'+community.name+'" and permanently remove its posts, comments, likes, reports, and messages?',
-    'Delete',
-    'Cancel',
-    true
-  );
-  if(!approved)return;
+  if(!window.confirm('Delete '+community.name+' and permanently remove its posts, comments, likes, reports, and messages?'))return;
   try{
     const data=await adminApi('community_moderation_delete',{name:community.name});
     setAdminStatus(data.message||'Community deleted','ok');
@@ -761,9 +731,9 @@ function checkReportedPost(index){
   const postImage=postExists&&report.post_image?'<img class="reported-post-image" src="'+adminEsc(report.post_image)+'" alt="Reported post image">':'';
   adminModal(
     '<div class="admin-modal-title">Check reported post</div>'+
-    '<div class="reported-post-meta"><strong>'+adminEsc(report.post_author||report.post_author_email||'Unknown author')+'</strong><span>'+adminEsc(report.community||'')+(report.post_created_at?' Â· '+adminEsc(report.post_created_at):'')+'</span></div>'+
+    '<div class="reported-post-meta"><strong>'+adminEsc(report.post_author||report.post_author_email||'Unknown author')+'</strong><span>'+adminEsc(report.community||'')+(report.post_created_at?'  '+adminEsc(report.post_created_at):'')+'</span></div>'+
     '<div class="reported-post-content">'+postContent+postImage+'</div>'+
-    '<div class="reported-post-reason"><strong>Report reason</strong><p>'+adminEsc(report.reason)+'</p><span>Reported by '+adminEsc(report.reported_by)+' Â· '+adminEsc(report.created_at)+'</span></div>'+
+    '<div class="reported-post-reason"><strong>Report reason</strong><p>'+adminEsc(report.reason)+'</p><span>Reported by '+adminEsc(report.reported_by)+'  '+adminEsc(report.created_at)+'</span></div>'+
     '<div id="admin-modal-status" class="admin-modal-status"></div>'+
     '<div class="admin-modal-actions"><button class="admin-btn" onclick="closeAdminModal()">Close</button>'+(report.status==='open'?'<button id="reported-post-warning-button" class="admin-btn" '+(Number(report.warning_sent)?'disabled':'')+' onclick="sendReportedPostWarning('+index+')">'+(Number(report.warning_sent)?'Warning sent':'Send warning')+'</button><button class="admin-btn danger" onclick="deleteReportedPost('+index+')">Delete post</button>':'')+'</div>'
   );
@@ -837,9 +807,9 @@ async function loadAdminContent(){
     if(list){
       list.innerHTML=adminState.content.length?adminState.content.map(function(item,index){
         return '<div class="admin-list-row">'+
-          '<div class="grow"><div class="strong">'+adminEsc(item.community||'â€”')+'</div>'+
+          '<div class="grow"><div class="strong">'+adminEsc(item.community||'')+'</div>'+
           '<div class="truncate">'+adminEsc(item.body||'')+'</div>'+
-          '<div class="muted">'+adminEsc(item.author)+' Â· '+adminEsc(item.created_at)+'</div></div>'+
+          '<div class="muted">'+adminEsc(item.author)+'  '+adminEsc(item.created_at)+'</div></div>'+
           '<button class="admin-icon-btn danger" onclick="deleteContent('+index+',\''+type+'\')">Remove</button>'+
         '</div>';
       }).join(''):'<div class="admin-empty">Nothing to moderate here.</div>';
@@ -862,10 +832,10 @@ async function deleteContent(index,type){
   }
 }
 
-// â€”â€”â€” Pricing feeds â€”â€”â€”
+//  Pricing feeds 
 async function loadAdminRegions(){
   const list=document.getElementById('admin-region-list');
-  setAdminStatus('Loading pricing feedsâ€¦');
+  setAdminStatus('Loading pricing feeds');
   try{
     const data=await adminApi('pricing_list');
     adminState.regions=data.regions||[];
@@ -873,7 +843,7 @@ async function loadAdminRegions(){
       list.innerHTML=adminState.regions.length?adminState.regions.map(function(region,index){
         return '<div class="admin-list-row">'+
           '<div class="grow"><div class="strong">'+adminEsc(region.region)+'</div>'+
-          '<div class="muted">'+adminEsc(region.currency)+' Â· Ã—'+Number(region.multiplier).toFixed(3)+(region.notes?' Â· '+adminEsc(region.notes):'')+'</div></div>'+
+          '<div class="muted">'+adminEsc(region.currency)+'  '+Number(region.multiplier).toFixed(3)+(region.notes?'  '+adminEsc(region.notes):'')+'</div></div>'+
           '<div class="admin-row-actions">'+
             '<button class="admin-icon-btn" onclick="applyRegionPricing('+index+')">Apply to catalog</button>'+
             '<button class="admin-icon-btn" onclick="openRegionForm('+index+')">Edit</button>'+
@@ -898,7 +868,7 @@ function openRegionForm(index){
       '<label class="admin-label full">Region<input id="rg-region" value="'+adminEsc(editing?editing.region:'')+'" placeholder="e.g. Visayas"/></label>'+
       '<label class="admin-label">Currency<input id="rg-currency" value="'+adminEsc(editing?editing.currency:'PHP')+'" placeholder="PHP"/></label>'+
       '<label class="admin-label">Multiplier<input id="rg-multiplier" type="number" step="0.001" min="0.1" value="'+adminEsc(editing?editing.multiplier:1)+'"/></label>'+
-      '<label class="admin-label full">Notes<input id="rg-notes" value="'+adminEsc(editing&&editing.notes?editing.notes:'')+'" placeholder="Shipping markup, market notesâ€¦"/></label>'+
+      '<label class="admin-label full">Notes<input id="rg-notes" value="'+adminEsc(editing&&editing.notes?editing.notes:'')+'" placeholder="Shipping markup, market notes"/></label>'+
     '</div>'+
     '<div class="admin-modal-status" id="admin-modal-status"></div>'+
     '<div class="admin-modal-actions">'+
@@ -909,7 +879,7 @@ function openRegionForm(index){
 }
 
 async function saveRegionModal(id){
-  adminModalStatus('Savingâ€¦');
+  adminModalStatus('Saving');
   try{
     const data=await adminApi('pricing_save',{
       id:id||0,
@@ -929,8 +899,8 @@ async function saveRegionModal(id){
 async function applyRegionPricing(index){
   const region=adminState.regions[index];
   if(!region)return;
-  if(!window.confirm('Apply '+region.region+' pricing (Ã—'+Number(region.multiplier).toFixed(3)+') to all components?'))return;
-  setAdminStatus('Applying pricesâ€¦');
+  if(!window.confirm('Apply '+region.region+' pricing ('+Number(region.multiplier).toFixed(3)+') to all components?'))return;
+  setAdminStatus('Applying prices');
   try{
     const data=await adminApi('pricing_apply_region',{id:region.id});
     setAdminStatus(data.message||'Prices applied','ok');
@@ -955,7 +925,7 @@ async function deleteRegion(index){
 async function applyBulkPrice(){
   const value=adminVal('bulk-value');
   if(!value){setAdminStatus('Enter a non-zero value first.','err');return;}
-  setAdminStatus('Applying updateâ€¦');
+  setAdminStatus('Applying update');
   try{
     const data=await adminApi('component_bulk_price',{
       mode:adminVal('bulk-mode'),
@@ -968,9 +938,9 @@ async function applyBulkPrice(){
   }
 }
 
-// â€”â€”â€” Analytics â€”â€”â€”
+//  Analytics 
 async function loadAdminAnalytics(){
-  setAdminStatus('Loading analyticsâ€¦');
+  setAdminStatus('Loading analytics');
   try{
     const data=await adminApi('analytics');
     const s=data.summary;
@@ -1023,10 +993,10 @@ function renderAdminTotals(elementId,rows,emptyMessage){
   }).join(''):'<div class="admin-empty">'+adminEsc(emptyMessage)+'</div>';
 }
 
-// â€”â€”â€” Logs â€”â€”â€”
+//  Logs 
 async function loadAdminLogs(){
   const tbody=document.getElementById('admin-log-rows');
-  setAdminStatus('Loading logsâ€¦');
+  setAdminStatus('Loading logs');
   try{
     const data=await adminApi('logs_list',{level:adminVal('log-level-filter')});
     const logs=data.logs||[];
@@ -1055,6 +1025,4 @@ async function clearAdminLogs(days){
     setAdminStatus(error.message,'err');
   }
 }
-
-
 
