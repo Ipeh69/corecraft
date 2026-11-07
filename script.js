@@ -2098,7 +2098,7 @@ async function loadPHNotifications(markRead=false){
       const postId=Number(item.post_id)||0;
       const postLink=postId?`data-notification-post-id="${postId}" data-notification-community="${escapeHtml(item.community||'')}" role="link" tabindex="0" aria-label="Open related post" title="Open related post" onclick="openCommunityNotificationPost(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();openCommunityNotificationPost(this)}"`:'';
       return `<article class="phchat-notification ${warning?'warning':''} ${item.read_at?'':'unread'}" ${postLink}><span class="phchat-notification-mark" aria-hidden="true">${mark}</span><div><div class="phchat-notification-message">${escapeHtml(item.message||'You have a new community notification.')}</div><div class="phchat-notification-meta"><span>${escapeHtml(item.community||'PH Community')}</span><time>${formatChatTime(item.created_at)}</time></div></div></article>`;
-    }).join('')||'<div class="phchat-notification-empty">You're all caught up. Likes, comments, replies, and admin warnings will appear here.</div>';
+    }).join('')||"<div class=\"phchat-notification-empty\">You're all caught up. Likes, comments, replies, and admin warnings will appear here.</div>";
   }catch(error){
     container.innerHTML=`<div class="phchat-notification-empty">${escapeHtml(error.message||'Could not load notifications.')}</div>`;
   }
@@ -3306,6 +3306,7 @@ restoreSession();
 applyInitialNavVisibility();
 window.addEventListener('pageshow',applyInitialNavVisibility);
 window.addEventListener('focus',applyInitialNavVisibility);
+
 
 
 
