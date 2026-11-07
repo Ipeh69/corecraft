@@ -1617,7 +1617,7 @@ function getGeminiContext(id){
 async function askGemini(id,text){
   if(id==='PHchat') return getPHChatResponse(text);
   const feature=id==='PHchat'?'phchat':id;
-  const payload={feature,message:text,context:getGeminiContext(id)};
+  const payload={feature,message:text,context:getGeminiContext(id),language_hint:detectChatLanguage(text)};
   if(id==='trouble'){
     const wrap=document.getElementById('trouble-messages');
     payload.history=wrap?Array.from(wrap.querySelectorAll('.msg.user,.msg.ai')).map(function(node){
@@ -1630,6 +1630,16 @@ async function askGemini(id,text){
   const data=await response.json();
   if(!response.ok||!data.reply)throw new Error(data.error||'Gemini request failed');
   return data.reply;
+}
+function detectChatLanguage(text){
+  const input=String(text||'').toLowerCase();
+  const tagalogWords=['ang','mga','naman','lang','po','opo','hindi','pwede','paano','ano','bakit','saan','kailan','gusto','kailangan','walang','meron','salamat','ayos','problema'];
+  const englishWords=['the','and','please','help','what','why','how','can','build','price','stock','issue','problem','computer','pc','recommend','compatible','budget'];
+  const hasTagalog=tagalogWords.some(word=>new RegExp('\\b'+word+'\\b','i').test(input));
+  const hasEnglish=englishWords.some(word=>new RegExp('\\b'+word+'\\b','i').test(input));
+  if(hasTagalog&&hasEnglish)return 'taglish';
+  if(hasTagalog)return 'tagalog';
+  return 'english';
 }
 let troubleTechSearchPending=false;
 const TROUBLE_FAIL_RE=/(?:didn['']?t work|did not work|(?:steps?|it|that) (?:don['']?t|do not|doesn['']?t|does not) work|didn['']?t (?:fix|help)|did not (?:fix|help)|still (?:not working|not fixed|broken|no display|(?:doesn['']?t|does not|won['']?t|will not) work|won['']?t boot)|no luck|no (?:change|improvement)|same (?:problem|issue|error)|nothing (?:happened|changed)|not fixed|failed|won['']?t (?:work|boot)|(?:di|hindi)(?: talaga| pa rin)? (?:gumana|nag.?work|gumagana|nagana|umubra|umayos)|(?:ayaw|wala) pa rin|ganun pa rin|nasubukan ko na lahat|tried (?:all|everything|the steps))/i;
