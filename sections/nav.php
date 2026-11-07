@@ -1,23 +1,23 @@
-<!-- NAV -->
+﻿<!-- NAV -->
 <nav>
-  <a class="logo" onclick="showPage('home')">
+  <a class="logo" onclick="if(document.getElementById('page-admin')&&document.getElementById('page-admin').classList.contains('active')){openAdminDashboard();}else{showPage('home');}">
     <div class="logo-icon"><img src="corecraft-logo-mark.png" alt=""></div>
     <div class="logo-text">Core<span>Craft</span></div>
   </a>
   <ul>
-    <li><a onclick="showPage('compatibility')">Compatibility Checker</a></li>
-    <li><a onclick="showPage('build')">Build Recommendations</a></li>
-    <li><a onclick="showPage('pricing')">Part Pricing</a></li>
-    <li><a onclick="showPage('troubleshoot')">Troubleshoot</a></li>
-    <li><a onclick="showPage('PHchat')">PH Community</a></li>
+    <li class="public-nav-item"><a onclick="showPage('compatibility')">Compatibility Checker</a></li>
+    <li class="public-nav-item"><a onclick="showPage('build')">Build Recommendations</a></li>
+    <li class="public-nav-item"><a onclick="showPage('pricing')">Part Pricing</a></li>
+    <li class="public-nav-item"><a onclick="showPage('troubleshoot')">Troubleshoot</a></li>
+    <li class="public-nav-item"><a onclick="showPage('PHchat')">PH Community</a></li>
     <li id="nav-admin-link" style="display:none"><a onclick="openAdminDashboard()">Admin</a></li>
   </ul>
   <div class="nav-actions">
-    <button class="btn-login" id="nav-login-btn" onclick="showPage('login')">👤 Login</button>
+    <button class="btn-login" id="nav-login-btn" onclick="showPage('login')">ðŸ‘¤ Login</button>
     <div class="user-dropdown" id="user-dropdown">
       <button class="user-pill" onclick="toggleDropdown()" id="user-pill">
         <div class="user-avatar" id="user-avatar">J</div>
-        <span id="user-displayname">Juan</span> ▾
+        <span id="user-displayname">Juan</span> &#9662;
       </button>
       <div class="dropdown-menu hidden" id="dropdown-menu">
         <div class="dropdown-header">
@@ -41,18 +41,21 @@
 </nav>
 <!-- Mobile Menu -->
 <div class="mobile-menu" id="mobile-menu">
-  <a onclick="showPage('compatibility');closeMenu()">Compatibility Checker</a>
-  <a onclick="showPage('build');closeMenu()">Build Recommendations</a>
-  <a onclick="showPage('pricing');closeMenu()">Part Pricing by Location</a>
-  <a onclick="showPage('troubleshoot');closeMenu()">Troubleshooting</a>
-  <a onclick="showPage('PHchat');closeMenu()">PH Community</a>
+  <a class="public-mobile-nav-item" onclick="showPage('compatibility');closeMenu()">Compatibility Checker</a>
+  <a class="public-mobile-nav-item" onclick="showPage('build');closeMenu()">Build Recommendations</a>
+  <a class="public-mobile-nav-item" onclick="showPage('pricing');closeMenu()">Part Pricing by Location</a>
+  <a class="public-mobile-nav-item" onclick="showPage('troubleshoot');closeMenu()">Troubleshooting</a>
+  <a class="public-mobile-nav-item" onclick="showPage('PHchat');closeMenu()">PH Community</a>
   <a id="mobile-admin-link" style="display:none" onclick="openAdminDashboard();closeMenu()">Admin Console</a>
   <div class="mobile-menu-actions">
     <select class="theme-select mobile-theme-select" aria-label="Color theme" onchange="setColorTheme(this.value)">
       <option value="dark">Dark mode</option>
       <option value="light">Light mode</option>
     </select>
-    <button class="btn-login" onclick="showPage('login');closeMenu()">👤 Login</button>
+    <button class="btn-login" onclick="showPage('login');closeMenu()">ðŸ‘¤ Login</button>
   </div>
 </div>
+
+
+
 
