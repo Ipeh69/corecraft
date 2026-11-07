@@ -56,6 +56,14 @@ function showPage(name){
   }
 }
 
+function setPublicNavActive(pageName){
+  const navPage=String(pageName||'').toLowerCase();
+  const allowed={compatibility:true,build:true,pricing:true,troubleshoot:true,phchat:true};
+  document.querySelectorAll('[data-nav-page]').forEach(function(link){link.classList.remove('active');});
+  if(!allowed[navPage])return;
+  document.querySelectorAll('[data-nav-page="'+navPage+'"]').forEach(function(link){link.classList.add('active');});
+}
+
 function setPublicNavVisibility(pageName){
   const adminPage=document.getElementById('page-admin');
   const isAdminPage=pageName==='admin'||!!(adminPage&&adminPage.classList.contains('active'));
@@ -77,6 +85,8 @@ function setPublicNavVisibility(pageName){
       else el.style.setProperty('display','none','important');
     }
   });
+
+  setPublicNavActive(isAdminPage?'':pageName);
 }
 
 function applyInitialNavVisibility(){
@@ -600,7 +610,7 @@ async function checkPartStock(){
     const allLive=live?live.results:[];
     const liveResults=nearbyStores.length?allLive.filter(inArea):allLive;
     const outsideArea=allLive.length-liveResults.length;
-    const formatPeso=value=>'₱'+Number(value).toLocaleString('en-PH',{maximumFractionDigits:0});
+    const formatPeso=value=>'?'+Number(value).toLocaleString('en-PH',{maximumFractionDigits:0});
     const liveContext=liveResults.length
       ?`\n\nLIVE RETAILER WEBSITE RESULTS (fetched just now from the stores' own websites; online availability only, not branch stock). Use ONLY these for prices and stock; do not add other prices or links:\n${liveResults.map(item=>`- ${item.store}: ${item.title} - ${formatPeso(item.price)} - ${item.available?'IN STOCK ONLINE':'OUT OF STOCK ONLINE'} - ${item.url}`).join('\n')}`
       :'';
@@ -746,7 +756,7 @@ function getComponentsByType(type) {
 function getTypicalPriceEstimate(type,value){
   const text=String(value||'').toLowerCase();
   const known=componentData[type]&&componentData[type].find(function(item){return item.name.toLowerCase()===text;});
-  if(known&&known.price)return '₱'+Number(known.price).toLocaleString();
+  if(known&&known.price)return '?'+Number(known.price).toLocaleString();
   const estimates={
     motherboard:[['b550',6500,9000],['b650',9000,14000],['h610',4500,7000],['b760',7000,11000]],
     cpu:[['ryzen 5 5600',8500,10500],['ryzen 5 7600',13000,17000],['ryzen 5 7600x',14500,18000],['i3-12100',5000,7500],['i5-12400',8000,11500]],
@@ -757,7 +767,7 @@ function getTypicalPriceEstimate(type,value){
   };
   const match=(estimates[type]||[]).find(function(item){return text.indexOf(item[0])>-1;});
   if(!match)return '';
-  return '₱'+match[1].toLocaleString()+' - ₱'+match[2].toLocaleString();
+  return '?'+match[1].toLocaleString()+' - ?'+match[2].toLocaleString();
 }
 
 function renderComponents(){
@@ -807,14 +817,14 @@ function applyAiPriceEstimates(text){
     });
     if(!type||line.indexOf('|')===-1)return;
     const values=[];
-    const matches=line.match(/(?:₱|php\s*)?\s*\d[\d,]*(?:\.\d+)?/gi)||[];
+    const matches=line.match(/(?:php\s*)?\s*\d[\d,]*(?:\.\d+)?/gi)||[];
     matches.forEach(function(value){
       const number=parseFloat(value.replace(/[^0-9.]/g,''));
       if(number>0)values.push(number);
     });
     if(values.length<1)return;
-    const low='₱'+Math.round(values[0]).toLocaleString();
-    const high='₱'+Math.round(values[Math.min(1,values.length-1)]).toLocaleString();
+    const low='?'+Math.round(values[0]).toLocaleString();
+    const high='?'+Math.round(values[Math.min(1,values.length-1)]).toLocaleString();
     const display=low===high?low:low+' - '+high;
     const component=components.find(function(item){return item.type===type;});
     if(component){
@@ -896,7 +906,7 @@ function formatPriceEstimateRanges(text){
     const amount=String(value||'').trim();
     if(!amount||/unverified|unknown|n\/a/i.test(amount))return amount.toUpperCase();
     const numeric=Number(amount.replace(/[^\d.-]/g,''));
-    return Number.isFinite(numeric)&&numeric>0?'₱'+Math.round(numeric).toLocaleString('en-PH'):amount;
+    return Number.isFinite(numeric)&&numeric>0?'?'+Math.round(numeric).toLocaleString('en-PH'):amount;
   }
   return String(text||'').replace(/^([^|\r\n]+)\s*\|\s*([^|\r\n]+)\s*\|\s*([^|\r\n]+)\s*$/gm,function(line,label,low,high){
     return label.trim()+' - '+formatAmount(low)+' - '+formatAmount(high);
@@ -1311,9 +1321,9 @@ function getCompatResponse(msg) {
     return `[Power] **PSU Size Guide**\n\n- Budget gaming: 550-650W 80+ Bronze/Gold\n- Mid-range: 750-850W 80+ Gold\n- High-end: 850-1000W 80+ Platinum\n\nIf you have a high-end GPU or multiple drives, choose a higher wattage PSU for stable power delivery.`;
   }
   if (lower.includes('recommend') || lower.includes('suggest') || lower.includes('build')) {
-    return `[Tip] **Build Recommendation Help**\n\nTell me your budget and use case, for example:\n- "₱50,000 gaming PC for 1080p"\n- "₱120,000 video editing workstation"\n- "Office PC for ₱25,000"\n\nI can suggest the best parts for your goals.`;
+    return `[Tip] **Build Recommendation Help**\n\nTell me your budget and use case, for example:\n- "?50,000 gaming PC for 1080p"\n- "?120,000 video editing workstation"\n- "Office PC for ?25,000"\n\nI can suggest the best parts for your goals.`;
   }
-  return `**Ask me about compatibility:**\n- "What CPU is compatible with my motherboard?"\n- "Do I need DDR4 or DDR5 RAM?"\n- "Is my PSU strong enough for my GPU?"\n- "Recommend a compatible build for ₱60K"`;
+  return `**Ask me about compatibility:**\n- "What CPU is compatible with my motherboard?"\n- "Do I need DDR4 or DDR5 RAM?"\n- "Is my PSU strong enough for my GPU?"\n- "Recommend a compatible build for ?60K"`;
 }
 
 // --- BUILD RECOMMENDATIONS ---
@@ -1475,7 +1485,7 @@ function useBuildRecommendation(encodedBuild){
     build = null;
   }
   if (!build || !Array.isArray(build.parts)) return;
-  recordActivity('[Match]','Selected '+(build.label||'recommended build'),build.budget?'₱'+Number(build.budget).toLocaleString()+' build':'Recommended PC parts','rgba(8,124,255,.1)');
+  recordActivity('[Match]','Selected '+(build.label||'recommended build'),build.budget?'?'+Number(build.budget).toLocaleString()+' build':'Recommended PC parts','rgba(8,124,255,.1)');
 
   const fieldMap = {
     cpu: 'compat-cpu',
@@ -1567,10 +1577,10 @@ let troubleInit=false,compatInit=false,buildaiInit=false;
 function initChat(id){
   if(id==='trouble'){troubleInit=true;addMsg('trouble','ai',`Hi! I'm CoreCraft's Troubleshooting AI Bot. Tell me your PC problem and I will guide you step-by-step to fix it.\n\nDescribe what's happening - e.g.:\n- "PC won't boot, no display"\n- "Keeps restarting randomly"\n- "Very slow after Windows update"`)}
   if(id==='compat'){compatInit=true;addMsg('compat','ai',`Hi! I'm your Compatibility AI. Enter your PC parts in the fields above and I will analyze socket compatibility, RAM type, PSU wattage, and GPU fitment for your system.\n\nTry:\n- "Check my build compatibility"\n- "Why is my RAM incompatible?"\n- "What PSU do I need for my GPU?"`)}
-  if(id==='buildai'){buildaiInit=true;addMsg('buildai','ai',`Hi! I'm CoreCraft's AI Build Recommendation Engine.\n\nTell me your requirements:\n- Budget (e.g. ₱50,000)
+  if(id==='buildai'){buildaiInit=true;addMsg('buildai','ai',`Hi! I'm CoreCraft's AI Build Recommendation Engine.\n\nTell me your requirements:\n- Budget (e.g. ?50,000)
 - Purpose (gaming, work, streaming, editing)
 - Performance target (1080p, 1440p, 4K, etc.)
-\nExample: "Gaming PC for ₱50K, want 1440p 60fps"`)}
+\nExample: "Gaming PC for ?50K, want 1440p 60fps"`)}
 }
 function addMsg(id,type,text){
   const wrap=document.getElementById(id+'-messages');
@@ -2755,53 +2765,53 @@ function getBuildAIResponse(msg){
   // Budget-based recommendation
   let rec={};
   if(budget===0||!m.match(/\d+k/i)){
-    return `[AI] **AI Build Recommendation**\n\nPlease mention your budget! Examples:\n- "₱35,000 gaming PC"\n- "₱80,000 streaming build"\n- "₱120,000 workstation"\n\nAlso helpful: What's the main purpose?\n- Gaming (1080p, 1440p, 4K?)\n- Work/Office\n- Content creation/Video editing\n- Streaming\n- Mini-ITX (compact)\n- Ultra-premium\n\nAsk me something like: "Build a gaming PC for ₱50K, want 1440p high settings"`;
+    return `[AI] **AI Build Recommendation**\n\nPlease mention your budget! Examples:\n- "?35,000 gaming PC"\n- "?80,000 streaming build"\n- "?120,000 workstation"\n\nAlso helpful: What's the main purpose?\n- Gaming (1080p, 1440p, 4K?)\n- Work/Office\n- Content creation/Video editing\n- Streaming\n- Mini-ITX (compact)\n- Ultra-premium\n\nAsk me something like: "Build a gaming PC for ?50K, want 1440p high settings"`;
   }
   
   // Gaming PC recommendations
   if(purpose==='gaming'){
     if(budget<=40000){
-      rec={name:'Entry Gaming',price:'₱35K',desc:'1080p 60fps gaming',parts:[
-        {cat:'CPU',name:'Ryzen 5 5600',price:'₱9,200'},{cat:'MB',name:'B550M DS3H',price:'₱7,500'},
-        {cat:'RAM',name:'16GB DDR4 3200',price:'₱3,400'},{cat:'GPU',name:'GTX 1660 Super',price:'₱18,500'},
-        {cat:'PSU',name:'550W Bronze',price:'₱3,200'},{cat:'Storage',name:'500GB NVMe',price:'₱2,800'}
+      rec={name:'Entry Gaming',price:'?35K',desc:'1080p 60fps gaming',parts:[
+        {cat:'CPU',name:'Ryzen 5 5600',price:'?9,200'},{cat:'MB',name:'B550M DS3H',price:'?7,500'},
+        {cat:'RAM',name:'16GB DDR4 3200',price:'?3,400'},{cat:'GPU',name:'GTX 1660 Super',price:'?18,500'},
+        {cat:'PSU',name:'550W Bronze',price:'?3,200'},{cat:'Storage',name:'500GB NVMe',price:'?2,800'}
       ]};
     }else if(budget<=70000){
-      rec={name:'Mid Gaming',price:'₱65K',desc:'1440p 60fps gaming',parts:[
-        {cat:'CPU',name:'Ryzen 5 7600X',price:'₱15,500'},{cat:'MB',name:'B650 Carbon',price:'₱14,000'},
-        {cat:'RAM',name:'32GB DDR5 5200',price:'₱8,500'},{cat:'GPU',name:'RTX 4060 Ti',price:'₱32,000'},
-        {cat:'PSU',name:'750W Gold',price:'₱5,500'},{cat:'Storage',name:'1TB NVMe',price:'₱5,800'}
+      rec={name:'Mid Gaming',price:'?65K',desc:'1440p 60fps gaming',parts:[
+        {cat:'CPU',name:'Ryzen 5 7600X',price:'?15,500'},{cat:'MB',name:'B650 Carbon',price:'?14,000'},
+        {cat:'RAM',name:'32GB DDR5 5200',price:'?8,500'},{cat:'GPU',name:'RTX 4060 Ti',price:'?32,000'},
+        {cat:'PSU',name:'750W Gold',price:'?5,500'},{cat:'Storage',name:'1TB NVMe',price:'?5,800'}
       ]};
     }else{
-      rec={name:'High-End Gaming',price:'₱100K+',desc:'4K 60fps or 1440p 144fps gaming',parts:[
-        {cat:'CPU',name:'Ryzen 7 7700X',price:'₱21,000'},{cat:'MB',name:'B650E Master',price:'₱16,500'},
-        {cat:'RAM',name:'64GB DDR5 6000',price:'₱22,000'},{cat:'GPU',name:'RTX 4070',price:'₱42,000'},
-        {cat:'PSU',name:'850W Gold',price:'₱8,500'},{cat:'Storage',name:'2TB NVMe',price:'₱9,500'}
+      rec={name:'High-End Gaming',price:'?100K+',desc:'4K 60fps or 1440p 144fps gaming',parts:[
+        {cat:'CPU',name:'Ryzen 7 7700X',price:'?21,000'},{cat:'MB',name:'B650E Master',price:'?16,500'},
+        {cat:'RAM',name:'64GB DDR5 6000',price:'?22,000'},{cat:'GPU',name:'RTX 4070',price:'?42,000'},
+        {cat:'PSU',name:'850W Gold',price:'?8,500'},{cat:'Storage',name:'2TB NVMe',price:'?9,500'}
       ]};
     }
   }else if(purpose==='office'){
     if(budget<=30000){
-      rec={name:'Office Essentials',price:'₱20K',desc:'Office work, web browsing',parts:[
-        {cat:'CPU',name:'Ryzen 3 4100',price:'₱5,200'},{cat:'MB',name:'A520M',price:'₱3,800'},
-        {cat:'RAM',name:'8GB DDR4',price:'₱1,500'},{cat:'GPU',name:'iGPU',price:'-'},
-        {cat:'PSU',name:'450W',price:'₱1,800'},{cat:'Storage',name:'500GB SSD',price:'₱2,200'}
+      rec={name:'Office Essentials',price:'?20K',desc:'Office work, web browsing',parts:[
+        {cat:'CPU',name:'Ryzen 3 4100',price:'?5,200'},{cat:'MB',name:'A520M',price:'?3,800'},
+        {cat:'RAM',name:'8GB DDR4',price:'?1,500'},{cat:'GPU',name:'iGPU',price:'-'},
+        {cat:'PSU',name:'450W',price:'?1,800'},{cat:'Storage',name:'500GB SSD',price:'?2,200'}
       ]};
     }else{
-      rec={name:'Power Office',price:'₱50K',desc:'Office + light content creation',parts:[
-        {cat:'CPU',name:'Ryzen 5 5600',price:'₱9,200'},{cat:'MB',name:'B550',price:'₱8,500'},
-        {cat:'RAM',name:'32GB DDR4 3600',price:'₱5,800'},{cat:'GPU',name:'iGPU',price:'-'},
-        {cat:'PSU',name:'550W',price:'₱3,200'},{cat:'Storage',name:'1TB NVMe',price:'₱5,800'}
+      rec={name:'Power Office',price:'?50K',desc:'Office + light content creation',parts:[
+        {cat:'CPU',name:'Ryzen 5 5600',price:'?9,200'},{cat:'MB',name:'B550',price:'?8,500'},
+        {cat:'RAM',name:'32GB DDR4 3600',price:'?5,800'},{cat:'GPU',name:'iGPU',price:'-'},
+        {cat:'PSU',name:'550W',price:'?3,200'},{cat:'Storage',name:'1TB NVMe',price:'?5,800'}
       ]};
     }
   }else if(purpose==='workstation'){
-    rec={name:'Creative Workstation',price:'₱120K',desc:'Video/3D/Photo editing',parts:[
-      {cat:'CPU',name:'Ryzen 9 7900X',price:'₱32,000'},{cat:'MB',name:'X670E Taichi',price:'₱28,000'},
-      {cat:'RAM',name:'64GB DDR5 6000',price:'₱22,000'},{cat:'GPU',name:'RTX 4070 Ti',price:'₱65,000'},
-      {cat:'PSU',name:'1000W Platinum',price:'₱9,000'},{cat:'Storage',name:'2TB NVMe',price:'₱9,500'}
+    rec={name:'Creative Workstation',price:'?120K',desc:'Video/3D/Photo editing',parts:[
+      {cat:'CPU',name:'Ryzen 9 7900X',price:'?32,000'},{cat:'MB',name:'X670E Taichi',price:'?28,000'},
+      {cat:'RAM',name:'64GB DDR5 6000',price:'?22,000'},{cat:'GPU',name:'RTX 4070 Ti',price:'?65,000'},
+      {cat:'PSU',name:'1000W Platinum',price:'?9,000'},{cat:'Storage',name:'2TB NVMe',price:'?9,500'}
     ]};
   }
   
-  if(!rec.name){rec={name:'Custom Gaming Build',price:budget?`₱${budget.toLocaleString()}`:' ?',desc:'Based on your budget',parts:[]}}
+  if(!rec.name){rec={name:'Custom Gaming Build',price:budget?`?${budget.toLocaleString()}`:' ?',desc:'Based on your budget',parts:[]}}
   
   let response=`[AI] **AI Recommendation: ${rec.name}**\n\n`;
   response+=`[Money] Budget: ${rec.price}\n[Stats] Use Case: ${rec.desc}\n\n`;
@@ -2823,7 +2833,7 @@ function getTroubleResponse(msg){
     return `[Restart] **Random Restarts - Fix Guide:**\n\n**Most Likely Causes:**\n\n**1. Overheating**\n- Check CPU temps using HWMonitor (download free)\n- CPU over 90 degC at load = thermal issue\n- Reapply thermal paste if CPU cooler is old\n\n**2. PSU Failing**\n- Insufficient wattage for your components\n- Failing PSU = instability under load\n- Test with a known-good PSU\n\n**3. RAM Issues**\n- Run Windows Memory Diagnostic (search in Start)\n- Or boot MemTest86 from USB - let it run overnight\n\n**4. Windows / Driver Issue**\n- Update GPU drivers (DDU clean uninstall first)\n- Check Event Viewer > Windows Logs > System for errors\n\n5. **Dust buildup** - clean fans and heatsinks with compressed air`;
   }
   if(m.includes('overheat')||m.includes('hot')||m.includes('temperature')||m.includes('shutting down')){
-    return `[Heat] **Overheating - Diagnosis & Fix:**\n\n**Check Temps First:**\n- Download HWMonitor or HWiNFO64 (free)\n- Normal CPU idle: 30-50 degC\n- Normal CPU load: 65-80 degC\n- Danger zone: above 90 degC\n\n**Common Fixes:**\n\n**1. Thermal Paste**\n- Remove CPU cooler, clean old paste with isopropyl alcohol\n- Apply small pea-sized amount of new paste\n- Remount cooler firmly\n\n**2. Airflow**\n- Ensure case has front intake + rear exhaust fans\n- Check for cable blockage inside case\n- Minimum: 2 fans for budget builds\n\n**3. CPU Cooler**\n- Stock AMD cooler is okay for non-X CPUs\n- Upgrade to Hyper 212 (₱1,800) for better temps\n\n**4. Case**\n- Avoid placing PC in enclosed spaces\n- Keep 15cm+ space behind PC for exhaust`;
+    return `[Heat] **Overheating - Diagnosis & Fix:**\n\n**Check Temps First:**\n- Download HWMonitor or HWiNFO64 (free)\n- Normal CPU idle: 30-50 degC\n- Normal CPU load: 65-80 degC\n- Danger zone: above 90 degC\n\n**Common Fixes:**\n\n**1. Thermal Paste**\n- Remove CPU cooler, clean old paste with isopropyl alcohol\n- Apply small pea-sized amount of new paste\n- Remount cooler firmly\n\n**2. Airflow**\n- Ensure case has front intake + rear exhaust fans\n- Check for cable blockage inside case\n- Minimum: 2 fans for budget builds\n\n**3. CPU Cooler**\n- Stock AMD cooler is okay for non-X CPUs\n- Upgrade to Hyper 212 (?1,800) for better temps\n\n**4. Case**\n- Avoid placing PC in enclosed spaces\n- Keep 15cm+ space behind PC for exhaust`;
   }
   if(m.includes('bsod')||m.includes('blue screen')||m.includes('stop code')){
     return `[BSOD] **Blue Screen of Death (BSOD) - Fix Guide:**\n\n**Step 1: Note the Stop Code**\n- Read the error code on the blue screen\n- Common codes: MEMORY_MANAGEMENT, IRQL_NOT_LESS_OR_EQUAL, CRITICAL_PROCESS_DIED\n\n**Step 2: Update Drivers**\n- GPU driver issues cause most BSODs\n- Use DDU (Display Driver Uninstaller) to clean uninstall GPU drivers\n- Reinstall latest drivers from NVIDIA/AMD website\n\n**Step 3: Check RAM**\n- Run Windows Memory Diagnostic\n- Run MemTest86 for thorough test\n\n**Step 4: Check Storage**\n- Run CrystalDiskInfo - check SSD/HDD health\n- Run CHKDSK in Command Prompt as admin\n\n**Step 5: Windows Repair**\n- Run: sfc /scannow in admin Command Prompt\n- Run: DISM /Online /Cleanup-Image /RestoreHealth\n\n[Tip] Check the Windows Event Viewer for the exact error that triggered the crash.`;
@@ -3080,10 +3090,13 @@ function updateAdminNav(isAdmin){
   });
   updateAdminRoleSwitchLabel();
   if(window._user&&window._user.firstName)updateMobileMenu(true,window._user.firstName);
-  const activePage=document.querySelector('.page.active');
-  const pageName=activePage&&activePage.id?activePage.id.replace('page-',''):'home';
-  setPublicNavVisibility(pageName);
-  setTimeout(function(){setPublicNavVisibility(pageName);},0);
+  const applyNavVisibility=function(){
+    const activePage=document.querySelector('.page.active');
+    const pageName=activePage&&activePage.id?activePage.id.replace('page-',''):'home';
+    setPublicNavVisibility(pageName);
+  };
+  applyNavVisibility();
+  setTimeout(applyNavVisibility,0);
 }
 function toggleAdminMode(){
   if(!window._user||!window._user.isAdmin)return;
@@ -3306,6 +3319,7 @@ restoreSession();
 applyInitialNavVisibility();
 window.addEventListener('pageshow',applyInitialNavVisibility);
 window.addEventListener('focus',applyInitialNavVisibility);
+
 
 
 
