@@ -1,12 +1,13 @@
-<!-- ===== ADMIN CONSOLE ===== -->
+﻿<!-- ===== ADMIN CONSOLE ===== -->
 <div id="page-admin" class="page">
   <div class="admin-shell">
     <aside class="admin-side">
       <div class="admin-side-head">
         <button type="button" class="admin-side-title" onclick="openAdminDashboard()">Admin Console</button>
-        <div class="admin-side-sub" id="admin-side-user">Signed in</div>
+        <div class="admin-side-sub" id="admin-side-user">Admin</div>
       </div>
       <nav class="admin-nav">
+        <button class="admin-nav-item" data-admin-view="dashboard" onclick="switchAdminView('dashboard',this)">Dashboard</button>
         <button class="admin-nav-item" data-admin-view="users" onclick="switchAdminView('users',this)">Users &amp; Roles</button>
         <button class="admin-nav-item" data-admin-view="recommendations" onclick="switchAdminView('recommendations',this)">Build Recommendations</button>
         <button class="admin-nav-item" data-admin-view="moderation" onclick="switchAdminView('moderation',this)">Moderation</button>
@@ -57,7 +58,7 @@
       <!-- Components -->
       <section class="admin-view" id="admin-view-components">
         <div class="admin-toolbar">
-          <input class="admin-input" id="component-search" type="search" placeholder="Search brand or model…" onkeyup="if(event.key==='Enter')loadAdminComponents()"/>
+          <input class="admin-input" id="component-search" type="search" placeholder="Search brand or modelâ€¦" onkeyup="if(event.key==='Enter')loadAdminComponents()"/>
           <select class="admin-input admin-select" id="component-category-filter" onchange="loadAdminComponents()">
             <option value="">All categories</option>
             <option value="cpu">CPU</option>
@@ -96,7 +97,7 @@
       <!-- Build Recommendations -->
       <section class="admin-view" id="admin-view-recommendations">
         <div class="admin-toolbar">
-          <input class="admin-input" id="recommendation-search" type="search" placeholder="Search build name or component…" onkeyup="if(event.key==='Enter')loadAdminRecommendations()"/>
+          <input class="admin-input" id="recommendation-search" type="search" placeholder="Search build name or componentâ€¦" onkeyup="if(event.key==='Enter')loadAdminRecommendations()"/>
           <select class="admin-input admin-select" id="recommendation-category-filter" onchange="loadAdminRecommendations()">
             <option value="">All categories</option>
             <option value="gaming">Gaming</option>
@@ -121,7 +122,7 @@
       <!-- Users -->
       <section class="admin-view" id="admin-view-users">
         <div class="admin-toolbar">
-          <input class="admin-input" id="user-search" type="search" placeholder="Search name or email…" onkeyup="if(event.key==='Enter')loadAdminUsers()"/>
+          <input class="admin-input" id="user-search" type="search" placeholder="Search name or emailâ€¦" onkeyup="if(event.key==='Enter')loadAdminUsers()"/>
           <select class="admin-input admin-select" id="user-role-filter" onchange="loadAdminUsers()">
             <option value="">All roles</option>
             <option value="user">User</option>
@@ -192,7 +193,7 @@
               <label class="admin-label">Adjustment mode
                 <select class="admin-input" id="bulk-mode">
                   <option value="percent">Percentage change (%)</option>
-                  <option value="multiplier">Multiplier (×)</option>
+                  <option value="multiplier">Multiplier ()</option>
                   <option value="usd_rate">Recalculate from USD rate</option>
                 </select>
               </label>
@@ -274,3 +275,7 @@
     </main>
   </div>
 </div>
+
+
+
+
