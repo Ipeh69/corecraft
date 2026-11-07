@@ -66,7 +66,7 @@ function adminModalStatus(message,type){
 function initAdminPage(){
   if(!canAccessAdminConsole()){showPage('home');return;}
   const who=document.getElementById('admin-side-user');
-  if(who)who.textContent=window._user.name||'Admin';
+  if(who)who.textContent='Admin';
   switchAdminView(adminState.view,document.querySelector('.admin-nav-item[data-admin-view="'+adminState.view+'"]'));
 }
 
