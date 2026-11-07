@@ -5,11 +5,11 @@
     <div class="logo-text">Core<span>Craft</span></div>
   </a>
   <ul>
-    <li class="public-nav-item"><a onclick="showPage('compatibility')">Compatibility Checker</a></li>
-    <li class="public-nav-item"><a onclick="showPage('build')">Build Recommendations</a></li>
-    <li class="public-nav-item"><a onclick="showPage('pricing')">Part Pricing</a></li>
-    <li class="public-nav-item"><a onclick="showPage('troubleshoot')">Troubleshoot</a></li>
-    <li class="public-nav-item"><a onclick="showPage('PHchat')">PH Community</a></li>
+    <li class="public-nav-item"><a data-nav-page="compatibility" onclick="showPage('compatibility')">Compatibility Checker</a></li>
+    <li class="public-nav-item"><a data-nav-page="build" onclick="showPage('build')">Build Recommendations</a></li>
+    <li class="public-nav-item"><a data-nav-page="pricing" onclick="showPage('pricing')">Part Pricing</a></li>
+    <li class="public-nav-item"><a data-nav-page="troubleshoot" onclick="showPage('troubleshoot')">Troubleshoot</a></li>
+    <li class="public-nav-item"><a data-nav-page="phchat" onclick="showPage('PHchat')">PH Community</a></li>
     <li id="nav-admin-link" style="display:none"><a onclick="openAdminDashboard()">Admin</a></li>
   </ul>
   <div class="nav-actions">
@@ -41,11 +41,11 @@
 </nav>
 <!-- Mobile Menu -->
 <div class="mobile-menu" id="mobile-menu">
-  <a class="public-mobile-nav-item" onclick="showPage('compatibility');closeMenu()">Compatibility Checker</a>
-  <a class="public-mobile-nav-item" onclick="showPage('build');closeMenu()">Build Recommendations</a>
-  <a class="public-mobile-nav-item" onclick="showPage('pricing');closeMenu()">Part Pricing by Location</a>
-  <a class="public-mobile-nav-item" onclick="showPage('troubleshoot');closeMenu()">Troubleshooting</a>
-  <a class="public-mobile-nav-item" onclick="showPage('PHchat');closeMenu()">PH Community</a>
+  <a class="public-mobile-nav-item" data-nav-page="compatibility" onclick="showPage('compatibility');closeMenu()">Compatibility Checker</a>
+  <a class="public-mobile-nav-item" data-nav-page="build" onclick="showPage('build');closeMenu()">Build Recommendations</a>
+  <a class="public-mobile-nav-item" data-nav-page="pricing" onclick="showPage('pricing');closeMenu()">Part Pricing by Location</a>
+  <a class="public-mobile-nav-item" data-nav-page="troubleshoot" onclick="showPage('troubleshoot');closeMenu()">Troubleshooting</a>
+  <a class="public-mobile-nav-item" data-nav-page="phchat" onclick="showPage('PHchat');closeMenu()">PH Community</a>
   <a id="mobile-admin-link" style="display:none" onclick="openAdminDashboard();closeMenu()">Admin Console</a>
   <div class="mobile-menu-actions">
     <select class="theme-select mobile-theme-select" aria-label="Color theme" onchange="setColorTheme(this.value)">
@@ -55,6 +55,7 @@
     <button class="btn-login" onclick="showPage('login');closeMenu()">ðŸ‘¤ Login</button>
   </div>
 </div>
+
 
 
 

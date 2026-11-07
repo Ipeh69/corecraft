@@ -20,6 +20,7 @@
     nav ul{display:flex;gap:28px;list-style:none}
     nav ul a{color:var(--muted);font-size:14px;font-weight:500;text-decoration:none;transition:color .2s, border-color .2s;cursor:pointer;padding-bottom:6px;border-bottom:2px solid transparent}
     nav ul a:hover{color:var(--text);border-bottom-color:var(--cyan)}
+    nav ul a.active{color:var(--text);border-bottom-color:var(--cyan);text-shadow:0 0 10px rgba(0,191,255,.55)}
     .nav-actions{display:flex;align-items:center;gap:10px}
     .theme-select{min-height:36px;padding:7px 30px 7px 11px;border:1px solid var(--border);border-radius:9px;background:var(--bg2);color:var(--text);font:500 13px 'DM Sans',sans-serif;cursor:pointer}
     .dropdown-theme-select{width:100%;margin:4px 0 8px}
@@ -47,6 +48,7 @@
     .mobile-menu{display:none;position:fixed;top:61px;left:0;right:0;bottom:0;background:rgba(5,7,11,.98);z-index:49;flex-direction:column;padding:24px;gap:8px;overflow-y:auto}
     .mobile-menu.open{display:flex}
     .mobile-menu a{color:var(--text);font-size:18px;font-weight:600;padding:14px 0;border-bottom:1px solid var(--border);text-decoration:none;cursor:pointer}
+    .mobile-menu a.active{color:var(--cyan);border-bottom-color:var(--cyan);text-shadow:0 0 10px rgba(0,191,255,.45)}
     .mobile-menu-actions{display:flex;gap:10px;margin-top:16px;flex-direction:column}
     .mobile-theme-select{width:100%;min-height:44px}
     .mobile-menu-actions .btn-login{justify-content:center;border:1px solid var(--border);width:100%}
