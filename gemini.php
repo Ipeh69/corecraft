@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // CoreCraft Gemini endpoint. Keep the API key on the server, never in script.js.
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -100,14 +100,14 @@ if (strlen($message) > 12000) {
 if ($feature === 'trouble') {
     $mathRequest = preg_match('/\b(math(?:ematics)?|arithmetic|algebra|geometry|trigonometry|calculus|equation|integral|derivative|probability|statistics|square root|factorial|solve for x)\b/i', $message)
         || preg_match('/\b(calculate|compute|evaluate|simplify|factor|solve)\b/i', $message)
-        || preg_match('/\b\d+(?:\.\d+)?\s*(?:[+*\/^=×÷-])\s*\d+(?:\.\d+)?\b/u', $message)
+        || preg_match('/\b\d+(?:\.\d+)?\s*(?:[+*\/^=Ã—Ã·-])\s*\d+(?:\.\d+)?\b/u', $message)
         || preg_match('/\b\d+(?:\.\d+)?\s+(?:plus|minus|times|multiplied by|divided by)\s+\d+(?:\.\d+)?\b/i', $message)
-        || preg_match('/^\s*[a-z0-9]+\s*(?:[+*\/^=×÷-]\s*[a-z0-9]+)+(?:\s*[?=])?\s*$/iu', $message);
+        || preg_match('/^\s*[a-z0-9]+\s*(?:[+*\/^=Ã—Ã·-]\s*[a-z0-9]+)+(?:\s*[?=])?\s*$/iu', $message);
     if ($mathRequest) {
         $filipinoMathRequest = preg_match('/\b(ano|paki|hindi|di|ako|sa pc|mo|ba|sagot)\b/i', $message);
         $redirect = $filipinoMathRequest
             ? 'PC troubleshooting lang ang sakop ko rito, kaya hindi ako sasagot ng math. Ano ang problema sa PC mo?'
-            : 'I can only help troubleshoot PC problems here, so I can’t answer math questions. What is happening with your PC?';
+            : 'I can only help troubleshoot PC problems here, so I canâ€™t answer math questions. What is happening with your PC?';
         echo json_encode(array('reply' => $redirect));
         exit;
     }
@@ -200,7 +200,7 @@ foreach (array_merge($fallbackModels, explode(',', $configuredModels)) as $model
 }
 
 // Old bundled PHP/OpenSSL (e.g. WAMP with PHP 5.3) cannot verify modern TLS; use the system curl.exe, which still verifies certificates.
-function geminiPostWithCurlExe($url, $json) {
+function geminiPostWithCurlExe($url, $json, $timeoutSeconds = 90) {
     $exe = getenv('SystemRoot') ? getenv('SystemRoot') . '\\System32\\curl.exe' : '';
     if ($exe === '' || !is_file($exe) || !function_exists('exec')) return null;
     $bodyFile = tempnam(sys_get_temp_dir(), 'gmb');
@@ -210,7 +210,7 @@ function geminiPostWithCurlExe($url, $json) {
     file_put_contents($configFile, 'url = "' . $url . "\"\nheader = \"Content-Type: application/json\"\n");
     $output = array();
     $code = 1;
-    exec('"' . $exe . '" -sS -m 90 -K "' . $configFile . '" --data-binary "@' . $bodyFile . '" -w "\n%{http_code}" 2>&1', $output, $code);
+    exec('"' . $exe . '" -sS -m ' . (int)$timeoutSeconds . ' -K "' . $configFile . '" --data-binary "@' . $bodyFile . '" -w "\n%{http_code}" 2>&1', $output, $code);
     @unlink($bodyFile);
     @unlink($configFile);
     $text = implode("\n", $output);
@@ -226,6 +226,19 @@ $statusCode = 0;
 $gemini = array();
 $lastError = 'Gemini returned an error.';
 $searchFallback = false;
+// Allow slower connections (especially on shared hosting / PH ISPs).
+// Defaults are intentionally conservative but not ultra-low.
+$connectTimeoutSeconds = (int)getenv('CORECRAFT_GEMINI_CONNECT_TIMEOUT_SECONDS');
+if ($connectTimeoutSeconds <= 0) $connectTimeoutSeconds = 8;
+
+$fastTimeoutSeconds = (int)getenv('CORECRAFT_GEMINI_TIMEOUT_SECONDS');
+if ($fastTimeoutSeconds <= 0) $fastTimeoutSeconds = 15;
+
+$searchTimeoutSeconds = (int)getenv('CORECRAFT_GEMINI_SEARCH_TIMEOUT_SECONDS');
+if ($searchTimeoutSeconds <= 0) $searchTimeoutSeconds = 120;
+
+$fastRequestBudgetSeconds = (float)getenv('CORECRAFT_GEMINI_FAST_BUDGET_SECONDS');
+if ($fastRequestBudgetSeconds <= 0) $fastRequestBudgetSeconds = max(2.5, (float)$fastTimeoutSeconds - 1.0);
 $requestStartedAt = microtime(true);
 for ($attempt = 0; $attempt < 2; $attempt++) {
 if ($attempt === 1) {
@@ -237,9 +250,8 @@ if ($attempt === 1) {
     $requestBody['system_instruction'] = array('parts' => array(array('text' => $fallbackNote)));
 }
 foreach ($models as $model) {
-    // Keep ordinary AI requests within roughly three seconds. Fast quota errors
-    // can still fall through to another model while there is time left.
-    if (!$useGoogleSearch && microtime(true) - $requestStartedAt >= 2.5) break;
+    // Keep non-search requests reasonably fast while still allowing fallback models.
+    if (!$useGoogleSearch && microtime(true) - $requestStartedAt >= $fastRequestBudgetSeconds) break;
     $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . rawurlencode($model) . ':generateContent?key=' . rawurlencode($apiKey);
     $ch = curl_init($url);
     curl_setopt_array($ch, array(
@@ -247,8 +259,8 @@ foreach ($models as $model) {
         CURLOPT_HTTPHEADER => array('Content-Type: application/json'),
         CURLOPT_POSTFIELDS => json_encode($requestBody),
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CONNECTTIMEOUT => 2,
-        CURLOPT_TIMEOUT => $useGoogleSearch ? 90 : 3,
+        CURLOPT_CONNECTTIMEOUT => $connectTimeoutSeconds,
+        CURLOPT_TIMEOUT => $useGoogleSearch ? $searchTimeoutSeconds : $fastTimeoutSeconds,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ));
@@ -257,7 +269,8 @@ foreach ($models as $model) {
     $statusCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if ($response === false && preg_match('/ssl|certificate|protocol/i', $curlError)) {
-        $fallback = geminiPostWithCurlExe($url, json_encode($requestBody));
+        $fallbackTimeout = $useGoogleSearch ? $searchTimeoutSeconds : $fastTimeoutSeconds;
+        $fallback = geminiPostWithCurlExe($url, json_encode($requestBody), $fallbackTimeout);
         if ($fallback !== null) {
             $response = $fallback['body'];
             $statusCode = $fallback['status'];
@@ -325,3 +338,4 @@ echo json_encode(array(
     'searchedAt' => $searchStartedAt,
     'searchUnavailable' => $searchFallback
 ));
+
