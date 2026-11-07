@@ -1,5 +1,5 @@
 ﻿
-// â€”â€”â€” MOBILE MENU â€”â€”â€”
+// --- MOBILE MENU ---
 function applyColorTheme(theme,save){
   theme=theme==='light'?'light':'dark';
   document.documentElement.setAttribute('data-theme',theme);
@@ -12,15 +12,15 @@ applyColorTheme(document.documentElement.getAttribute('data-theme')||'dark',fals
 function toggleMenu(){document.getElementById('mobile-menu').classList.toggle('open')}
 function closeMenu(){document.getElementById('mobile-menu').classList.remove('open')}
 
-// â€”â€”â€” AUTH â€”â€”â€”
+// --- AUTH ---
 let isLoggedIn=false,pendingPage=null,PHchatInit=false,activePHChat=null,phChatPoll=null,activeDMEmail=null,dmSearchTimer=null,dmUnreadPollTimer=null;
 let pendingCommunityDelete=null;
 const protected_=['compatibility','build','pricing','troubleshoot','profile','PHchat','admin'];
 let PHCHAT_COMMUNITIES=[
-  {id:'Recommendation Builds',icon:'ðŸ’¡',description:'Share and discover recommended PC builds'},
-  {id:'Part Pricing',icon:'ðŸ’¸',description:'Deals and store prices'},
-  {id:'Troubleshooting',icon:'ðŸ› ï¸',description:'Fix PC problems together'},
-  {id:'Build Showcase',icon:'ðŸ†',description:'Share your finished build'}
+  {id:'Recommendation Builds',icon:'[Tip]',description:'Share and discover recommended PC builds'},
+  {id:'Part Pricing',icon:'[Budget]',description:'Deals and store prices'},
+  {id:'Troubleshooting',icon:'[Tools]',description:'Fix PC problems together'},
+  {id:'Build Showcase',icon:'[Top]',description:'Share your finished build'}
 ];
 
 function showPage(name){
@@ -127,13 +127,13 @@ function renderRecentActivity(){
   }).join('');
 }
 
-// â€”â€”â€” PHILIPPINES SHOP MAP â€”â€”â€”
+// --- PHILIPPINES SHOP MAP ---
 let autoLocateTried=false, philippinesMap=null, philippinesMarkers=[], userLocationMarker=null, hasLocatedUser=false, lastLocatedPosition=null;
 let shopSearchRequest=0,lastGeocodeSearchAt=0;
 const geocodedShopLocations={};
 const pcRetailerPattern=/PC ?Express|PCX |Octagon|Easy ?PC|DynaQuest|Villman|PC ?Worx|PC ?Worth|PC ?Alley|Gigahertz|JDM Techno|Silicon Valley|PC ?Hub|Complink|Bermor|PC Parts|Computer Parts|PC Builders|Computer Builders/i;
 const partsStorePattern=/pc ?(parts|builder|components|hardware|store|shop|center|zone|depot|mart)|computer ?(parts|components|hardware|builder)|hardware|components/i;
-const nonRetailPattern=/repair|service|phone|printer|ink|photocopy|cctv|software|internet|net ?caf|cafe|cafÃ©|gaming|e-?games|pisonet|rental|school|college|institute|university|academy|training/i;
+const nonRetailPattern=/repair|service|phone|printer|ink|photocopy|cctv|software|internet|net ?caf|cafe|cafe|gaming|e-?games|pisonet|rental|school|college|institute|university|academy|training/i;
 const philippinesBounds={south:4.3,west:116.8,north:21.3,east:126.8};
 
 function initPhilippinesMap(){
@@ -256,7 +256,7 @@ function focusShopResult(index){
   const place=(window._philippinesShopResults||[])[index];
   if(!place||!place.lat||!place.lon||!philippinesMap)return;
   philippinesMap.setView([place.lat,place.lon],16);
-  const location=[place.name,place.address].filter(Boolean).join(' â€” ');
+  const location=[place.name,place.address].filter(Boolean).join(' - ');
   const input=document.getElementById('stock-location');
   if(input)input.value=location;
 }
@@ -386,14 +386,14 @@ function buildTroubleTechnicianReply(center,area,listings,searchFailed){
   if(!listings.length){
     const searchUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent('computer repair technician near '+center.lat+','+center.lng);
     const noListing=searchFailed?'Hindi ko ma-load ang repair listings ngayon.':'Wala akong nakitang nearby PC repair listing sa map data';
-    return `Sorry hindi gumana ang mga steps. ${noListing} para sa ${safeArea}. <a href="${searchUrl}" target="_blank" rel="noopener noreferrer">Search PC repair technicians on Google Maps</a>. Tawagan muna ang shop para kumpirmahin na nag-aayos sila ng PC at alamin ang presyo at oras bago pumunta. <small>Map data Â© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</small>`;
+    return `Sorry hindi gumana ang mga steps. ${noListing} para sa ${safeArea}. <a href="${searchUrl}" target="_blank" rel="noopener noreferrer">Search PC repair technicians on Google Maps</a>. Tawagan muna ang shop para kumpirmahin na nag-aayos sila ng PC at alamin ang presyo at oras bago pumunta. <small>Map data (c) <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</small>`;
   }
   const results=listings.map(function(place){
-    const label=place.computerSpecific?'Computer repair listing':'Electronics repair listing â€” confirm that they repair PCs';
+    const label=place.computerSpecific?'Computer repair listing':'Electronics repair listing - confirm that they repair PCs';
     const mapUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(place.name+' '+place.address);
-    return `<li><a href="${mapUrl}" target="_blank" rel="noopener noreferrer"><strong>${escapeHtml(place.name)}</strong></a> â€” ${escapeHtml((place.distance/1000).toFixed(1))} km, ${escapeHtml(place.address)} <span class="phchat-muted">(${label})</span></li>`;
+    return `<li><a href="${mapUrl}" target="_blank" rel="noopener noreferrer"><strong>${escapeHtml(place.name)}</strong></a> - ${escapeHtml((place.distance/1000).toFixed(1))} km, ${escapeHtml(place.address)} <span class="phchat-muted">(${label})</span></li>`;
   }).join('');
-  return `Sorry hindi gumana ang mga steps. Narito ang malalapit na repair listings sa ${safeArea}:<ul>${results}</ul><small>OpenStreetMap listings ito at maaaring kulang o luma. Tawagan muna para kumpirmahin ang PC repair service, availability, at presyo bago pumunta. Map data Â© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</small>`;
+  return `Sorry hindi gumana ang mga steps. Narito ang malalapit na repair listings sa ${safeArea}:<ul>${results}</ul><small>OpenStreetMap listings ito at maaaring kulang o luma. Tawagan muna para kumpirmahin ang PC repair service, availability, at presyo bago pumunta. Map data (c) <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>.</small>`;
 }
 
 async function fetchShopListings(center,radius){
@@ -460,7 +460,7 @@ async function searchPhilippinesShops(location,nearbyCenter){
   let center=nearbyCenter||lastLocatedPosition;
   const requestId=++shopSearchRequest;
   let locationLabel=location?`near ${location}`:(center?'near your location':'near your selected area');
-  recordActivity('ðŸ—ºï¸','Searched PC stores',locationLabel,'rgba(0,229,255,.1)');
+  recordActivity('[Map]','Searched PC stores',locationLabel,'rgba(0,229,255,.1)');
   if(!philippinesMap||!window.L){
     throw new Error('Leaflet did not load. Check your internet connection and reload the Pricing page.');
   }
@@ -568,7 +568,7 @@ async function checkPartStock(){
     if(result)result.innerHTML='<span style="color:var(--orange)">Your location is not available yet. Click "Use my location" and allow location access first.</span>';
     return;
   }
-  recordActivity('ðŸ“¦','Searched PC stores and stock',part+' near '+locationLabel,'rgba(255,107,53,.1)');
+  recordActivity('[Package]','Searched PC stores and stock',part+' near '+locationLabel,'rgba(255,107,53,.1)');
   corecraftTrack('search',part);
   setButtonLoading(button,true,'Searching stores and part...');
   result.innerHTML='<span class="search-spinner"></span><span style="color:var(--muted)">Finding nearby stores, then asking Gemini to search current listings for this part and area...</span>';
@@ -588,7 +588,7 @@ async function checkPartStock(){
     const nearbyStores=nearbyStoresRaw||[];
     if(useCurrentLocation)locationLabel=(placeName?placeName+' ':'')+`(GPS ${lastLocatedPosition.lat.toFixed(4)}, ${lastLocatedPosition.lng.toFixed(4)})`;
     const mappedStoreContext=nearbyStores.length
-      ?`\nThe map found ${nearbyStores.length} PC store branches near the user. Names:\n${nearbyStores.slice(0,60).map(store=>`- ${store.name} â€” ${store.address} (${store.serviceType})`).join('\n').slice(0,4500)}`
+      ?`\nThe map found ${nearbyStores.length} PC store branches near the user. Names:\n${nearbyStores.slice(0,60).map(store=>`- ${store.name} - ${store.address} (${store.serviceType})`).join('\n').slice(0,4500)}`
       :'\nThe map could not provide store listings for this area. Search relevant Philippine retailers directly and do not invent local branches.';
     const live=liveFetched;
     const squash=text=>String(text||'').toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -602,13 +602,13 @@ async function checkPartStock(){
     const outsideArea=allLive.length-liveResults.length;
     const formatPeso=value=>'₱'+Number(value).toLocaleString('en-PH',{maximumFractionDigits:0});
     const liveContext=liveResults.length
-      ?`\n\nLIVE RETAILER WEBSITE RESULTS (fetched just now from the stores' own websites; online availability only, not branch stock). Use ONLY these for prices and stock; do not add other prices or links:\n${liveResults.map(item=>`- ${item.store}: ${item.title} â€” ${formatPeso(item.price)} â€” ${item.available?'IN STOCK ONLINE':'OUT OF STOCK ONLINE'} â€” ${item.url}`).join('\n')}`
+      ?`\n\nLIVE RETAILER WEBSITE RESULTS (fetched just now from the stores' own websites; online availability only, not branch stock). Use ONLY these for prices and stock; do not add other prices or links:\n${liveResults.map(item=>`- ${item.store}: ${item.title} - ${formatPeso(item.price)} - ${item.available?'IN STOCK ONLINE':'OUT OF STOCK ONLINE'} - ${item.url}`).join('\n')}`
       :'';
     const liveTable=live?(liveResults.length
       ?`<div class="stock-sources"><strong>Live listings from retailer websites</strong><div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">${liveResults.map(item=>`<div style="border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><strong>${escapeHtml(item.store)}</strong><span style="white-space:nowrap;font-weight:600;color:${item.available?'#22c55e':'#ef4444'}">${item.available?'In stock':'Out of stock'}</span></div><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" style="font-size:13px;word-break:break-word">${escapeHtml(item.title)}</a><div style="margin-top:4px;font-weight:700">${escapeHtml(formatPeso(item.price))}</div></div>`).join('')}</div><p class="stock-verification-note">Checked ${escapeHtml(live.checked.join(', '))}${live.failed.length?'. Could not reach: '+escapeHtml(live.failed.join(', ')):''}${live.checkedAt?' on '+escapeHtml(new Date(live.checkedAt).toLocaleString()):''}. This is each store's online availability; call the branch before travelling.</p></div>`
       :`<p class="stock-verification-note">${outsideArea?'Matching listings exist, but none from stores with a branch '+escapeHtml(locationLabel)+'. Showing nothing outside your area.':'No matching '+(live.skippedLaptops?'desktop part':'listing')+' for "'+escapeHtml(part)+'" was found on '+escapeHtml(live.checked.join(', ')||'the retailer websites')+'.'}${live.skippedLaptops&&!outsideArea?' Only '+live.skippedLaptops+' laptop listing'+(live.skippedLaptops===1?'':'s')+' matched; this model may exist only in laptops.':''}</p>`):'';
     if(live){
-      result.innerHTML=`<div class="ai-header"><div class="ai-avatar">ðŸ›’</div><span class="ai-label">Results for "${escapeHtml(part)}"</span></div>${liveTable}`;
+      result.innerHTML=`<div class="ai-header"><div class="ai-avatar">[Cart]</div><span class="ai-label">Results for "${escapeHtml(part)}"</span></div>${liveTable}`;
       return;
     }
     let data=null;
@@ -631,7 +631,7 @@ Search each mapped business name where web results allow, and search official Ph
     }
     if(!data){
       if(!live)throw new Error(aiError);
-      result.innerHTML=`<div class="ai-header"><div class="ai-avatar">ðŸ¤–</div><span class="ai-label">Retailer website stock check</span></div>${liveTable}`;
+      result.innerHTML=`<div class="ai-header"><div class="ai-avatar">[AI]</div><span class="ai-label">Retailer website stock check</span></div>${liveTable}`;
       return;
     }
     const sources=Array.isArray(data.sources)?data.sources:[];
@@ -646,13 +646,13 @@ Search each mapped business name where web results allow, and search official Ph
       ?`<p class="stock-verification-note">Gemini used web search. A source can show an online listing but does not guarantee live branch inventory; confirm directly with the seller.${checkedTime}</p>`
       :`<p class="stock-verification-note">No citable web results were returned, so current stock and prices could not be independently verified. Treat any estimates above as unverified and check with the seller.${checkedTime}</p>`;
     const reportLabel=liveResults.length?'Retailer website stock check':(data.searchUnavailable?'Estimated price report (not live)':'Live-search stock report');
-    result.innerHTML=`<div class="ai-header"><div class="ai-avatar">ðŸ¤–</div><span class="ai-label">${reportLabel}</span></div>${liveTable}${formatAIResponse(data.reply)}${sourceList}${groundingNotice}`;
+    result.innerHTML=`<div class="ai-header"><div class="ai-avatar">[AI]</div><span class="ai-label">${reportLabel}</span></div>${liveTable}${formatAIResponse(data.reply)}${sourceList}${groundingNotice}`;
   }catch(error){
     result.innerHTML=`<span style="color:var(--orange)">Stock check unavailable: ${escapeHtml(error.message||'Unknown error')}</span>`;
   }finally{setButtonLoading(button,false);}
 }
 
-// â€”â€”â€” COMPONENTS DATA â€”â€”â€”
+// --- COMPONENTS DATA ---
 const componentData = {
   motherboard: [
     {id: 'mb1', name: 'ASUS B550-F', socket: 'AM4', formFactor: 'ATX', ramType: 'DDR4', price: 8500},
@@ -699,12 +699,12 @@ const componentData = {
 };
 
 const components=[
-  {id:'1',name:'Motherboard',type:'motherboard',value:'Not Selected',price:0,icon:'ðŸ”²',tag:'Select Motherboard',status:'empty',detail:''},
-  {id:'2',name:'CPU',type:'cpu',value:'Not Selected',price:0,icon:'ðŸ§ ',tag:'Select CPU',status:'empty',detail:''},
-  {id:'3',name:'RAM',type:'ram',value:'Not Selected',price:0,icon:'ðŸ’¾',tag:'Select RAM',status:'empty',detail:''},
-  {id:'4',name:'GPU',type:'gpu',value:'Not Selected',price:0,icon:'ðŸŽ®',tag:'Select GPU',status:'empty',detail:''},
-  {id:'5',name:'Storage',type:'storage',value:'Not Selected',price:0,icon:'ðŸ’¿',tag:'Select Storage',status:'empty',detail:''},
-  {id:'6',name:'PSU',type:'psu',value:'Not Selected',price:0,icon:'ðŸ”Œ',tag:'Select PSU',status:'empty',detail:''}
+  {id:'1',name:'Motherboard',type:'motherboard',value:'Not Selected',price:0,icon:'[Blue]',tag:'Select Motherboard',status:'empty',detail:''},
+  {id:'2',name:'CPU',type:'cpu',value:'Not Selected',price:0,icon:'[Smart]',tag:'Select CPU',status:'empty',detail:''},
+  {id:'3',name:'RAM',type:'ram',value:'Not Selected',price:0,icon:'[Save]',tag:'Select RAM',status:'empty',detail:''},
+  {id:'4',name:'GPU',type:'gpu',value:'Not Selected',price:0,icon:'[Gaming]',tag:'Select GPU',status:'empty',detail:''},
+  {id:'5',name:'Storage',type:'storage',value:'Not Selected',price:0,icon:'[Disc]',tag:'Select Storage',status:'empty',detail:''},
+  {id:'6',name:'PSU',type:'psu',value:'Not Selected',price:0,icon:'[Power]',tag:'Select PSU',status:'empty',detail:''}
 ];
 
 function getAllMotherboards() {
@@ -839,7 +839,7 @@ async function runCompatCheck(){
     alert('Please fill in CPU, Motherboard, RAM, and PSU to run the AI compatibility check.');
     return;
   }
-  recordActivity('ðŸ”','Compatibility check completed',`${cpu} + ${mb}${gpu?' + '+gpu:''}`,'rgba(0,229,255,.1)');
+  recordActivity('[Search]','Compatibility check completed',`${cpu} + ${mb}${gpu?' + '+gpu:''}`,'rgba(0,229,255,.1)');
   corecraftTrack('build_check',`${cpu} | ${mb}${gpu?' | '+gpu:''}`);
   // Gemini is the source of truth for this run. The local database is used only
   // by the part picker and remains the fallback if Gemini is unavailable.
@@ -854,7 +854,7 @@ async function runCompatCheck(){
   const result=document.getElementById('ai-compat-result');
   if(result){
     result.style.display='block';
-    result.innerHTML='<strong>ðŸ¤– Gemini is analyzing your complete build...</strong>';
+    result.innerHTML='<strong>[AI] Gemini is analyzing your complete build...</strong>';
   }
   const buildContext=`CPU: ${cpu}\nMotherboard: ${mb}\nRAM: ${ram}\nGPU: ${gpu||'Not selected'}\nStorage: ${storage||'Not selected'}\nPSU: ${psu}\nCase: ${pccase||'Not selected'}`;
   try{
@@ -869,17 +869,17 @@ async function runCompatCheck(){
     applyAiPriceEstimates(aiText);
     const status=document.getElementById('compat-status');
     const needsChanges=/needs changes|not compatible|incompatible|mismatch|cannot work|does not support|too weak/i.test(aiText);
-    if(status)status.textContent=needsChanges?'âš  AI verdict: Needs Changes':'AI verdict: Compatible';
+    if(status)status.textContent=needsChanges?'[Warning] AI verdict: Needs Changes':'AI verdict: Compatible';
     if(needsChanges)corecraftTrack('compat_fail',`${cpu} | ${mb}${gpu?' | '+gpu:''}`);
     if(result){
-      result.innerHTML='<div class="ai-header"><div class="ai-avatar">ðŸ¤–</div><span class="ai-label">Gemini Compatibility and Price Estimate</span></div><div style="line-height:1.7;margin-top:12px">'+formatAIResponse(aiText)+'</div><p style="color:var(--muted);margin:16px 0 0;font-size:12px">Prices are AI estimates for the Philippines, not guaranteed live quotes. Confirm the current price, stock, warranty, and seller before buying.</p>';
+      result.innerHTML='<div class="ai-header"><div class="ai-avatar">[AI]</div><span class="ai-label">Gemini Compatibility and Price Estimate</span></div><div style="line-height:1.7;margin-top:12px">'+formatAIResponse(aiText)+'</div><p style="color:var(--muted);margin:16px 0 0;font-size:12px">Prices are AI estimates for the Philippines, not guaranteed live quotes. Confirm the current price, stock, warranty, and seller before buying.</p>';
     }
   }catch(error){
     checkCompatibility();
     renderComponents();
     const errorText=error.message||'Unknown Gemini error';
     const quotaMessage=/quota|rate limit|limit reached|429/i.test(errorText)?'Gemini quota reached. The local compatibility checker is being used until quota resets.':'Gemini analysis unavailable. The local compatibility checker is being used.';
-    if(result)result.innerHTML='<strong>âš ï¸ '+quotaMessage+'</strong><p style="color:var(--muted);margin:8px 0 0">Reason: '+escapeHtml(errorText)+'</p>';
+    if(result)result.innerHTML='<strong>[Warning] '+quotaMessage+'</strong><p style="color:var(--muted);margin:8px 0 0">Reason: '+escapeHtml(errorText)+'</p>';
   }
 }
 
@@ -930,12 +930,12 @@ function getAICompatAnalysis(cpu,mb,ram,gpu,storage,psu,pccase){
   else if(mbSocket==='LGA1700') mbRamType=mbL.includes('ddr4')?'DDR4':mbL.includes('ddr5')?'DDR5':'Unknown';
   else if(mbSocket==='AM4') mbRamType='DDR4';
   if(cpuSocket!=='Unknown'&&mbSocket!=='Unknown'&&cpuSocket!==mbSocket){
-    issues.push(`âš ï¸ **Socket mismatch** â€” CPU is ${cpuSocket} but motherboard is ${mbSocket}. Use a matching CPU or motherboard.`);
+    issues.push(`[Warning] **Socket mismatch** - CPU is ${cpuSocket} but motherboard is ${mbSocket}. Use a matching CPU or motherboard.`);
   } else if(cpuSocket!=='Unknown'&&mbSocket!=='Unknown'){
     notes.push(`CPU and motherboard are likely compatible with ${cpuSocket}.`);
   }
   if(ramType!=='Unknown'&&mbRamType!=='Unknown'&&ramType!==mbRamType){
-    issues.push(`âš ï¸ **RAM type mismatch** â€” build uses ${ramType} but motherboard likely supports ${mbRamType}. Choose matching RAM.`);
+    issues.push(`[Warning] **RAM type mismatch** - build uses ${ramType} but motherboard likely supports ${mbRamType}. Choose matching RAM.`);
   } else if(ramType!=='Unknown'&&mbRamType!=='Unknown'){
     notes.push(`RAM type ${ramType} matches the motherboard's expected memory.`);
   }
@@ -949,20 +949,20 @@ function getAICompatAnalysis(cpu,mb,ram,gpu,storage,psu,pccase){
   else if(gpuL.includes('4060')) gpuRequirement=550;
   else if(gpuL.includes('rx 7600')||gpuL.includes('6600')||gpuL.includes('rtx 3060')) gpuRequirement=550;
   if(gpuRequirement>0 && psuWatt>0 && psuWatt < gpuRequirement){
-    issues.push(`âš ï¸ **PSU too weak** â€” your GPU needs about ${gpuRequirement}W but your PSU is ${psuWatt}W. Upgrade to ${gpuRequirement}W+ for stability.`);
+    issues.push(`[Warning] **PSU too weak** - your GPU needs about ${gpuRequirement}W but your PSU is ${psuWatt}W. Upgrade to ${gpuRequirement}W+ for stability.`);
   } else if(gpuRequirement>0 && psuWatt>0){
     notes.push(`PSU wattage looks sufficient for the listed GPU.`);
   }
   if(!gpu){
-    notes.push(`ðŸ’» No GPU detected. If your CPU has integrated graphics, the system can still display output.`);
+    notes.push(`[PC] No GPU detected. If your CPU has integrated graphics, the system can still display output.`);
   }
   if(issues.length===0){
     issues.push('No major compatibility issues detected from the entered parts.');
   }
-  let response='ðŸ¤– **AI Compatibility Analysis**\n\n';
+  let response='[AI] **AI Compatibility Analysis**\n\n';
   issues.forEach(i=>response+=`${i}\n`);
   if(notes.length){
-    response+=`\nðŸ“‹ Notes:\n`;
+    response+=`\n[Checklist] Notes:\n`;
     notes.forEach(n=>response+=`${n}\n`);
   }
   response+=`\nAsk me for details if you want to verify sockets, RAM type, PSU sizing, or GPU compatibility.`;
@@ -975,10 +975,10 @@ function getCompatibilityNotes() {
   
   let notes = [];
   if (missing.length > 0) {
-    notes.push(`âš ï¸ ${missing.length} component(s) not selected`);
+    notes.push(`[Warning] ${missing.length} component(s) not selected`);
   }
   if (warnings.length > 0) {
-    notes.push(`âš ï¸ ${warnings.length} compatibility issue(s) found`);
+    notes.push(`[Warning] ${warnings.length} compatibility issue(s) found`);
   }
   if (notes.length === 0) {
     notes.push('All selected components are compatible!');
@@ -1238,7 +1238,7 @@ function checkCompatibility() {
   const detectedPsuWattage = inferPsuWattage(psu.value);
   if (cpu.status === 'compatible' && !detectedCpuSocket) {
     cpu.status = 'warning';
-    cpu.tag = 'âš  Exact Model Needed';
+    cpu.tag = '[Warning] Exact Model Needed';
     cpu.detail = 'Ryzen 9 is a product family. Enter the exact model, such as Ryzen 9 5900X or Ryzen 9 7900X, to verify the motherboard socket.';
   }
   const isIntegratedGraphics = /integrated|uhd|radeon graphics/i.test(gpu.value);
@@ -1246,12 +1246,12 @@ function checkCompatibility() {
     || (/intel|core i[3579]/i.test(cpu.value) && !/\bf\b/i.test(cpu.value));
   if (gpu.status === 'compatible' && !detectedGpuPower && !isIntegratedGraphics) {
     gpu.status = 'warning';
-    gpu.tag = 'âš  Exact Model Needed';
+    gpu.tag = '[Warning] Exact Model Needed';
     gpu.detail = 'RTX 3050 is not in the local parts database. It is generally compatible with modern PCIe motherboards, but the exact model is needed to verify power and case clearance.';
   }
   if (gpu.status === 'compatible' && isIntegratedGraphics && !cpuHasIntegratedGraphics) {
     gpu.status = 'warning';
-    gpu.tag = 'âš  No Integrated Graphics';
+    gpu.tag = '[Warning] No Integrated Graphics';
     gpu.detail = 'The selected CPU does not appear to include integrated graphics. Select a discrete graphics card or a CPU with an iGPU.';
   }
 
@@ -1259,10 +1259,10 @@ function checkCompatibility() {
   if (cpu.status === 'compatible' && mb.status === 'compatible') {
     if (detectedCpuSocket && detectedMb.socket && detectedCpuSocket !== detectedMb.socket) {
       cpu.status = 'warning';
-      cpu.tag = 'âš  Socket Mismatch';
+      cpu.tag = '[Warning] Socket Mismatch';
       cpu.detail = `CPU uses ${detectedCpuSocket}, but the motherboard uses ${detectedMb.socket}. These components cannot work together. Choose a ${detectedCpuSocket} motherboard.`;
       mb.status = 'warning';
-      mb.tag = 'âš  Socket Mismatch';
+      mb.tag = '[Warning] Socket Mismatch';
       mb.detail = `Motherboard uses ${detectedMb.socket}, but the CPU requires ${detectedCpuSocket}. Choose a compatible motherboard.`;
     }
   }
@@ -1273,10 +1273,10 @@ function checkCompatibility() {
     const detectedRam = ramData ? ramData.type : detectedRamType;
     if (detectedRam && detectedMb.ramType && detectedRam !== detectedMb.ramType) {
       ram.status = 'warning';
-      ram.tag = 'âš  RAM Type Mismatch';
+      ram.tag = '[Warning] RAM Type Mismatch';
       ram.detail = `This RAM is ${detectedRam}, but the motherboard supports ${detectedMb.ramType}. Select matching memory.`;
       mb.status = 'warning';
-      mb.tag = 'âš  RAM Type Mismatch';
+      mb.tag = '[Warning] RAM Type Mismatch';
       mb.detail = `This motherboard supports ${detectedMb.ramType}, but the selected RAM is ${detectedRam}.`;
     }
   }
@@ -1287,10 +1287,10 @@ function checkCompatibility() {
     const detectedPsu = psuData ? psuData.wattage : detectedPsuWattage;
     if (detectedGpuPower && detectedPsu && detectedPsu < detectedGpuPower) {
       psu.status = 'warning';
-      psu.tag = `âš  Need ${detectedGpuPower}W+`;
+      psu.tag = `[Warning] Need ${detectedGpuPower}W+`;
       psu.detail = `This PSU provides ${detectedPsu}W, but the GPU needs about ${detectedGpuPower}W. Upgrade to at least ${detectedGpuPower}W, preferably 80+ Gold.`;
       gpu.status = 'warning';
-      gpu.tag = `âš  Need ${detectedGpuPower}W+ PSU`;
+      gpu.tag = `[Warning] Need ${detectedGpuPower}W+ PSU`;
       gpu.detail = `The GPU needs about ${detectedGpuPower}W, which is more than the selected PSU can provide.`;
     }
   }
@@ -1299,24 +1299,24 @@ function checkCompatibility() {
 function getCompatResponse(msg) {
   const lower = msg.toLowerCase();
   if (lower.includes('socket') || lower.includes('cpu') || lower.includes('motherboard')) {
-    return `ðŸ”Œ **CPU & Motherboard Compatibility Guide**\n\n- AMD Ryzen 7000/9000 series = AM5\n- AMD Ryzen 3000/5000 series = AM4\n- Intel 12th/13th gen = LGA1700\n\nYour CPU socket must match your motherboard socket exactly. If they differ, the CPU will not fit and the build will fail.`;
+    return `[Power] **CPU & Motherboard Compatibility Guide**\n\n- AMD Ryzen 7000/9000 series = AM5\n- AMD Ryzen 3000/5000 series = AM4\n- Intel 12th/13th gen = LGA1700\n\nYour CPU socket must match your motherboard socket exactly. If they differ, the CPU will not fit and the build will fail.`;
   }
   if (lower.includes('ram') || lower.includes('memory') || lower.includes('ddr')) {
-    return `ðŸ’¾ **RAM Compatibility Guide**\n\n- DDR5 is for AM5 and newer Intel LGA1700 boards\n- DDR4 is for AM4 and older Intel platforms\n\nYour motherboard only supports one RAM type. Match the RAM type to the motherboard or it will not boot.`;
+    return `[Save] **RAM Compatibility Guide**\n\n- DDR5 is for AM5 and newer Intel LGA1700 boards\n- DDR4 is for AM4 and older Intel platforms\n\nYour motherboard only supports one RAM type. Match the RAM type to the motherboard or it will not boot.`;
   }
   if (lower.includes('gpu') || lower.includes('power') || lower.includes('wattage')) {
-    return `ðŸŽ® **GPU & PSU Guidance**\n\nCommon GPU power requirements:\n- RTX 4060 / RX 7600 â€” 550W minimum\n- RTX 4070 â€” 700W recommended\n- RTX 4080 â€” 750W+ required\n- RTX 4090 â€” 850W+ required\n\nAlways choose a PSU with at least 20% headroom above the GPU's requirement.`;
+    return `[Gaming] **GPU & PSU Guidance**\n\nCommon GPU power requirements:\n- RTX 4060 / RX 7600 - 550W minimum\n- RTX 4070 - 700W recommended\n- RTX 4080 - 750W+ required\n- RTX 4090 - 850W+ required\n\nAlways choose a PSU with at least 20% headroom above the GPU's requirement.`;
   }
   if (lower.includes('psu') || lower.includes('power supply')) {
-    return `âš¡ **PSU Size Guide**\n\n- Budget gaming: 550-650W 80+ Bronze/Gold\n- Mid-range: 750-850W 80+ Gold\n- High-end: 850-1000W 80+ Platinum\n\nIf you have a high-end GPU or multiple drives, choose a higher wattage PSU for stable power delivery.`;
+    return `[Power] **PSU Size Guide**\n\n- Budget gaming: 550-650W 80+ Bronze/Gold\n- Mid-range: 750-850W 80+ Gold\n- High-end: 850-1000W 80+ Platinum\n\nIf you have a high-end GPU or multiple drives, choose a higher wattage PSU for stable power delivery.`;
   }
   if (lower.includes('recommend') || lower.includes('suggest') || lower.includes('build')) {
-    return `ðŸ’¡ **Build Recommendation Help**\n\nTell me your budget and use case, for example:\n- "₱50,000 gaming PC for 1080p"\n- "₱120,000 video editing workstation"\n- "Office PC for ₱25,000"\n\nI can suggest the best parts for your goals.`;
+    return `[Tip] **Build Recommendation Help**\n\nTell me your budget and use case, for example:\n- "₱50,000 gaming PC for 1080p"\n- "₱120,000 video editing workstation"\n- "Office PC for ₱25,000"\n\nI can suggest the best parts for your goals.`;
   }
   return `**Ask me about compatibility:**\n- "What CPU is compatible with my motherboard?"\n- "Do I need DDR4 or DDR5 RAM?"\n- "Is my PSU strong enough for my GPU?"\n- "Recommend a compatible build for ₱60K"`;
 }
 
-// â€”â€”â€” BUILD RECOMMENDATIONS â€”â€”â€”
+// --- BUILD RECOMMENDATIONS ---
 const builds = {
   gaming: [],
   office: [],
@@ -1465,7 +1465,7 @@ function switchBuild(type,btn){
   document.querySelectorAll('.build-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderBuilds(type);
-  recordActivity('ðŸ’¡','Viewed '+(btn.textContent||type).replace(/^\S+\s*/, '').trim()+' builds','Exploring recommended PC parts','rgba(8,124,255,.1)');
+  recordActivity('[Tip]','Viewed '+(btn.textContent||type).replace(/^\S+\s*/, '').trim()+' builds','Exploring recommended PC parts','rgba(8,124,255,.1)');
 }
 function useBuildRecommendation(encodedBuild){
   let build = null;
@@ -1475,7 +1475,7 @@ function useBuildRecommendation(encodedBuild){
     build = null;
   }
   if (!build || !Array.isArray(build.parts)) return;
-  recordActivity('ðŸ§©','Selected '+(build.label||'recommended build'),build.budget?'₱'+Number(build.budget).toLocaleString()+' build':'Recommended PC parts','rgba(8,124,255,.1)');
+  recordActivity('[Match]','Selected '+(build.label||'recommended build'),build.budget?'₱'+Number(build.budget).toLocaleString()+' build':'Recommended PC parts','rgba(8,124,255,.1)');
 
   const fieldMap = {
     cpu: 'compat-cpu',
@@ -1555,17 +1555,17 @@ function renderBuilds(type){
         ${b.parts.map(p=>`<div class="build-part"><div class="build-part-icon">${p.icon}</div><div class="build-part-info"><div class="build-part-cat">${p.cat}</div><div class="build-part-name">${p.name}</div></div></div>`).join('')}
       </div>` : '<p style="color:var(--muted);margin-bottom:14px">No components listed for this build yet.</p>'}
       <div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
-        ${Array.isArray(b.parts) && b.parts.length ? `<button class="build-use-btn" onclick="useBuildRecommendation('${encodeURIComponent(JSON.stringify(b))}')">Use This Build â†’</button>` : ''}
+        ${Array.isArray(b.parts) && b.parts.length ? `<button class="build-use-btn" onclick="useBuildRecommendation('${encodeURIComponent(JSON.stringify(b))}')">Use This Build</button>` : ''}
       </div>
     </div>`).join('');
 }
 loadRecommendedBuilds();
 renderBuildIdeas();
 
-// â€”â€”â€” AI CHAT (shared engine) â€”â€”â€”
+// --- AI CHAT (shared engine) ---
 let troubleInit=false,compatInit=false,buildaiInit=false;
 function initChat(id){
-  if(id==='trouble'){troubleInit=true;addMsg('trouble','ai',`Hi! I'm CoreCraft's Troubleshooting AI Bot. Tell me your PC problem and I will guide you step-by-step to fix it.\n\nDescribe what's happening â€” e.g.:\n- "PC won't boot, no display"\n- "Keeps restarting randomly"\n- "Very slow after Windows update"`)}
+  if(id==='trouble'){troubleInit=true;addMsg('trouble','ai',`Hi! I'm CoreCraft's Troubleshooting AI Bot. Tell me your PC problem and I will guide you step-by-step to fix it.\n\nDescribe what's happening - e.g.:\n- "PC won't boot, no display"\n- "Keeps restarting randomly"\n- "Very slow after Windows update"`)}
   if(id==='compat'){compatInit=true;addMsg('compat','ai',`Hi! I'm your Compatibility AI. Enter your PC parts in the fields above and I will analyze socket compatibility, RAM type, PSU wattage, and GPU fitment for your system.\n\nTry:\n- "Check my build compatibility"\n- "Why is my RAM incompatible?"\n- "What PSU do I need for my GPU?"`)}
   if(id==='buildai'){buildaiInit=true;addMsg('buildai','ai',`Hi! I'm CoreCraft's AI Build Recommendation Engine.\n\nTell me your requirements:\n- Budget (e.g. ₱50,000)
 - Purpose (gaming, work, streaming, editing)
@@ -1622,8 +1622,8 @@ async function askGemini(id,text){
   return data.reply;
 }
 let troubleTechSearchPending=false;
-const TROUBLE_FAIL_RE=/(?:didn['â€™]?t work|did not work|(?:steps?|it|that) (?:don['â€™]?t|do not|doesn['â€™]?t|does not) work|didn['â€™]?t (?:fix|help)|did not (?:fix|help)|still (?:not working|not fixed|broken|no display|(?:doesn['â€™]?t|does not|won['â€™]?t|will not) work|won['â€™]?t boot)|no luck|no (?:change|improvement)|same (?:problem|issue|error)|nothing (?:happened|changed)|not fixed|failed|won['â€™]?t (?:work|boot)|(?:di|hindi)(?: talaga| pa rin)? (?:gumana|nag.?work|gumagana|nagana|umubra|umayos)|(?:ayaw|wala) pa rin|ganun pa rin|nasubukan ko na lahat|tried (?:all|everything|the steps))/i;
-const TROUBLE_MATH_RE=/\b(math(?:ematics)?|arithmetic|algebra|geometry|trigonometry|calculus|equation|integral|derivative|probability|statistics|square root|factorial|solve for x|calculate|compute|evaluate|simplify|factor|solve)\b|\b\d+(?:\.\d+)?\s*(?:[+*\/^=Ã—Ã·-])\s*\d+(?:\.\d+)?\b|\b\d+(?:\.\d+)?\s+(?:plus|minus|times|multiplied by|divided by)\s+\d+(?:\.\d+)?\b|^\s*[a-z0-9]+\s*(?:[+*\/^=Ã—Ã·-]\s*[a-z0-9]+)+(?:\s*[?=])?\s*$/i;
+const TROUBLE_FAIL_RE=/(?:didn['']?t work|did not work|(?:steps?|it|that) (?:don['']?t|do not|doesn['']?t|does not) work|didn['']?t (?:fix|help)|did not (?:fix|help)|still (?:not working|not fixed|broken|no display|(?:doesn['']?t|does not|won['']?t|will not) work|won['']?t boot)|no luck|no (?:change|improvement)|same (?:problem|issue|error)|nothing (?:happened|changed)|not fixed|failed|won['']?t (?:work|boot)|(?:di|hindi)(?: talaga| pa rin)? (?:gumana|nag.?work|gumagana|nagana|umubra|umayos)|(?:ayaw|wala) pa rin|ganun pa rin|nasubukan ko na lahat|tried (?:all|everything|the steps))/i;
+const TROUBLE_MATH_RE=/\b(math(?:ematics)?|arithmetic|algebra|geometry|trigonometry|calculus|equation|integral|derivative|probability|statistics|square root|factorial|solve for x|calculate|compute|evaluate|simplify|factor|solve)\b|\b\d+(?:\.\d+)?\s*(?:[+*\/^=x-])\s*\d+(?:\.\d+)?\b|\b\d+(?:\.\d+)?\s+(?:plus|minus|times|multiplied by|divided by)\s+\d+(?:\.\d+)?\b|^\s*[a-z0-9]+\s*(?:[+*\/^=x-]\s*[a-z0-9]+)+(?:\s*[?=])?\s*$/i;
 async function sendChat(id){
   const inp=document.getElementById(id+'-input');
   const text=inp.value.trim();if(!text)return;
@@ -1632,15 +1632,15 @@ async function sendChat(id){
 
   if(id==='PHchat'){
     if(!window._user||!window._user.authToken){alert('Please log in again to send messages.');return;}
-    recordActivity('ðŸ’¬','Posted in PH Community',text,'rgba(99,102,241,.12)');
+    recordActivity('[Chat]','Posted in PH Community',text,'rgba(99,102,241,.12)');
     await sendPHCommunityMessage(text);
     inp.value='';
     document.getElementById(id+'-send').disabled=false;
     return;
   }
 
-  if(id==='trouble')recordActivity('ðŸ› ï¸','Asked troubleshooting AI',text,'rgba(34,197,94,.1)');
-  if(id==='buildai')recordActivity('ðŸ’¡','Asked build recommendation AI',text,'rgba(8,124,255,.1)');
+  if(id==='trouble')recordActivity('[Tools]','Asked troubleshooting AI',text,'rgba(34,197,94,.1)');
+  if(id==='buildai')recordActivity('[Tip]','Asked build recommendation AI',text,'rgba(8,124,255,.1)');
   addMsg(id,'user',displayText);inp.value='';
   const needsTechnician=id==='trouble'&&!TROUBLE_MATH_RE.test(text)&&(TROUBLE_FAIL_RE.test(text)||troubleTechSearchPending);
   if(needsTechnician){
@@ -1772,7 +1772,7 @@ function renderPHChatFeedCommunities(){
   container.innerHTML=PHCHAT_COMMUNITIES.map(function(item){
     const active=feedCommunityName()===item.id;
     const canDelete=window._user&&item.createdBy&&item.createdBy.toLowerCase()===window._user.email.toLowerCase();
-    return `<div class="phchat-feed-community-row"><button type="button" class="phchat-feed-community ${active?'active':''}" onclick="selectFeedCommunity(decodeURIComponent('${encodeURIComponent(item.id)}'))"><span>${escapeHtml(item.id)}</span></button>${canDelete?`<button type="button" class="phchat-community-delete" title="Delete your community" aria-label="Delete ${escapeHtml(item.id)}" onclick="deletePHCommunity(decodeURIComponent('${encodeURIComponent(item.id)}'))">Ã—</button>`:''}</div>`;
+    return `<div class="phchat-feed-community-row"><button type="button" class="phchat-feed-community ${active?'active':''}" onclick="selectFeedCommunity(decodeURIComponent('${encodeURIComponent(item.id)}'))"><span>${escapeHtml(item.id)}</span></button>${canDelete?`<button type="button" class="phchat-community-delete" title="Delete your community" aria-label="Delete ${escapeHtml(item.id)}" onclick="deletePHCommunity(decodeURIComponent('${encodeURIComponent(item.id)}'))">x</button>`:''}</div>`;
   }).join('');
 }
 
@@ -1844,7 +1844,7 @@ async function publishCommunityPost(){
     document.getElementById('community-post-preview').innerHTML='';
     document.getElementById('community-image-name').textContent='Images up to 5 MB';
     if(status)status.textContent='Posted.';
-    recordActivity('ðŸ“','Published a PH Community post',message.substring(0,100)||'Shared a picture','rgba(0,229,255,.1)');
+    recordActivity('','Published a PH Community post',message.substring(0,100)||'Shared a picture','rgba(0,229,255,.1)');
     await loadCommunityPosts();
   }catch(error){if(status)status.textContent=error.message||'Post could not be published.';}
   finally{button.disabled=false;}
@@ -1911,7 +1911,7 @@ function renderCommunityPosts(posts,container){
     const commentHeart=function(comment){
       const commentId=Number(comment.id);
       const liked=Number(comment.liked)>0;
-      return `<button type="button" class="phchat-comment-heart ${liked?'liked':''}" onclick="toggleCommentLike(${postId},${commentId})" aria-label="${liked?'Remove heart':'Heart'} on comment" aria-pressed="${liked?'true':'false'}" title="${liked?'Remove heart':'Heart this comment'}">${liked?'â™¥':'â™¡'} <span>${Number(comment.like_count)||0}</span></button>`;
+      return `<button type="button" class="phchat-comment-heart ${liked?'liked':''}" onclick="toggleCommentLike(${postId},${commentId})" aria-label="${liked?'Remove heart':'Heart'} on comment" aria-pressed="${liked?'true':'false'}" title="${liked?'Remove heart':'Heart this comment'}">${liked?'love':'love'} <span>${Number(comment.like_count)||0}</span></button>`;
     };
     const commentHtml=comments.map(function(comment){
       const commentId=Number(comment.id);
@@ -1924,7 +1924,7 @@ function renderCommunityPosts(posts,container){
       }).join('');
       return `<div class="phchat-comment"><div class="phchat-comment-row"><div class="phchat-comment-content"><strong>${escapeHtml(comment.sender_name||'Member')}:</strong> ${escapeHtml(comment.comment)}</div><div class="phchat-comment-tools">${commentHeart(comment)}${deleteButton}<button type="button" class="phchat-comment-reply-button" onclick="toggleCommentReplyForm(this)">Reply</button></div></div>${replies?`<div class="phchat-replies">${replies}</div>`:''}<form class="phchat-reply-form" hidden onsubmit="submitCommentReply(event,${postId},${commentId})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a reply..." required><button class="phchat-action-button" type="submit">Reply</button></form></div>`;
     }).join('');
-    return `<article class="card phchat-post" data-post-id="${postId}"><header class="phchat-post-header"><div class="phchat-post-identity"><span class="phchat-post-avatar" aria-hidden="true">${escapeHtml(initials)}</span><div class="phchat-post-byline"><span class="phchat-post-author">${escapeHtml(author)}</span><time>${formatChatTime(post.created_at)}</time></div></div></header>${post.body?`<div class="phchat-post-body">${escapeHtml(post.body)}</div>`:''}${image}<div class="phchat-post-actions"><button type="button" class="phchat-action-button ${Number(post.liked)?'liked':''}" onclick="togglePostLike(${postId})">${Number(post.liked)?'â™¥ Liked':'â™¡ Like'} <span>${Number(post.like_count)||0}</span></button><button type="button" class="phchat-comment-count" aria-haspopup="dialog" onclick="togglePostComments(this)">${totalCommentCount} comment${totalCommentCount===1?'':'s'}</button><button type="button" class="phchat-action-button phchat-post-report" onclick="reportCommunityPost(${postId})">Report</button></div><div class="modal-overlay phchat-comments-modal" role="dialog" aria-modal="true" aria-label="Comments" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal-box phchat-comment-section"><div class="phchat-comments-modal-header"><div class="modal-title">Comments (${totalCommentCount})</div><button type="button" class="btn-secondary" onclick="this.closest('.phchat-comments-modal').classList.remove('open')">Close</button></div><div class="phchat-comments">${commentHtml||'<div class="phchat-empty-comments">No comments yet. Start the conversation.</div>'}</div><form class="phchat-comment-form" onsubmit="submitPostComment(event,${postId})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a comment..." required><button class="phchat-action-button" type="submit">Comment</button></form></div></div></article>`;
+    return `<article class="card phchat-post" data-post-id="${postId}"><header class="phchat-post-header"><div class="phchat-post-identity"><span class="phchat-post-avatar" aria-hidden="true">${escapeHtml(initials)}</span><div class="phchat-post-byline"><span class="phchat-post-author">${escapeHtml(author)}</span><time>${formatChatTime(post.created_at)}</time></div></div></header>${post.body?`<div class="phchat-post-body">${escapeHtml(post.body)}</div>`:''}${image}<div class="phchat-post-actions"><button type="button" class="phchat-action-button ${Number(post.liked)?'liked':''}" onclick="togglePostLike(${postId})">${Number(post.liked)?'love Liked':'love Like'} <span>${Number(post.like_count)||0}</span></button><button type="button" class="phchat-comment-count" aria-haspopup="dialog" onclick="togglePostComments(this)">${totalCommentCount} comment${totalCommentCount===1?'':'s'}</button><button type="button" class="phchat-action-button phchat-post-report" onclick="reportCommunityPost(${postId})">Report</button></div><div class="modal-overlay phchat-comments-modal" role="dialog" aria-modal="true" aria-label="Comments" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal-box phchat-comment-section"><div class="phchat-comments-modal-header"><div class="modal-title">Comments (${totalCommentCount})</div><button type="button" class="btn-secondary" onclick="this.closest('.phchat-comments-modal').classList.remove('open')">Close</button></div><div class="phchat-comments">${commentHtml||'<div class="phchat-empty-comments">No comments yet. Start the conversation.</div>'}</div><form class="phchat-comment-form" onsubmit="submitPostComment(event,${postId})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a comment..." required><button class="phchat-action-button" type="submit">Comment</button></form></div></div></article>`;
   }).join('');
 }
 
@@ -2094,11 +2094,11 @@ async function loadPHNotifications(markRead=false){
     const notifications=Array.isArray(data.notifications)?data.notifications:[];
     container.innerHTML=notifications.map(function(item){
       const warning=item.notification_type==='warning';
-      const mark=warning?'!':item.notification_type==='like'?'â™¥':'-';
+      const mark=warning?'!':item.notification_type==='like'?'love':'-';
       const postId=Number(item.post_id)||0;
       const postLink=postId?`data-notification-post-id="${postId}" data-notification-community="${escapeHtml(item.community||'')}" role="link" tabindex="0" aria-label="Open related post" title="Open related post" onclick="openCommunityNotificationPost(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();openCommunityNotificationPost(this)}"`:'';
       return `<article class="phchat-notification ${warning?'warning':''} ${item.read_at?'':'unread'}" ${postLink}><span class="phchat-notification-mark" aria-hidden="true">${mark}</span><div><div class="phchat-notification-message">${escapeHtml(item.message||'You have a new community notification.')}</div><div class="phchat-notification-meta"><span>${escapeHtml(item.community||'PH Community')}</span><time>${formatChatTime(item.created_at)}</time></div></div></article>`;
-    }).join('')||'<div class="phchat-notification-empty">Youâ€™re all caught up. Likes, comments, replies, and admin warnings will appear here.</div>';
+    }).join('')||'<div class="phchat-notification-empty">You're all caught up. Likes, comments, replies, and admin warnings will appear here.</div>';
   }catch(error){
     container.innerHTML=`<div class="phchat-notification-empty">${escapeHtml(error.message||'Could not load notifications.')}</div>`;
   }
@@ -2147,7 +2147,7 @@ function updateMessagesUnreadDot(unreadCount){
 
 async function openPrivateConversation(email,name){
   activeDMEmail=email;
-  document.getElementById('dm-active-name').textContent=name+' Â· '+email;
+  document.getElementById('dm-active-name').textContent=name+' - '+email;
   document.getElementById('dm-send-button').disabled=false;
   await loadPrivateMessages();
   loadDMConversations();
@@ -2221,7 +2221,7 @@ async function submitCreateCommunity(){
     syncFeedCommunitySelect();
     renderPHChatFeedCommunities();
     await loadCommunityPosts();
-    recordActivity('ðŸ‘¥','Created community',created.name,'rgba(99,102,241,.12)');
+    recordActivity('[Users]','Created community',created.name,'rgba(99,102,241,.12)');
     closeCreateCommunity();
   }catch(error){if(status){status.style.color='#fca5a5';status.textContent=error.message||'Community could not be created.';}}
 }
@@ -2343,12 +2343,12 @@ function getPHChatResponse(text){
     return `No problem! If you want, I can suggest a good budget list or a part combo that fits your setup.`;
   }
   if(lower.includes('ram')||lower.includes('gpu')||lower.includes('cpu')||lower.includes('motherboard')){
-    return `For parts, Iâ€™d first check compatibility and budget. A balanced combo is better than buying the most expensive stuff.`;
+    return `For parts, I'd first check compatibility and budget. A balanced combo is better than buying the most expensive stuff.`;
   }
-  return `Nice! Share the part or build youâ€™re working on and someone here can give you a better suggestion.`;
+  return `Nice! Share the part or build you're working on and someone here can give you a better suggestion.`;
 }
 
-// â€”â€”â€” SAVE & LOAD BUILDS â€”â€”â€”
+// --- SAVE & LOAD BUILDS ---
 function escapeJsString(s){
   return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 }
@@ -2369,7 +2369,7 @@ async function savedBuildsRequest(action,payload){
     throw new Error(data.error||('Request failed: '+res.status));
   }
   if(action==='save'){
-    recordActivity('ðŸ’¾','Saved build',payload&&payload.build_name?payload.build_name:'My PC Build','rgba(34,197,94,.1)');
+    recordActivity('[Save]','Saved build',payload&&payload.build_name?payload.build_name:'My PC Build','rgba(34,197,94,.1)');
   }
   return data;
 }
@@ -2436,7 +2436,7 @@ async function confirmSaveCurrentBuild(){
       const builds_local=JSON.parse(localStorage.getItem('saved_builds')||'{}');
       builds_local[buildName]={timestamp:new Date().toLocaleString(),components:pendingBuildSaveComponents};
       localStorage.setItem('saved_builds',JSON.stringify(builds_local));
-      recordActivity('ðŸ’¾','Saved build',buildName,'rgba(34,197,94,.1)');
+      recordActivity('[Save]','Saved build',buildName,'rgba(34,197,94,.1)');
     }
     corecraftTrack('build_save',buildName);
     updateSavedBuildsList();
@@ -2545,7 +2545,7 @@ function sendIdeaToChat(idea){
     if(!comps[k]) return '';
     return `<li><strong>${label}:</strong> ${comps[k]}</li>`;
   }).filter(Boolean).join('');
-  const categoryLabel = idea.category==='gaming' ? 'ðŸŽ® Gaming' : idea.category==='office' ? 'ðŸ’¼ Office' : idea.category==='workstation' ? 'ðŸ–¥ï¸ Workstation' : 'ðŸ”– Other';
+  const categoryLabel = idea.category==='gaming' ? '[Gaming] Gaming' : idea.category==='office' ? '[Work] Office' : idea.category==='workstation' ? '[Display] Workstation' : '[Bookmark] Other';
   const compHtml = compItems ? `<ul class="idea-bullet-list">${compItems}</ul>` : '';
   const innerHtml = `
     <div id="idea-msg-${idea.id}" class="idea-card-chat" style="max-width:520px">
@@ -2560,8 +2560,8 @@ function sendIdeaToChat(idea){
         </div>
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-        <button class="quick-btn" onclick="voteIdea(${idea.id},1)" style="background:rgba(255,255,255,0.08);color:white">ðŸ‘ <span id="idea-likes-${idea.id}">0</span></button>
-        <button class="quick-btn" onclick="voteIdea(${idea.id},-1)" style="background:rgba(255,255,255,0.04);color:white">ðŸ‘Ž <span id="idea-unlikes-${idea.id}">0</span></button>
+        <button class="quick-btn" onclick="voteIdea(${idea.id},1)" style="background:rgba(255,255,255,0.08);color:white">[Good] <span id="idea-likes-${idea.id}">0</span></button>
+        <button class="quick-btn" onclick="voteIdea(${idea.id},-1)" style="background:rgba(255,255,255,0.04);color:white">[Bad] <span id="idea-unlikes-${idea.id}">0</span></button>
       </div>
     </div>
   `;
@@ -2615,7 +2615,7 @@ function renderBuildIdeas(){
   const container=document.getElementById('build-ideas-list');
   if(!container) return;
   if(ideas.length===0){
-    container.innerHTML=`<div class="idea-card"><div class="idea-card-title">No ideas yet</div><div class="idea-card-desc">Share your build idea â€” budget, use case, and goals â€” and it will appear here for easy reference.</div></div>`;
+    container.innerHTML=`<div class="idea-card"><div class="idea-card-title">No ideas yet</div><div class="idea-card-desc">Share your build idea - budget, use case, and goals - and it will appear here for easy reference.</div></div>`;
     return;
   }
   container.innerHTML=ideas.map(idea=>{
@@ -2624,7 +2624,7 @@ function renderBuildIdeas(){
       if(!comps[k]) return '';
       return `<div style="font-size:13px;color:var(--muted);margin-top:6px"><strong>${k.toUpperCase()}:</strong> ${escapeHtml(comps[k])}</div>`;
     }).join('');
-    const catLabel = idea.category==='gaming'? 'ðŸŽ® Gaming' : idea.category==='office'? 'ðŸ’¼ Office' : idea.category==='workstation'? 'ðŸ–¥ï¸ Workstation' : 'ðŸ”– Other';
+    const catLabel = idea.category==='gaming'? '[Gaming] Gaming' : idea.category==='office'? '[Work] Office' : idea.category==='workstation'? '[Display] Workstation' : '[Bookmark] Other';
     return `
     <div class="idea-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
@@ -2736,7 +2736,7 @@ async function deleteBuild(name){
   openLoadBuildsModal();
 }
 
-// â€”â€”â€” AI BUILD RECOMMENDATIONS â€”â€”â€”
+// --- AI BUILD RECOMMENDATIONS ---
 function getBuildAIResponse(msg){
   const m=msg.toLowerCase();
   let budget=0,purpose='gaming',performance='balanced';
@@ -2755,7 +2755,7 @@ function getBuildAIResponse(msg){
   // Budget-based recommendation
   let rec={};
   if(budget===0||!m.match(/\d+k/i)){
-    return `ðŸ¤– **AI Build Recommendation**\n\nPlease mention your budget! Examples:\n- "₱35,000 gaming PC"\n- "₱80,000 streaming build"\n- "₱120,000 workstation"\n\nAlso helpful: What's the main purpose?\n- Gaming (1080p, 1440p, 4K?)\n- Work/Office\n- Content creation/Video editing\n- Streaming\n- Mini-ITX (compact)\n- Ultra-premium\n\nAsk me something like: "Build a gaming PC for ₱50K, want 1440p high settings"`;
+    return `[AI] **AI Build Recommendation**\n\nPlease mention your budget! Examples:\n- "₱35,000 gaming PC"\n- "₱80,000 streaming build"\n- "₱120,000 workstation"\n\nAlso helpful: What's the main purpose?\n- Gaming (1080p, 1440p, 4K?)\n- Work/Office\n- Content creation/Video editing\n- Streaming\n- Mini-ITX (compact)\n- Ultra-premium\n\nAsk me something like: "Build a gaming PC for ₱50K, want 1440p high settings"`;
   }
   
   // Gaming PC recommendations
@@ -2783,13 +2783,13 @@ function getBuildAIResponse(msg){
     if(budget<=30000){
       rec={name:'Office Essentials',price:'₱20K',desc:'Office work, web browsing',parts:[
         {cat:'CPU',name:'Ryzen 3 4100',price:'₱5,200'},{cat:'MB',name:'A520M',price:'₱3,800'},
-        {cat:'RAM',name:'8GB DDR4',price:'₱1,500'},{cat:'GPU',name:'iGPU',price:'â€”'},
+        {cat:'RAM',name:'8GB DDR4',price:'₱1,500'},{cat:'GPU',name:'iGPU',price:'-'},
         {cat:'PSU',name:'450W',price:'₱1,800'},{cat:'Storage',name:'500GB SSD',price:'₱2,200'}
       ]};
     }else{
       rec={name:'Power Office',price:'₱50K',desc:'Office + light content creation',parts:[
         {cat:'CPU',name:'Ryzen 5 5600',price:'₱9,200'},{cat:'MB',name:'B550',price:'₱8,500'},
-        {cat:'RAM',name:'32GB DDR4 3600',price:'₱5,800'},{cat:'GPU',name:'iGPU',price:'â€”'},
+        {cat:'RAM',name:'32GB DDR4 3600',price:'₱5,800'},{cat:'GPU',name:'iGPU',price:'-'},
         {cat:'PSU',name:'550W',price:'₱3,200'},{cat:'Storage',name:'1TB NVMe',price:'₱5,800'}
       ]};
     }
@@ -2801,40 +2801,40 @@ function getBuildAIResponse(msg){
     ]};
   }
   
-  if(!rec.name){rec={name:'Custom Gaming Build',price:budget?`â‰ˆ₱${budget.toLocaleString()}`:' ?',desc:'Based on your budget',parts:[]}}
+  if(!rec.name){rec={name:'Custom Gaming Build',price:budget?`₱${budget.toLocaleString()}`:' ?',desc:'Based on your budget',parts:[]}}
   
-  let response=`ðŸ¤– **AI Recommendation: ${rec.name}**\n\n`;
-  response+=`ðŸ’° Budget: ${rec.price}\nðŸ“Š Use Case: ${rec.desc}\n\n`;
+  let response=`[AI] **AI Recommendation: ${rec.name}**\n\n`;
+  response+=`[Money] Budget: ${rec.price}\n[Stats] Use Case: ${rec.desc}\n\n`;
   response+=`**Recommended Components:**\n`;
-  rec.parts.forEach(p=>{response+=`- **${p.cat}:** ${p.name} ${p.price?'â€”'+p.price:''}\n`});
-  response+=`\nThis build is optimized for your budget and needs!\n\nðŸ’¡ **Next Step:** Load this build in the Compatibility Checker to verify compatibility and ask follow-up questions.`;
+  rec.parts.forEach(p=>{response+=`- **${p.cat}:** ${p.name} ${p.price?'-'+p.price:''}\n`});
+  response+=`\nThis build is optimized for your budget and needs!\n\n[Tip] **Next Step:** Load this build in the Compatibility Checker to verify compatibility and ask follow-up questions.`;
   return response;
 }
 
 function getTroubleResponse(msg){
   const m=msg.toLowerCase();
   if(m.includes('won\'t turn')||m.includes('wont turn')||m.includes('no power')||m.includes('not turning')){
-    return `ðŸ”´ **PC Won't Turn On â€” Fix Guide:**\n\n**Step 1: Check Power**\n- Ensure PSU switch is ON (rear of PC)\n- Check power cable is firmly plugged in\n- Test the wall outlet with another device\n\n**Step 2: Check Connections**\n- Reseat the 24-pin ATX motherboard connector\n- Reseat the 8-pin CPU power connector\n- Check front panel power button cable on motherboard\n\n**Step 3: Minimal Boot Test**\n- Remove all components except 1 RAM stick\n- Remove GPU, use onboard video if available\n- Try to boot â€” if it works, add parts one by one\n\n**Step 4: PSU Test**\n- Use a PSU tester, or short the green wire to ground on the 24-pin connector\n\nðŸ’¡ Most common cause: loose 24-pin or 8-pin connector`;
+    return `[Red] **PC Won't Turn On - Fix Guide:**\n\n**Step 1: Check Power**\n- Ensure PSU switch is ON (rear of PC)\n- Check power cable is firmly plugged in\n- Test the wall outlet with another device\n\n**Step 2: Check Connections**\n- Reseat the 24-pin ATX motherboard connector\n- Reseat the 8-pin CPU power connector\n- Check front panel power button cable on motherboard\n\n**Step 3: Minimal Boot Test**\n- Remove all components except 1 RAM stick\n- Remove GPU, use onboard video if available\n- Try to boot - if it works, add parts one by one\n\n**Step 4: PSU Test**\n- Use a PSU tester, or short the green wire to ground on the 24-pin connector\n\n[Tip] Most common cause: loose 24-pin or 8-pin connector`;
   }
   if(m.includes('no display')||m.includes('black screen')||m.includes('no signal')||m.includes('blank')){
-    return `ðŸ–¥ï¸ **No Display / Black Screen â€” Fix Guide:**\n\n**Step 1: Check Cables**\n- Ensure HDMI/DisplayPort cable is firmly connected\n- Connect cable to GPU (not motherboard) if GPU is installed\n- Try a different cable or port\n\n**Step 2: Check RAM**\n- Reseat RAM sticks â€” most common cause!\n- Try with only 1 stick in slot A2 (or as per manual)\n- Try each stick individually\n\n**Step 3: Check GPU**\n- Reseat the GPU in PCIe slot\n- Ensure GPU power connectors are plugged in\n- Test with another monitor or TV\n\n**Step 4: BIOS**\n- Clear CMOS (remove battery 30 sec or use CLRTC jumper)\n- Check if your CPU has integrated graphics â€” unplug GPU and test\n\nðŸ’¡ 80% of black screen issues are caused by unseated RAM!`;
+    return `[Display] **No Display / Black Screen - Fix Guide:**\n\n**Step 1: Check Cables**\n- Ensure HDMI/DisplayPort cable is firmly connected\n- Connect cable to GPU (not motherboard) if GPU is installed\n- Try a different cable or port\n\n**Step 2: Check RAM**\n- Reseat RAM sticks - most common cause!\n- Try with only 1 stick in slot A2 (or as per manual)\n- Try each stick individually\n\n**Step 3: Check GPU**\n- Reseat the GPU in PCIe slot\n- Ensure GPU power connectors are plugged in\n- Test with another monitor or TV\n\n**Step 4: BIOS**\n- Clear CMOS (remove battery 30 sec or use CLRTC jumper)\n- Check if your CPU has integrated graphics - unplug GPU and test\n\n[Tip] 80% of black screen issues are caused by unseated RAM!`;
   }
   if(m.includes('restart')||m.includes('restarting')||m.includes('reboots')||m.includes('random shutdown')){
-    return `ðŸ”„ **Random Restarts â€” Fix Guide:**\n\n**Most Likely Causes:**\n\n**1. Overheating**\n- Check CPU temps using HWMonitor (download free)\n- CPU over 90Â°C at load = thermal issue\n- Reapply thermal paste if CPU cooler is old\n\n**2. PSU Failing**\n- Insufficient wattage for your components\n- Failing PSU = instability under load\n- Test with a known-good PSU\n\n**3. RAM Issues**\n- Run Windows Memory Diagnostic (search in Start)\n- Or boot MemTest86 from USB â€” let it run overnight\n\n**4. Windows / Driver Issue**\n- Update GPU drivers (DDU clean uninstall first)\n- Check Event Viewer > Windows Logs > System for errors\n\n5. **Dust buildup** â€” clean fans and heatsinks with compressed air`;
+    return `[Restart] **Random Restarts - Fix Guide:**\n\n**Most Likely Causes:**\n\n**1. Overheating**\n- Check CPU temps using HWMonitor (download free)\n- CPU over 90 degC at load = thermal issue\n- Reapply thermal paste if CPU cooler is old\n\n**2. PSU Failing**\n- Insufficient wattage for your components\n- Failing PSU = instability under load\n- Test with a known-good PSU\n\n**3. RAM Issues**\n- Run Windows Memory Diagnostic (search in Start)\n- Or boot MemTest86 from USB - let it run overnight\n\n**4. Windows / Driver Issue**\n- Update GPU drivers (DDU clean uninstall first)\n- Check Event Viewer > Windows Logs > System for errors\n\n5. **Dust buildup** - clean fans and heatsinks with compressed air`;
   }
   if(m.includes('overheat')||m.includes('hot')||m.includes('temperature')||m.includes('shutting down')){
-    return `ðŸŒ¡ï¸ **Overheating â€” Diagnosis & Fix:**\n\n**Check Temps First:**\n- Download HWMonitor or HWiNFO64 (free)\n- Normal CPU idle: 30â€“50Â°C\n- Normal CPU load: 65â€“80Â°C\n- Danger zone: above 90Â°C\n\n**Common Fixes:**\n\n**1. Thermal Paste**\n- Remove CPU cooler, clean old paste with isopropyl alcohol\n- Apply small pea-sized amount of new paste\n- Remount cooler firmly\n\n**2. Airflow**\n- Ensure case has front intake + rear exhaust fans\n- Check for cable blockage inside case\n- Minimum: 2 fans for budget builds\n\n**3. CPU Cooler**\n- Stock AMD cooler is okay for non-X CPUs\n- Upgrade to Hyper 212 (₱1,800) for better temps\n\n**4. Case**\n- Avoid placing PC in enclosed spaces\n- Keep 15cm+ space behind PC for exhaust`;
+    return `[Heat] **Overheating - Diagnosis & Fix:**\n\n**Check Temps First:**\n- Download HWMonitor or HWiNFO64 (free)\n- Normal CPU idle: 30-50 degC\n- Normal CPU load: 65-80 degC\n- Danger zone: above 90 degC\n\n**Common Fixes:**\n\n**1. Thermal Paste**\n- Remove CPU cooler, clean old paste with isopropyl alcohol\n- Apply small pea-sized amount of new paste\n- Remount cooler firmly\n\n**2. Airflow**\n- Ensure case has front intake + rear exhaust fans\n- Check for cable blockage inside case\n- Minimum: 2 fans for budget builds\n\n**3. CPU Cooler**\n- Stock AMD cooler is okay for non-X CPUs\n- Upgrade to Hyper 212 (₱1,800) for better temps\n\n**4. Case**\n- Avoid placing PC in enclosed spaces\n- Keep 15cm+ space behind PC for exhaust`;
   }
   if(m.includes('bsod')||m.includes('blue screen')||m.includes('stop code')){
-    return `ðŸ’™ **Blue Screen of Death (BSOD) â€” Fix Guide:**\n\n**Step 1: Note the Stop Code**\n- Read the error code on the blue screen\n- Common codes: MEMORY_MANAGEMENT, IRQL_NOT_LESS_OR_EQUAL, CRITICAL_PROCESS_DIED\n\n**Step 2: Update Drivers**\n- GPU driver issues cause most BSODs\n- Use DDU (Display Driver Uninstaller) to clean uninstall GPU drivers\n- Reinstall latest drivers from NVIDIA/AMD website\n\n**Step 3: Check RAM**\n- Run Windows Memory Diagnostic\n- Run MemTest86 for thorough test\n\n**Step 4: Check Storage**\n- Run CrystalDiskInfo â€” check SSD/HDD health\n- Run CHKDSK in Command Prompt as admin\n\n**Step 5: Windows Repair**\n- Run: sfc /scannow in admin Command Prompt\n- Run: DISM /Online /Cleanup-Image /RestoreHealth\n\nðŸ’¡ Check the Windows Event Viewer for the exact error that triggered the crash.`;
+    return `[BSOD] **Blue Screen of Death (BSOD) - Fix Guide:**\n\n**Step 1: Note the Stop Code**\n- Read the error code on the blue screen\n- Common codes: MEMORY_MANAGEMENT, IRQL_NOT_LESS_OR_EQUAL, CRITICAL_PROCESS_DIED\n\n**Step 2: Update Drivers**\n- GPU driver issues cause most BSODs\n- Use DDU (Display Driver Uninstaller) to clean uninstall GPU drivers\n- Reinstall latest drivers from NVIDIA/AMD website\n\n**Step 3: Check RAM**\n- Run Windows Memory Diagnostic\n- Run MemTest86 for thorough test\n\n**Step 4: Check Storage**\n- Run CrystalDiskInfo - check SSD/HDD health\n- Run CHKDSK in Command Prompt as admin\n\n**Step 5: Windows Repair**\n- Run: sfc /scannow in admin Command Prompt\n- Run: DISM /Online /Cleanup-Image /RestoreHealth\n\n[Tip] Check the Windows Event Viewer for the exact error that triggered the crash.`;
   }
   if(m.includes('slow')||m.includes('lag')||m.includes('sluggish')||m.includes('freeze')){
-    return `ðŸŒ **PC Running Slow â€” Fix Plan:**\n\n**Step 1: Check Resource Usage**\n- Open Task Manager (Ctrl+Shift+Esc)\n- Check CPU, RAM, Disk usage\n- If disk is at 100% â€” this is the #1 cause\n\n**Step 2: Disk Issues**\n- If using HDD â€” replace with SSD (huge improvement)\n- Check disk health with CrystalDiskInfo\n- Run disk cleanup and defrag (HDD only, not SSD)\n\n**Step 3: RAM**\n- 8GB RAM is minimum for modern use\n- Close unused browser tabs and background apps\n\n**Step 4: Startup Programs**\n- Open Task Manager > Startup tab\n- Disable unnecessary startup programs\n\n**Step 5: Malware Scan**\n- Run Windows Defender full scan\n- Or use Malwarebytes (free)\n\n**Step 6: Thermal Throttling**\n- Check CPU temps â€” hot CPU slows itself down\n- Clean dust, reapply thermal paste`;
+    return `[Slow] **PC Running Slow - Fix Plan:**\n\n**Step 1: Check Resource Usage**\n- Open Task Manager (Ctrl+Shift+Esc)\n- Check CPU, RAM, Disk usage\n- If disk is at 100% - this is the #1 cause\n\n**Step 2: Disk Issues**\n- If using HDD - replace with SSD (huge improvement)\n- Check disk health with CrystalDiskInfo\n- Run disk cleanup and defrag (HDD only, not SSD)\n\n**Step 3: RAM**\n- 8GB RAM is minimum for modern use\n- Close unused browser tabs and background apps\n\n**Step 4: Startup Programs**\n- Open Task Manager > Startup tab\n- Disable unnecessary startup programs\n\n**Step 5: Malware Scan**\n- Run Windows Defender full scan\n- Or use Malwarebytes (free)\n\n**Step 6: Thermal Throttling**\n- Check CPU temps - hot CPU slows itself down\n- Clean dust, reapply thermal paste`;
   }
-  return `ðŸ› ï¸ **Troubleshooting Bot Ready**\n\nTell me your PC problem and I will help fix it step-by-step.\n- When does the problem occur?\n- Any error messages or codes?\n- Did it happen after a change (new part, update)?\n\nOr try one of the common issues:\n- PC won't turn on\n- No display / black screen\n- Random restarts\n- Overheating\n- Blue screen (BSOD)\n- PC running slow`;
+  return `[Tools] **Troubleshooting Bot Ready**\n\nTell me your PC problem and I will help fix it step-by-step.\n- When does the problem occur?\n- Any error messages or codes?\n- Did it happen after a change (new part, update)?\n\nOr try one of the common issues:\n- PC won't turn on\n- No display / black screen\n- Random restarts\n- Overheating\n- Blue screen (BSOD)\n- PC running slow`;
 }
 
-// â€”â€”â€” LOGIN â€”â€”â€”
+// --- LOGIN ---
 let isSignup=false;
 let authAttempts=0;
 let authLockoutUntil=0;
@@ -3306,6 +3306,8 @@ restoreSession();
 applyInitialNavVisibility();
 window.addEventListener('pageshow',applyInitialNavVisibility);
 window.addEventListener('focus',applyInitialNavVisibility);
+
+
 
 
 
