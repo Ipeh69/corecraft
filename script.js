@@ -1499,6 +1499,64 @@ function switchBuild(type,btn){
   renderBuilds(type);
   recordActivity('[Tip]','Viewed '+(btn.textContent||type).replace(/^\S+\s*/, '').trim()+' builds','Exploring recommended PC parts','rgba(8,124,255,.1)');
 }
+function applyBuildToCompatibility(parts){
+  const fieldMap={cpu:'compat-cpu',motherboard:'compat-mb',ram:'compat-ram',gpu:'compat-gpu',storage:'compat-storage',psu:'compat-psu'};
+
+  Object.values(fieldMap).forEach(id=>{
+    const input=document.getElementById(id);
+    if(input)input.value='';
+  });
+
+  (Array.isArray(parts)?parts:[]).forEach(function(part){
+    const rawLine=String(part&&part.raw||'').toLowerCase();
+    const cat=String(part&&part.cat||'').toLowerCase();
+    const explicitType=String(part&&part.type||'').toLowerCase();
+    const value=String(part&&((part.value!=null?part.value:part.name)||'')).trim();
+    let type=null;
+
+    if(explicitType==='cpu'||explicitType==='motherboard'||explicitType==='ram'||explicitType==='gpu'||explicitType==='storage'||explicitType==='psu')type=explicitType;
+    else if(cat.includes('cpu')||rawLine.indexOf('cpu:')===0)type='cpu';
+    else if(cat.includes('motherboard')||cat.includes('mb')||rawLine.indexOf('motherboard:')===0)type='motherboard';
+    else if(cat.includes('ram')||rawLine.indexOf('ram:')===0)type='ram';
+    else if(cat.includes('gpu')||rawLine.indexOf('gpu:')===0)type='gpu';
+    else if(cat.includes('storage')||cat.includes('ssd')||cat.includes('hdd')||rawLine.indexOf('storage:')===0)type='storage';
+    else if(cat.includes('psu')||rawLine.indexOf('psu:')===0)type='psu';
+
+    if(type&&fieldMap[type]&&value){
+      const input=document.getElementById(fieldMap[type]);
+      if(input)input.value=value;
+    }
+  });
+
+  syncComponentsFromFields();
+  checkCompatibility();
+  renderComponents();
+  showPage('compatibility');
+
+  const cpu=document.getElementById('compat-cpu')?.value.trim()||'';
+  const mb=document.getElementById('compat-mb')?.value.trim()||'';
+  const ram=document.getElementById('compat-ram')?.value.trim()||'';
+  const psu=document.getElementById('compat-psu')?.value.trim()||'';
+  if(cpu&&mb&&ram&&psu){
+    setTimeout(function(){runCompatCheck();},220);
+  }
+
+}
+async function useSavedBuildInCompatibility(name){
+  let payload;
+  try{
+    payload=await getSavedBuildsMap();
+  }catch(err){
+    alert('Failed to load builds: '+err.message);
+    return;
+  }
+  const build=payload.builds[name];
+  if(!build){alert('Build not found');return}
+  closeSavedBuildsModal();
+  closeSavedBuildNote();
+  applyBuildToCompatibility(build.components);
+  recordActivity('[Match]','Loaded '+name+' to compatibility checker','Saved build applied to compatibility form','rgba(0,229,255,.1)');
+}
 function useBuildRecommendation(encodedBuild){
   let build = null;
   try {
@@ -1509,50 +1567,7 @@ function useBuildRecommendation(encodedBuild){
   if (!build || !Array.isArray(build.parts)) return;
   recordActivity('[Match]','Selected '+(build.label||'recommended build'),build.budget?'?'+Number(build.budget).toLocaleString()+' build':'Recommended PC parts','rgba(8,124,255,.1)');
 
-  const fieldMap = {
-    cpu: 'compat-cpu',
-    motherboard: 'compat-mb',
-    ram: 'compat-ram',
-    gpu: 'compat-gpu',
-    storage: 'compat-storage',
-    psu: 'compat-psu'
-  };
-
-  Object.values(fieldMap).forEach(id => {
-    const input = document.getElementById(id);
-    if (input) input.value = '';
-  });
-
-  build.parts.forEach(part => {
-    const rawLine = (part.raw || '').toLowerCase();
-    const cat = (part.cat || '').toLowerCase();
-    const name = part.name || '';
-    let type = null;
-    if (cat.includes('cpu') || rawLine.indexOf('cpu:') === 0) type = 'cpu';
-    else if (cat.includes('motherboard') || cat.includes('mb') || rawLine.indexOf('motherboard:') === 0) type = 'motherboard';
-    else if (cat.includes('ram') || rawLine.indexOf('ram:') === 0) type = 'ram';
-    else if (cat.includes('gpu') || rawLine.indexOf('gpu:') === 0) type = 'gpu';
-    else if (cat.includes('storage') || cat.includes('ssd') || cat.includes('hdd') || rawLine.indexOf('storage:') === 0) type = 'storage';
-    else if (cat.includes('psu') || rawLine.indexOf('psu:') === 0) type = 'psu';
-
-    if (type && fieldMap[type]) {
-      const input = document.getElementById(fieldMap[type]);
-      if (input) input.value = name;
-    }
-  });
-
-  syncComponentsFromFields();
-  checkCompatibility();
-  renderComponents();
-  showPage('compatibility');
-
-  const cpu = document.getElementById('compat-cpu')?.value.trim() || '';
-  const mb = document.getElementById('compat-mb')?.value.trim() || '';
-  const ram = document.getElementById('compat-ram')?.value.trim() || '';
-  const psu = document.getElementById('compat-psu')?.value.trim() || '';
-  if (cpu && mb && ram && psu) {
-    setTimeout(() => runCompatCheck(), 220);
-  }
+  applyBuildToCompatibility(build.parts);
 }
 function renderBuilds(type){
   const minimumBudget=20000;
@@ -2514,6 +2529,7 @@ async function openLoadBuildsModal(){
       </div>
       <div style="display:flex;gap:8px">
         <button class="quick-btn" style="background:var(--cyan);color:#000;padding:8px 14px;font-size:12px;border:none;cursor:pointer" onclick="loadBuild('${escapeJsString(name)}')">View</button>
+        <button class="quick-btn" style="background:var(--green);color:#031214;padding:8px 14px;font-size:12px;border:none;cursor:pointer" onclick="useSavedBuildInCompatibility('${escapeJsString(name)}')">Check Compatibility</button>
         <button class="quick-btn" style="background:#ef4444;color:white;padding:8px 14px;font-size:12px;border:none;cursor:pointer" onclick="deleteBuild('${escapeJsString(name)}')">Delete</button>
       </div>
     </div>`).join('');
@@ -2541,7 +2557,10 @@ async function updateSavedBuildsList(){
     <div class="build-card" style="padding:16px">
       <div style="font-weight:600;margin-bottom:8px">${escapeHtml(name)}</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:12px">${escapeHtml(data.timestamp||'')}<br>${(data.components||[]).length} parts selected</div>
-      <button class="btn-gradient" style="width:100%;background:var(--cyan);color:#000;border:none;cursor:pointer" onclick="loadBuild('${escapeJsString(name)}')">View</button>
+      <div style="display:grid;gap:8px">
+        <button class="btn-gradient" style="width:100%;background:var(--cyan);color:#000;border:none;cursor:pointer" onclick="loadBuild('${escapeJsString(name)}')">View</button>
+        <button class="btn-gradient" style="width:100%;background:var(--green);color:#031214;border:none;cursor:pointer" onclick="useSavedBuildInCompatibility('${escapeJsString(name)}')">Check Compatibility</button>
+      </div>
     </div>`).join('');
 }
 function openAddBuildIdea(){
