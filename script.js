@@ -1337,6 +1337,10 @@ const builds = {
   home: []
 };
 
+let recommendationRealtimeTimer=null;
+let recommendationPayloadHash='';
+let recommendationLoadInFlight=false;
+
 const recommendationTypes = Object.keys(builds);
 
 function getActiveBuildType() {
@@ -1360,12 +1364,20 @@ function getLocalRecommendationFallback(type) {
   return [{id:'local-'+type,build_name:item.name,description:item.description,estimated_budget:item.budget,components:item.parts.map(function(value){const split=value.indexOf(':');return {cat:value.substring(0,split),name:value.substring(split+1).trim()};})}];
 }
 
-async function loadRecommendedBuilds() {
+async function loadRecommendedBuilds(options) {
+  const opts=(options&&typeof options==='object')?options:{};
+  if(recommendationLoadInFlight)return;
+  recommendationLoadInFlight=true;
   try {
     const res = await fetch('get_recommendations.php', { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
 
     const data = await res.json();
+    const nextHash=JSON.stringify(data||{});
+    const unchanged=nextHash===recommendationPayloadHash;
+    recommendationPayloadHash=nextHash;
+    if(opts.skipRenderIfUnchanged&&unchanged)return;
+
     recommendationTypes.forEach(function (type) {
       const rows = Array.isArray(data[type]) && data[type].length ? data[type] : getLocalRecommendationFallback(type);
       builds[type] = rows.map(function (row) {
@@ -1434,9 +1446,19 @@ async function loadRecommendedBuilds() {
         };
       });
     });
+  } finally {
+    recommendationLoadInFlight=false;
   }
 
   renderBuilds(getActiveBuildType());
+}
+
+function startRecommendationRealtimeSync(){
+  if(recommendationRealtimeTimer)return;
+  recommendationRealtimeTimer=setInterval(function(){
+    if(document.hidden)return;
+    loadRecommendedBuilds({skipRenderIfUnchanged:true});
+  },4000);
 }
 
 function getRecommendationPros(type){
@@ -1538,7 +1560,7 @@ function renderBuilds(type){
   const allItems = Array.isArray(builds[type]) ? builds[type] : [];
   const applyBudgetFilter=maxBudget>=minimumBudget;
   const withinBudget = allItems.filter(b=>b.budget>=minimumBudget&&(!applyBudgetFilter||b.budget<=maxBudget));
-  const items = withinBudget.filter(b=>b.compatibility && b.compatibility.verified);
+  const items = withinBudget;
   if (items.length === 0) {
     document.getElementById('build-content').innerHTML = `
       <div class="build-card">
@@ -1553,7 +1575,7 @@ function renderBuilds(type){
       <div class="build-card-header">
         <div class="build-card-title">${b.label}</div>
       </div>
-      <p style="color:var(--green);font-size:13px;font-weight:700;margin-bottom:12px">Core compatibility checked: CPU socket, RAM generation, graphics, storage type, and PSU wattage.</p>
+      <p style="color:${(b.compatibility&&b.compatibility.verified)?'var(--green)':'var(--orange)'};font-size:13px;font-weight:700;margin-bottom:12px">${(b.compatibility&&b.compatibility.verified)?'Core compatibility checked: CPU socket, RAM generation, graphics, storage type, and PSU wattage.':'Compatibility check pending. Please verify this build in the Compatibility Checker before buying parts.'}</p>
       <p style="color:var(--muted);line-height:1.7;margin-bottom:14px">${b.description || 'No description available.'}</p>
       ${b.budget ? `<div style="font-size:18px;font-weight:800;color:var(--cyan);margin-bottom:14px">Estimated budget: <span style="color:var(--cyan)">&#8369;</span>${Number(b.budget).toLocaleString()}</div>` : ''}
       <div class="build-pros-cons" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
@@ -1570,6 +1592,7 @@ function renderBuilds(type){
     </div>`).join('');
 }
 loadRecommendedBuilds();
+startRecommendationRealtimeSync();
 renderBuildIdeas();
 
 // --- AI CHAT (shared engine) ---
