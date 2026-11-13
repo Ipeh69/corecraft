@@ -8,6 +8,7 @@
       </div>
       <nav class="admin-nav">
         <button class="admin-nav-item" data-admin-view="dashboard" onclick="switchAdminView('dashboard',this)">Dashboard</button>
+        <button class="admin-nav-item" data-admin-view="components" onclick="switchAdminView('components',this)">Compatibility Checker Parts</button>
         <button class="admin-nav-item" data-admin-view="users" onclick="switchAdminView('users',this)">Users &amp; Roles</button>
         <button class="admin-nav-item" data-admin-view="recommendations" onclick="switchAdminView('recommendations',this)">Build Recommendations</button>
         <button class="admin-nav-item" data-admin-view="moderation" onclick="switchAdminView('moderation',this)">Moderation</button>
