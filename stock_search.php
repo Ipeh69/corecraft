@@ -24,6 +24,7 @@ if ($part === '' || strlen($part) > 120) {
 
 $stores = array(
     array('name' => 'PC Express', 'host' => 'pcx.com.ph'),
+    array('name' => 'Octagon', 'host' => 'www.octagon.com.ph'),
     array('name' => 'EasyPC', 'host' => 'easypc.com.ph'),
     array('name' => 'DynaQuest PC', 'host' => 'dynaquestpc.com'),
     array('name' => 'PCWorx', 'host' => 'pcworx.ph'),
@@ -47,7 +48,7 @@ if (count($tokens) === 0) {
 
 $cacheDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'corecraft_stock';
 if (!is_dir($cacheDir)) @mkdir($cacheDir, 0777, true);
-$cacheFile = is_dir($cacheDir) && is_writable($cacheDir) ? $cacheDir . DIRECTORY_SEPARATOR . md5('v7 ' . implode(' ', $tokens)) . '.json' : '';
+$cacheFile = is_dir($cacheDir) && is_writable($cacheDir) ? $cacheDir . DIRECTORY_SEPARATOR . md5('v8 ' . implode(' ', $tokens)) . '.json' : '';
 if ($cacheFile !== '' && is_file($cacheFile) && time() - filemtime($cacheFile) < 600) {
     $cached = json_decode(file_get_contents($cacheFile), true);
     if (is_array($cached)) {
