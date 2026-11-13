@@ -24,6 +24,16 @@
           <div class="card phchat-composer">
             <div class="phchat-composer-heading"><strong>Start a post</strong><span>Share a build, question, or PC tip with the community.</span></div>
             <textarea id="community-post-text" class="chat-textarea" rows="3" maxlength="2000" placeholder="What would you like to share?"></textarea>
+            <details class="phchat-build-details">
+              <summary>＋ Add a PC build</summary>
+              <div class="phchat-build-form">
+                <div class="phchat-build-grid"><label>Category<select id="post-build-category"><option>Gaming</option><option>Office</option><option>Student</option><option>Workstation</option><option>Other</option></select></label><label>Estimated budget (PHP)<input id="post-build-budget" type="number" min="0" max="10000000" step="1" placeholder="0"></label></div>
+                <label>Build name<input id="post-build-name" maxlength="120" placeholder="e.g. Gaming Value 1080p"></label>
+                <label>Description<textarea id="post-build-description" rows="3" maxlength="1000" placeholder="Short summary shown to the community"></textarea></label>
+                <div class="phchat-build-grid"><label>CPU<input id="post-build-cpu" maxlength="160"></label><label>Motherboard<input id="post-build-motherboard" maxlength="160"></label><label>RAM<input id="post-build-ram" maxlength="160"></label><label>GPU<input id="post-build-gpu" maxlength="160"></label><label>Storage<input id="post-build-storage" maxlength="160"></label><label>PSU<input id="post-build-psu" maxlength="160"></label></div>
+                <label>Pros<input id="post-build-pros" maxlength="500" placeholder="Optional"></label><label>Cons<input id="post-build-cons" maxlength="500" placeholder="Optional"></label>
+              </div>
+            </details>
             <div class="phchat-composer-actions"><label class="phchat-image-picker">Add photo <input id="community-post-image" type="file" accept="image/jpeg,image/png,image/gif,image/webp" onchange="previewCommunityImage(this)"></label><span id="community-image-name" class="phchat-muted">Images up to 5 MB</span><button id="community-post-submit" class="send-btn" type="button" onclick="publishCommunityPost()">Post</button></div>
             <div id="community-post-preview" class="phchat-image-preview"></div>
             <div id="community-post-status" class="phchat-status" role="status"></div>
