@@ -1910,7 +1910,11 @@ async function publishCommunityPost(){
   const button=document.getElementById('community-post-submit');
   const message=text?text.value.trim():'';
   const file=image&&image.files?image.files[0]:null;
-  if(!message&&!file){if(status)status.textContent='Write something or attach a picture first.';return;}
+  const buildDetails=document.querySelector('.phchat-build-details');
+  const buildEnabled=buildDetails&&buildDetails.open;
+  const build=buildEnabled?{category:document.getElementById('post-build-category').value,budget:document.getElementById('post-build-budget').value,name:document.getElementById('post-build-name').value.trim(),description:document.getElementById('post-build-description').value.trim(),cpu:document.getElementById('post-build-cpu').value.trim(),motherboard:document.getElementById('post-build-motherboard').value.trim(),ram:document.getElementById('post-build-ram').value.trim(),gpu:document.getElementById('post-build-gpu').value.trim(),storage:document.getElementById('post-build-storage').value.trim(),psu:document.getElementById('post-build-psu').value.trim(),pros:document.getElementById('post-build-pros').value.trim(),cons:document.getElementById('post-build-cons').value.trim()}:null;
+  if(buildEnabled&&!build.name){if(status)status.textContent='Add a name for your build.';document.getElementById('post-build-name').focus();return;}
+  if(!message&&!file&&!buildEnabled){if(status)status.textContent='Write something, attach a picture, or add a PC build first.';return;}
   if(file&&file.size>5*1024*1024){if(status)status.textContent='Image must be 5 MB or smaller.';return;}
   const form=new FormData();
   form.append('action','post_create');
@@ -1918,6 +1922,7 @@ async function publishCommunityPost(){
   form.append('auth_token',window._user.authToken);
   form.append('community',document.getElementById('feed-community').value||activePHChat);
   form.append('message',message);
+  if(build)form.append('build',JSON.stringify(build));
   if(file)form.append('image',file);
   button.disabled=true;
   if(status)status.textContent='Publishing post...';
@@ -1926,10 +1931,12 @@ async function publishCommunityPost(){
     const data=await response.json();
     if(!response.ok||!data.success)throw new Error(data.error||'Post could not be published');
     text.value='';image.value='';
+    if(buildDetails)buildDetails.open=false;
+    ['category','budget','name','description','cpu','motherboard','ram','gpu','storage','psu','pros','cons'].forEach(function(key){const field=document.getElementById('post-build-'+key);if(field)field.value=key==='category'?'Gaming':'';});
     document.getElementById('community-post-preview').innerHTML='';
     document.getElementById('community-image-name').textContent='Images up to 5 MB';
     if(status)status.textContent='Posted.';
-    recordActivity('','Published a PH Community post',message.substring(0,100)||'Shared a picture','rgba(0,229,255,.1)');
+    recordActivity('','Published a PH Community post',build?build.name:(message.substring(0,100)||'Shared a picture'),'rgba(0,229,255,.1)');
     await loadCommunityPosts();
   }catch(error){if(status)status.textContent=error.message||'Post could not be published.';}
   finally{button.disabled=false;}
@@ -1993,6 +2000,8 @@ function renderCommunityPosts(posts,container){
     const author=post.sender_name||'CoreCraft user';
     const initials=author.trim().split(/\s+/).map(function(part){return part.charAt(0);}).join('').toUpperCase().slice(0,2)||'C';
     const image=post.image_path?`<img class="phchat-post-image" src="${escapeHtml(post.image_path)}" alt="Image shared by ${escapeHtml(post.sender_name)}" loading="lazy">`:'';
+    const build=post.build&&typeof post.build==='object'?post.build:null;
+    const buildCard=build?`<section class="phchat-build-card"><div class="phchat-build-card-top"><span>${escapeHtml(build.category||'PC Build')}</span>${Number(build.budget)>0?`<strong>₱${Number(build.budget).toLocaleString('en-PH')}</strong>`:''}</div><h3>${escapeHtml(build.name||'Community build')}</h3>${build.description?`<p>${escapeHtml(build.description)}</p>`:''}<div class="phchat-build-parts">${[['CPU','cpu'],['Motherboard','motherboard'],['RAM','ram'],['GPU','gpu'],['Storage','storage'],['PSU','psu']].filter(function(pair){return build[pair[1]];}).map(function(pair){return `<div><span>${pair[0]}</span><strong>${escapeHtml(build[pair[1]])}</strong></div>`;}).join('')}</div>${build.pros?`<p class="phchat-build-procon"><strong>Pros</strong>${escapeHtml(build.pros)}</p>`:''}${build.cons?`<p class="phchat-build-procon"><strong>Cons</strong>${escapeHtml(build.cons)}</p>`:''}</section>`:'';
     const commentHeart=function(comment){
       const commentId=Number(comment.id);
       const liked=Number(comment.liked)>0;
@@ -2009,9 +2018,22 @@ function renderCommunityPosts(posts,container){
       }).join('');
       return `<div class="phchat-comment"><div class="phchat-comment-row"><div class="phchat-comment-content"><strong>${escapeHtml(comment.sender_name||'Member')}:</strong> ${escapeHtml(comment.comment)}</div><div class="phchat-comment-tools">${commentHeart(comment)}${deleteButton}<button type="button" class="phchat-comment-reply-button" onclick="toggleCommentReplyForm(this)">Reply</button></div></div>${replies?`<div class="phchat-replies">${replies}</div>`:''}<form class="phchat-reply-form" hidden onsubmit="submitCommentReply(event,${postId},${commentId})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a reply..." required><button class="phchat-action-button" type="submit">Reply</button></form></div>`;
     }).join('');
-    return `<article class="card phchat-post" data-post-id="${postId}"><header class="phchat-post-header"><div class="phchat-post-identity"><span class="phchat-post-avatar" aria-hidden="true">${escapeHtml(initials)}</span><div class="phchat-post-byline"><span class="phchat-post-author">${escapeHtml(author)}</span><time>${formatChatTime(post.created_at)}</time></div></div></header>${post.body?`<div class="phchat-post-body">${escapeHtml(post.body)}</div>`:''}${image}<div class="phchat-post-actions"><button type="button" class="phchat-action-button ${Number(post.liked)?'liked':''}" onclick="togglePostLike(${postId})">${Number(post.liked)?'love Liked':'love Like'} <span>${Number(post.like_count)||0}</span></button><button type="button" class="phchat-comment-count" aria-haspopup="dialog" onclick="togglePostComments(this)">${totalCommentCount} comment${totalCommentCount===1?'':'s'}</button><button type="button" class="phchat-action-button phchat-post-report" onclick="reportCommunityPost(${postId})">Report</button></div><div class="modal-overlay phchat-comments-modal" role="dialog" aria-modal="true" aria-label="Comments" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal-box phchat-comment-section"><div class="phchat-comments-modal-header"><div class="modal-title">Comments (${totalCommentCount})</div><button type="button" class="btn-secondary" onclick="this.closest('.phchat-comments-modal').classList.remove('open')">Close</button></div><div class="phchat-comments">${commentHtml||'<div class="phchat-empty-comments">No comments yet. Start the conversation.</div>'}</div><form class="phchat-comment-form" onsubmit="submitPostComment(event,${postId})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a comment..." required><button class="phchat-action-button" type="submit">Comment</button></form></div></div></article>`;
+    return `<article class="card phchat-post" data-post-id="${postId}"><header class="phchat-post-header"><div class="phchat-post-identity"><span class="phchat-post-avatar" aria-hidden="true">${escapeHtml(initials)}</span><div class="phchat-post-byline"><span class="phchat-post-author">${escapeHtml(author)}</span><time>${formatChatTime(post.created_at)}</time></div></div></header>${post.body?`<div class="phchat-post-body">${escapeHtml(post.body)}</div>`:''}${buildCard}${image}<div class="phchat-post-actions"><button type="button" class="phchat-action-button ${Number(post.liked)?'liked':''}" onclick="togglePostLike(${postId})">${Number(post.liked)?'love Liked':'love Like'} <span>${Number(post.like_count)||0}</span></button><button type="button" class="phchat-comment-count" aria-haspopup="dialog" onclick="togglePostComments(this)">${totalCommentCount} comment${totalCommentCount===1?'':'s'}</button><button type="button" class="phchat-action-button phchat-post-report" onclick="reportCommunityPost(${postId})">Report</button></div><div class="modal-overlay phchat-comments-modal" role="dialog" aria-modal="true" aria-label="Comments" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal-box phchat-comment-section"><div class="phchat-comments-modal-header"><div class="modal-title">Comments (${totalCommentCount})</div><button type="button" class="btn-secondary" onclick="this.closest('.phchat-comments-modal').classList.remove('open')">Close</button></div><div class="phchat-comments">${commentHtml||'<div class="phchat-empty-comments">No comments yet. Start the conversation.</div>'}</div><form class="phchat-comment-form" onsubmit="submitPostComment(event,${postId})"><input class="chat-textarea" type="text" maxlength="1000" placeholder="Write a comment..." required><button class="phchat-action-button" type="submit">Comment</button></form></div></div></article>`;
   }).join('');
+  posts.forEach(function(post){
+    if(!window._user||String(post.user_email||'').toLowerCase()!==String(window._user.email||'').toLowerCase())return;
+    const article=container.querySelector('.phchat-post[data-post-id="'+Number(post.id)+'"]');
+    const actions=article&&article.querySelector('.phchat-post-actions');
+    if(!actions)return;
+    const button=document.createElement('button');
+    button.type='button';button.className='phchat-action-button phchat-post-delete';button.textContent='Delete';
+    button.setAttribute('aria-label','Delete your post');
+    button.addEventListener('click',function(){deleteCommunityPost(Number(post.id));});
+    actions.appendChild(button);
+  });
 }
+
+
 
 async function toggleCommentLike(postId,commentId){
   try{

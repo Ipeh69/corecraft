@@ -346,6 +346,8 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
   }
 
   $conn->query("CREATE TABLE IF NOT EXISTS community_posts (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, community VARCHAR(80) NOT NULL, user_email VARCHAR(190) NOT NULL, body TEXT NOT NULL, image_path VARCHAR(255) NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), KEY idx_posts_community (community, created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+  $build_details_column = $conn->query("SHOW COLUMNS FROM community_posts LIKE 'build_details'");
+  if ($build_details_column && $build_details_column->num_rows === 0) $conn->query("ALTER TABLE community_posts ADD COLUMN build_details TEXT NULL AFTER image_path");
   $conn->query("CREATE TABLE IF NOT EXISTS community_post_likes (post_id BIGINT UNSIGNED NOT NULL, user_email VARCHAR(190) NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (post_id, user_email), KEY idx_post_likes_user (user_email)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
   $conn->query("CREATE TABLE IF NOT EXISTS community_post_comments (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, post_id BIGINT UNSIGNED NOT NULL, parent_comment_id BIGINT UNSIGNED NULL, user_email VARCHAR(190) NOT NULL, comment TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (id), KEY idx_post_comments (post_id, created_at), KEY idx_comment_replies (parent_comment_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
   $conn->query("CREATE TABLE IF NOT EXISTS community_comment_likes (comment_id BIGINT UNSIGNED NOT NULL, user_email VARCHAR(190) NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (comment_id, user_email), KEY idx_comment_likes_user (user_email)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
@@ -379,6 +381,17 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
 
   if ($action === "post_create") {
     $post_body = trim(isset($body["message"]) ? $body["message"] : "");
+    $build = isset($body["build"]) ? (is_array($body["build"]) ? $body["build"] : json_decode($body["build"], true)) : null;
+    $build_json = null;
+    if ($build) {
+      $allowed_categories = array("Gaming", "Office", "Student", "Workstation", "Other");
+      $category = trim(isset($build["category"]) ? $build["category"] : "Gaming");
+      $name = trim(isset($build["name"]) ? $build["name"] : "");
+      if (!in_array($category, $allowed_categories, true) || $name === "" || strlen($name) > 120) $reply(array("success" => false, "error" => "Choose a category and enter a build name"), 400);
+      $clean_build = array("category"=>$category,"name"=>$name,"budget"=>max(0,min(10000000,(int)(isset($build["budget"])?$build["budget"]:0))));
+      foreach (array("description","cpu","motherboard","ram","gpu","storage","psu","pros","cons") as $key) $clean_build[$key] = substr(trim(isset($build[$key]) ? $build[$key] : ""), 0, $key === "description" ? 1000 : ($key === "pros" || $key === "cons" ? 500 : 160));
+      $build_json = json_encode($clean_build);
+    }
     $image_path = null;
     if (isset($_FILES["image"]) && $_FILES["image"]["error"] !== UPLOAD_ERR_NO_FILE) {
       $file = $_FILES["image"];
@@ -393,12 +406,12 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
       if (!move_uploaded_file($file["tmp_name"], $upload_dir . DIRECTORY_SEPARATOR . $filename)) $reply(array("success" => false, "error" => "Could not save the uploaded image"), 500);
       $image_path = "uploads/community_images/" . $filename;
     }
-    if ($post_body === "" && $image_path === null) $reply(array("success" => false, "error" => "Write a post or attach an image"), 400);
+    if ($post_body === "" && $image_path === null && $build_json === null) $reply(array("success" => false, "error" => "Write a post, attach an image, or add a PC build"), 400);
     if (strlen($post_body) > 2000) $reply(array("success" => false, "error" => "Posts are limited to 2000 characters"), 400);
     if ($contains_foul_language($post_body)) $reply(array("success" => false, "error" => "This content is not allowed. Remove hateful, threatening, or violent language before publishing."), 400);
-    $stmt = $conn->prepare("INSERT INTO community_posts (community, user_email, body, image_path) VALUES (?, ?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO community_posts (community, user_email, body, image_path, build_details) VALUES (?, ?, ?, ?, ?)");
     if (!$stmt) $reply(array("success" => false, "error" => "Failed to prepare post"), 500);
-    $stmt->bind_param("ssss", $community, $email, $post_body, $image_path);
+    $stmt->bind_param("sssss", $community, $email, $post_body, $image_path, $build_json);
     if (!$stmt->execute()) {
       $stmt->close();
       $reply(array("success" => false, "error" => "Post could not be published"), 500);
@@ -410,7 +423,7 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
   if ($action === "post_list") {
     $focus_post_id = isset($body["post_id"]) ? (int) $body["post_id"] : 0;
     $post_filter = $focus_post_id > 0 ? " AND p.id = ?" : "";
-    $stmt = $conn->prepare("SELECT p.id, p.user_email, u.full_name AS sender_name, p.body, p.image_path, p.created_at, (SELECT COUNT(*) FROM community_post_likes l WHERE l.post_id = p.id) AS like_count, (SELECT COUNT(*) FROM community_post_likes l WHERE l.post_id = p.id AND l.user_email = ?) AS liked FROM community_posts p INNER JOIN users u ON u.email = p.user_email WHERE p.community = ?" . $post_filter . " ORDER BY p.id DESC LIMIT 50");
+    $stmt = $conn->prepare("SELECT p.id, p.user_email, u.full_name AS sender_name, p.body, p.image_path, p.build_details, p.created_at, (SELECT COUNT(*) FROM community_post_likes l WHERE l.post_id = p.id) AS like_count, (SELECT COUNT(*) FROM community_post_likes l WHERE l.post_id = p.id AND l.user_email = ?) AS liked FROM community_posts p INNER JOIN users u ON u.email = p.user_email WHERE p.community = ?" . $post_filter . " ORDER BY p.id DESC LIMIT 50");
     if (!$stmt) $reply(array("success" => false, "error" => "Failed to load posts"), 500);
     if ($focus_post_id > 0) $stmt->bind_param("ssi", $email, $community, $focus_post_id);
     else $stmt->bind_param("ss", $email, $community);
@@ -418,6 +431,8 @@ if (isset($_GET["chat_api"]) && $_SERVER["REQUEST_METHOD"] === "POST") {
     $result = $stmt->get_result();
     $posts = array();
     while ($row = $result->fetch_assoc()) {
+      $row["build"] = $row["build_details"] ? json_decode($row["build_details"], true) : null;
+      unset($row["build_details"]);
       $post_id = (int) $row["id"];
       $row["comments"] = array();
         $comments_stmt = $conn->prepare("SELECT c.id, c.parent_comment_id, c.user_email, u.full_name AS sender_name, c.comment, c.created_at, (SELECT COUNT(*) FROM community_comment_likes cl WHERE cl.comment_id = c.id) AS like_count, (SELECT COUNT(*) FROM community_comment_likes cl WHERE cl.comment_id = c.id AND cl.user_email = ?) AS liked FROM community_post_comments c INNER JOIN users u ON u.email = c.user_email WHERE c.post_id = ? ORDER BY c.id ASC LIMIT 300");

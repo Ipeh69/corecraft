@@ -345,6 +345,25 @@
     .phchat-composer-heading span{font-size:12px;color:var(--muted)}
     .phchat-composer textarea{display:block;width:100%;min-height:96px;resize:vertical;border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--bg3);line-height:1.6;transition:background .18s,border-color .18s}
     .phchat-composer textarea:focus{background:var(--bg3);border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,191,255,.1)}
+    .phchat-build-details{margin-top:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg3);overflow:hidden}
+    .phchat-build-details summary{padding:13px 15px;color:var(--cyan);font-size:14px;font-weight:700;cursor:pointer;list-style:none}
+    .phchat-build-details summary::-webkit-details-marker{display:none}
+    .phchat-build-form{display:grid;gap:13px;padding:0 15px 16px}
+    .phchat-build-form label{display:grid;gap:7px;color:var(--muted);font-size:13px;font-weight:600}
+    .phchat-build-form input,.phchat-build-form select,.phchat-build-form textarea{width:100%;min-height:46px;box-sizing:border-box;border:1px solid var(--border);border-radius:10px;padding:11px 14px;background:var(--bg);color:var(--text);font:inherit}
+    .phchat-build-form textarea{min-height:86px;resize:vertical}
+    .phchat-build-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+    .phchat-build-card{margin-top:14px;padding:17px;border:1px solid rgba(0,191,255,.22);border-radius:14px;background:linear-gradient(135deg,rgba(0,191,255,.06),var(--bg3) 55%)}
+    .phchat-build-card-top{display:flex;justify-content:space-between;align-items:center;color:var(--cyan);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+    .phchat-build-card-top strong{color:var(--text);font-size:14px;letter-spacing:0}
+    .phchat-build-card h3{margin:9px 0 5px;color:var(--text);font-size:19px}
+    .phchat-build-card>p{margin:0 0 12px;color:var(--muted);line-height:1.55}
+    .phchat-build-parts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+    .phchat-build-parts>div{display:grid;gap:3px;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--bg)}
+    .phchat-build-parts span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+    .phchat-build-parts strong{color:var(--text);font-size:13px;overflow-wrap:anywhere}
+    .phchat-build-card .phchat-build-procon{display:flex;gap:8px;margin:11px 0 0;font-size:13px}
+    .phchat-build-procon strong{min-width:38px;color:var(--cyan)}
     .phchat-composer-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
     .phchat-image-picker{display:inline-flex;align-items:center;min-height:40px;padding:9px 14px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:border-color .18s,background .18s,color .18s}
     .phchat-image-picker:hover{border-color:var(--cyan);background:rgba(0,191,255,.06);color:var(--cyan)}
@@ -419,7 +438,7 @@
     .dm-message{max-width:80%;padding:10px 13px;border-radius:12px;background:var(--bg3);font-size:13px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
     .dm-message.mine{align-self:flex-end;background:rgba(0,229,255,.14)}
     .dm-message-meta{display:block;color:var(--muted);font-size:10px;margin-top:5px}
-    @media(max-width:600px){.phchat-composer,.phchat-post{padding:16px}.phchat-composer-actions{gap:9px}.phchat-muted{flex:1}.phchat-comment-form{align-items:stretch}.phchat-comment-form button{white-space:nowrap}}
+    @media(max-width:600px){.phchat-composer,.phchat-post{padding:16px}.phchat-composer-actions{gap:9px}.phchat-muted{flex:1}.phchat-comment-form{align-items:stretch}.phchat-comment-form button{white-space:nowrap}.phchat-build-grid,.phchat-build-parts{grid-template-columns:1fr}}
     @media(max-width:760px){.phchat-feed-layout,.phchat-dm-layout{grid-template-columns:1fr}.phchat-dm-panel{height:65vh;min-height:400px}.phchat-community-picker{position:static}.phchat-feed-communities{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr))}.ph-community-shell{padding-left:18px!important;padding-right:18px!important}}
     .ai-info-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:28px}
     .ai-info-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center}
