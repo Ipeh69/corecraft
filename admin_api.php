@@ -144,6 +144,19 @@ $conn_admin->query("CREATE TABLE IF NOT EXISTS components (
     KEY idx_component_category (category)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 
+// Upgrade older component catalogs in place. CREATE TABLE IF NOT EXISTS does
+// not add columns when a table was created by an earlier app version.
+admin_ensure_column($conn_admin, "components", "socket", "ALTER TABLE components ADD COLUMN socket VARCHAR(40) NULL");
+admin_ensure_column($conn_admin, "components", "tdp_watts", "ALTER TABLE components ADD COLUMN tdp_watts INT NULL");
+admin_ensure_column($conn_admin, "components", "form_factor", "ALTER TABLE components ADD COLUMN form_factor VARCHAR(60) NULL");
+admin_ensure_column($conn_admin, "components", "price_php", "ALTER TABLE components ADD COLUMN price_php DECIMAL(12,2) NOT NULL DEFAULT 0.00");
+admin_ensure_column($conn_admin, "components", "price_usd", "ALTER TABLE components ADD COLUMN price_usd DECIMAL(12,2) NOT NULL DEFAULT 0.00");
+admin_ensure_column($conn_admin, "components", "stock_status", "ALTER TABLE components ADD COLUMN stock_status VARCHAR(30) NOT NULL DEFAULT 'unknown'");
+admin_ensure_column($conn_admin, "components", "specs_json", "ALTER TABLE components ADD COLUMN specs_json TEXT NULL");
+admin_ensure_column($conn_admin, "components", "is_active", "ALTER TABLE components ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1");
+admin_ensure_column($conn_admin, "components", "created_at", "ALTER TABLE components ADD COLUMN created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+admin_ensure_column($conn_admin, "components", "updated_at", "ALTER TABLE components ADD COLUMN updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+
 $conn_admin->query("CREATE TABLE IF NOT EXISTS compatibility_rules (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     rule_key VARCHAR(80) NOT NULL,
@@ -605,7 +618,8 @@ if ($action === "component_list") {
     $sql .= " ORDER BY category ASC, brand ASC, model ASC LIMIT 500";
     $stmt = $conn_admin->prepare($sql);
     if (!$stmt) {
-        admin_respond(array("success" => false, "error" => "Failed to load components"), 500);
+        admin_log($conn_admin, "error", "catalog", "Component list query failed: " . $conn_admin->error);
+        admin_respond(array("success" => false, "error" => "Failed to load components: " . $conn_admin->error), 500);
     }
     if ($types !== "") {
         $bind = array_merge(array($types), $params);

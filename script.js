@@ -999,27 +999,46 @@ function closeModal(){document.getElementById('compat-modal').classList.remove('
 
 let selectedComponentType = null;
 let selectedComponentId = null;
+let selectedCatalogComponent = null;
+let selectedCatalogComponents = {};
 
-function openComponentSelector(type) {
+async function openComponentSelector(type) {
   selectedComponentType = type;
   selectedComponentId = null;
-  const componentList = getComponentsByType(type);
+  selectedCatalogComponent = null;
+  selectedCatalogComponents = {};
+  const category = type === 'motherboard' ? 'motherboard' : type;
   const typeName = type.charAt(0).toUpperCase() + type.slice(1);
-  
+
   document.getElementById('component-modal-title').textContent = `Select ${typeName}`;
+  document.getElementById('component-list').innerHTML = '<div style="padding:16px;color:var(--muted)">Loading parts…</div>';
+  document.getElementById('component-modal').classList.add('open');
+  let componentList;
+  try {
+    const response = await fetch('compatibility_parts.php?category=' + encodeURIComponent(category), {cache:'no-store'});
+    const data = await response.json();
+    if (!response.ok || !data.success) throw new Error(data.error || 'Could not load parts');
+    componentList = data.components || [];
+  } catch (error) {
+    document.getElementById('component-list').innerHTML = '<div style="padding:16px;color:var(--muted)">Could not load checker parts. Please try again.</div>';
+    return;
+  }
   document.getElementById('component-list').innerHTML = `
     <div style="margin-bottom:15px;padding:10px;background:var(--bg3);border-radius:8px;cursor:pointer;border:2px solid transparent" onclick="selectComponentItem(null)">
       <div style="font-weight:600;color:var(--muted)">Not Selected</div>
       <div style="font-size:12px;color:var(--muted)">Clear selection</div>
     </div>
-    ${componentList.map(comp => `
-      <div style="margin-bottom:10px;padding:15px;background:var(--bg3);border-radius:8px;cursor:pointer;border:2px solid transparent;transition:border-color .2s" onclick="selectComponentItem('${comp.id}')">
-        <div style="font-weight:600;margin-bottom:5px">${comp.name}</div>
-        <div style="font-size:12px;color:var(--muted)">${getComponentDetails(comp, type)}</div>
+    ${componentList.length ? '' : '<div style="padding:14px;color:var(--muted)">No active parts in this category yet.</div>'}
+    ${componentList.map(comp => {
+      selectedCatalogComponents[String(comp.id)] = comp;
+      return `
+      <div data-component-id="${Number(comp.id)}" style="margin-bottom:10px;padding:15px;background:var(--bg3);border-radius:8px;cursor:pointer;border:2px solid transparent;transition:border-color .2s" onclick="selectComponentItem(${Number(comp.id)})">
+        <div style="font-weight:600;margin-bottom:5px">${escapeHtml(comp.name)}</div>
+        <div style="font-size:12px;color:var(--muted)">${escapeHtml(comp.details || 'Catalog part')}</div>
       </div>
-    `).join('')}
+    `;
+    }).join('')}
   `;
-  document.getElementById('component-modal').classList.add('open');
 }
 
 function getComponentDetails(comp, type) {
@@ -1063,11 +1082,12 @@ function syncComponentsFromFields() {
 
 function selectComponentItem(id) {
   selectedComponentId = id;
+  selectedCatalogComponent = id === null ? null : (selectedCatalogComponents[String(id)] || null);
   const items = document.querySelectorAll('#component-list > div');
   items.forEach((item, index) => {
     if (index === 0 && id === null) {
       item.style.borderColor = 'var(--cyan)';
-    } else if (index > 0 && componentData[selectedComponentType][index-1].id === id) {
+    } else if (index > 0 && String(item.dataset.componentId || '') === String(id)) {
       item.style.borderColor = 'var(--cyan)';
     } else {
       item.style.borderColor = 'transparent';
@@ -1091,15 +1111,15 @@ function selectComponent() {
         };
         setCompatInputForType(selectedComponentType, '');
       } else {
-        const selectedComp = componentData[selectedComponentType].find(c => c.id === selectedComponentId);
+        const selectedComp = selectedCatalogComponent;
         if (selectedComp) {
           components[componentIndex] = {
             ...components[componentIndex],
             value: selectedComp.name,
-            price: selectedComp.price,
+            price: Number(selectedComp.price || 0),
             tag: 'Selected',
             status: 'compatible',
-            detail: getComponentDetails(selectedComp, selectedComponentType)
+            detail: selectedComp.details || ''
           };
           setCompatInputForType(selectedComponentType, selectedComp.name);
         }

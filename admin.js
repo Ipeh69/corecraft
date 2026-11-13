@@ -89,7 +89,7 @@ function switchAdminView(view,button){
   if(button)button.classList.add('active');
   const titles={
     dashboard:['Dashboard','Platform health at a glance.'],
-    components:['Component Catalog','Add, update and retire hardware parts and pricing.'],
+    components:['Compatibility Checker Parts','Manage the active CPU, motherboard, RAM, GPU, storage, and PSU options shown in the checker.'],
     rules:['Compatibility Rules','Maintain the checks behind build compatibility.'],
     recommendations:['Build Recommendations','Manage build templates, part selections, and target budgets.'],
     users:['Users & Roles','Manage accounts, roles and access.'],
