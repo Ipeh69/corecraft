@@ -870,7 +870,7 @@ async function runCompatCheck(){
   try{
     const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
       feature:'compat',
-      message:'Give a complete engineering review of this build. Put IMMEDIATE CHANGES directly after the verdict, explain why each change is needed, provide replacement options, and finish with FINAL RECOMMENDATION. Do not stop after the first issue. Distinguish physical incompatibility from a performance bottleneck. After FINAL RECOMMENDATION, add a section titled ESTIMATED PHILIPPINES PRICES. List every entered part using this exact format: PART | LOW ESTIMATE | HIGH ESTIMATE. Use Philippine pesos and realistic current-market ranges based on the exact model; do not invent an exact live seller price or claim stock. Add TOTAL ESTIMATED BUILD COST with a low and high total. Label these as estimates, state that prices vary by seller and date, and recommend checking the current listing before buying.',
+      message:'Give a complete engineering review of this build. Start with VERDICT: Compatible or VERDICT: Needs Changes. If the verdict is Needs Changes, include IMMEDIATE CHANGES, WHY, OPTIONS, and FINAL RECOMMENDATION. If the verdict is Compatible, do not include IMMEDIATE CHANGES or FINAL RECOMMENDATION; include WHY and OPTIONS only when useful, and explain that no compatibility changes are needed. Do not present optional case, airflow, or upgrade advice as required changes for a compatible build. Do not stop after the first issue. Distinguish physical incompatibility from a performance bottleneck. Add a section titled ESTIMATED PHILIPPINES PRICES. List every entered part using this exact format: PART | LOW ESTIMATE | HIGH ESTIMATE. Use Philippine pesos and realistic current-market ranges based on the exact model; do not invent an exact live seller price or claim stock. Add TOTAL ESTIMATED BUILD COST with a low and high total. Label these as estimates, state that prices vary by seller and date, and recommend checking the current listing before buying.',
       context:buildContext
     })});
     const data=await response.json();
@@ -882,7 +882,7 @@ async function runCompatCheck(){
     if(status)status.textContent=needsChanges?'[Warning] AI verdict: Needs Changes':'AI verdict: Compatible';
     if(needsChanges)corecraftTrack('compat_fail',`${cpu} | ${mb}${gpu?' | '+gpu:''}`);
     if(result){
-      result.innerHTML='<div class="ai-header"><div class="ai-avatar">[AI]</div><span class="ai-label">Gemini Compatibility and Price Estimate</span></div><div style="line-height:1.7;margin-top:12px">'+formatAIResponse(aiText)+'</div><p style="color:var(--muted);margin:16px 0 0;font-size:12px">Prices are AI estimates for the Philippines, not guaranteed live quotes. Confirm the current price, stock, warranty, and seller before buying.</p>';
+      result.innerHTML='<div class="ai-header"><div class="ai-avatar">[AI]</div><span class="ai-label">Gemini Compatibility and Price Estimate</span></div><div style="line-height:1.7;margin-top:12px">'+formatAIResponse(omitUnneededCompatibleSections(aiText))+'</div><p style="color:var(--muted);margin:16px 0 0;font-size:12px">Prices are AI estimates for the Philippines, not guaranteed live quotes. Confirm the current price, stock, warranty, and seller before buying.</p>';
     }
   }catch(error){
     checkCompatibility();
@@ -891,6 +891,13 @@ async function runCompatCheck(){
     const quotaMessage=/quota|rate limit|limit reached|429/i.test(errorText)?'Gemini quota reached. The local compatibility checker is being used until quota resets.':'Gemini analysis unavailable. The local compatibility checker is being used.';
     if(result)result.innerHTML='<strong>[Warning] '+quotaMessage+'</strong><p style="color:var(--muted);margin:8px 0 0">Reason: '+escapeHtml(errorText)+'</p>';
   }
+}
+
+function omitUnneededCompatibleSections(text){
+  if(!/^\s*(?:\*\*)?VERDICT\s*:\s*COMPATIBLE\b/i.test(text))return text;
+  return text
+    .replace(/^\s*\**\s*IMMEDIATE CHANGES\s*:\s*\**[^\n]*(?:\n(?!\s*\**\s*(?:WHY|OPTIONS|FINAL RECOMMENDATION|ESTIMATED PHILIPPINES PRICES)\b)[^\n]*)*/gim,'')
+    .replace(/^\s*\**\s*FINAL RECOMMENDATION\s*:\s*\**[^\n]*(?:\n(?!\s*\**\s*(?:ESTIMATED PHILIPPINES PRICES)\b)[^\n]*)*/gim,'');
 }
 
 function formatAIResponse(text){
