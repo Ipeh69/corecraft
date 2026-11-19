@@ -1,4 +1,4 @@
-﻿
+
 // --- MOBILE MENU ---
 function applyColorTheme(theme,save){
   theme=theme==='light'?'light':'dark';
