@@ -5,7 +5,7 @@ header('X-Content-Type-Options: nosniff');
 require_once __DIR__ . '/config.php';
 
 // A search attempt plus the estimate fallback can exceed PHP's default 30s limit. Never print HTML errors into the JSON reply.
-@set_time_limit(180);
+@set_time_limit(240);
 @ini_set('display_errors', '0');
 
 // Keep the key outside the public web directory. Production can also provide it
@@ -228,16 +228,19 @@ $lastError = 'Gemini returned an error.';
 $searchFallback = false;
 // Allow slower connections (especially on shared hosting / PH ISPs).
 // Defaults are intentionally conservative but not ultra-low.
-$connectTimeoutSeconds = (int)getenv('CORECRAFT_GEMINI_CONNECT_TIMEOUT_SECONDS');
+$connectTimeoutSeconds = (int)corecraft_env('CORECRAFT_GEMINI_CONNECT_TIMEOUT_SECONDS', '8');
 if ($connectTimeoutSeconds <= 0) $connectTimeoutSeconds = 8;
 
-$fastTimeoutSeconds = (int)getenv('CORECRAFT_GEMINI_TIMEOUT_SECONDS');
+$fastTimeoutSeconds = (int)corecraft_env('CORECRAFT_GEMINI_TIMEOUT_SECONDS', '15');
 if ($fastTimeoutSeconds <= 0) $fastTimeoutSeconds = 15;
 
-$searchTimeoutSeconds = (int)getenv('CORECRAFT_GEMINI_SEARCH_TIMEOUT_SECONDS');
+$searchTimeoutSeconds = (int)corecraft_env('CORECRAFT_GEMINI_SEARCH_TIMEOUT_SECONDS', '120');
 if ($searchTimeoutSeconds <= 0) $searchTimeoutSeconds = 120;
 
-$fastRequestBudgetSeconds = (float)getenv('CORECRAFT_GEMINI_FAST_BUDGET_SECONDS');
+$compareTimeoutSeconds = (int)corecraft_env('CORECRAFT_GEMINI_COMPARE_TIMEOUT_SECONDS', '90');
+if ($compareTimeoutSeconds <= 0) $compareTimeoutSeconds = 90;
+
+$fastRequestBudgetSeconds = (float)corecraft_env('CORECRAFT_GEMINI_FAST_BUDGET_SECONDS', '');
 if ($fastRequestBudgetSeconds <= 0) $fastRequestBudgetSeconds = max(2.5, (float)$fastTimeoutSeconds - 1.0);
 $requestStartedAt = microtime(true);
 for ($attempt = 0; $attempt < 2; $attempt++) {
@@ -246,7 +249,11 @@ if ($attempt === 1) {
     unset($requestBody['tools']);
     $useGoogleSearch = false;
     $searchFallback = true;
-    $fallbackNote = $systemPrompt . "\n\nLive web search is NOT available right now. Do not claim to have searched the web or visited any store or page. Focus on the user's exact city/area from the message, not Metro Manila. Name the well-known malls, computer centers, and PC retailers you are confident exist in or near that city (for example, major mall branches), and say you are unsure when you are not. Give typical Philippine market price ranges in PHP as clearly labeled estimates, mark every stock status as STOCK NOT VERIFIED, and do not invent URLs, addresses, or prices per store.";
+    if ($feature === 'compare') {
+        $fallbackNote = $systemPrompt . "\n\nLive web search is NOT available for this response. Do not claim to have searched the web or cite invented sources. Compare only specifications you know confidently; mark uncertain specifications as Not verified and keep the verdict appropriately cautious.";
+    } else {
+        $fallbackNote = $systemPrompt . "\n\nLive web search is NOT available right now. Do not claim to have searched the web or visited any store or page. Focus on the user's exact city/area from the message, not Metro Manila. Name the well-known malls, computer centers, and PC retailers you are confident exist in or near that city (for example, major mall branches), and say you are unsure when you are not. Give typical Philippine market price ranges in PHP as clearly labeled estimates, mark every stock status as STOCK NOT VERIFIED, and do not invent URLs, addresses, or prices per store.";
+    }
     $requestBody['system_instruction'] = array('parts' => array(array('text' => $fallbackNote)));
 }
 foreach ($models as $model) {
@@ -260,7 +267,7 @@ foreach ($models as $model) {
         CURLOPT_POSTFIELDS => json_encode($requestBody),
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CONNECTTIMEOUT => $connectTimeoutSeconds,
-        CURLOPT_TIMEOUT => $useGoogleSearch ? $searchTimeoutSeconds : $fastTimeoutSeconds,
+        CURLOPT_TIMEOUT => $useGoogleSearch ? $searchTimeoutSeconds : ($feature === 'compare' ? $compareTimeoutSeconds : $fastTimeoutSeconds),
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ));
@@ -269,7 +276,7 @@ foreach ($models as $model) {
     $statusCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     if ($response === false && preg_match('/ssl|certificate|protocol/i', $curlError)) {
-        $fallbackTimeout = $useGoogleSearch ? $searchTimeoutSeconds : $fastTimeoutSeconds;
+        $fallbackTimeout = $useGoogleSearch ? $searchTimeoutSeconds : ($feature === 'compare' ? $compareTimeoutSeconds : $fastTimeoutSeconds);
         $fallback = geminiPostWithCurlExe($url, json_encode($requestBody), $fallbackTimeout);
         if ($fallback !== null) {
             $response = $fallback['body'];
