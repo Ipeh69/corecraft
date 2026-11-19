@@ -1,4 +1,4 @@
-﻿<!-- NAV -->
+<!-- NAV -->
 <nav>
   <a class="logo" onclick="if(document.getElementById('page-admin')&&document.getElementById('page-admin').classList.contains('active')){openAdminDashboard();}else{showPage('home');}">
     <div class="logo-icon"><img src="corecraft-logo-mark.png" alt=""></div>
@@ -7,6 +7,7 @@
   <ul>
     <li class="public-nav-item"><a data-nav-page="compatibility" onclick="showPage('compatibility')">Compatibility Checker</a></li>
     <li class="public-nav-item"><a data-nav-page="build" onclick="showPage('build')">Build Recommendations</a></li>
+    <li class="public-nav-item"><a data-nav-page="comparison" onclick="showPage('comparison')">Part Comparison</a></li>
     <li class="public-nav-item"><a data-nav-page="pricing" onclick="showPage('pricing')">Part Pricing</a></li>
     <li class="public-nav-item"><a data-nav-page="troubleshoot" onclick="showPage('troubleshoot')">Troubleshoot</a></li>
     <li class="public-nav-item"><a data-nav-page="phchat" onclick="showPage('PHchat')">PH Community</a></li>
@@ -43,6 +44,7 @@
 <div class="mobile-menu" id="mobile-menu">
   <a class="public-mobile-nav-item" data-nav-page="compatibility" onclick="showPage('compatibility');closeMenu()">Compatibility Checker</a>
   <a class="public-mobile-nav-item" data-nav-page="build" onclick="showPage('build');closeMenu()">Build Recommendations</a>
+  <a class="public-mobile-nav-item" data-nav-page="comparison" onclick="showPage('comparison');closeMenu()">Part Comparison</a>
   <a class="public-mobile-nav-item" data-nav-page="pricing" onclick="showPage('pricing');closeMenu()">Part Pricing by Location</a>
   <a class="public-mobile-nav-item" data-nav-page="troubleshoot" onclick="showPage('troubleshoot');closeMenu()">Troubleshooting</a>
   <a class="public-mobile-nav-item" data-nav-page="phchat" onclick="showPage('PHchat');closeMenu()">PH Community</a>

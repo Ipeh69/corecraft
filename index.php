@@ -21,6 +21,7 @@ include "chat_handler.php";
 <?php include __DIR__ . '/sections/home.php'; ?>
 <?php include __DIR__ . '/sections/compatibility.php'; ?>
 <?php include __DIR__ . '/sections/build.php'; ?>
+<?php include __DIR__ . '/sections/comparison.php'; ?>
 <?php include __DIR__ . '/sections/pricing.php'; ?>
 <?php include __DIR__ . '/sections/troubleshoot.php'; ?>
 <?php include __DIR__ . '/sections/phchat.php'; ?>
