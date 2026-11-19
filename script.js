@@ -15,7 +15,7 @@ function closeMenu(){document.getElementById('mobile-menu').classList.remove('op
 // --- AUTH ---
 let isLoggedIn=false,pendingPage=null,PHchatInit=false,activePHChat=null,phChatPoll=null,activeDMEmail=null,dmSearchTimer=null,dmUnreadPollTimer=null;
 let pendingCommunityDelete=null;
-const protected_=['compatibility','build','pricing','troubleshoot','profile','PHchat','admin'];
+const protected_=['compatibility','build','comparison','pricing','troubleshoot','profile','PHchat','admin'];
 let PHCHAT_COMMUNITIES=[
   {id:'Recommendation Builds',icon:'[Tip]',description:'Share and discover recommended PC builds'},
   {id:'Part Pricing',icon:'[Budget]',description:'Deals and store prices'},
@@ -58,7 +58,7 @@ function showPage(name){
 
 function setPublicNavActive(pageName){
   const navPage=String(pageName||'').toLowerCase();
-  const allowed={compatibility:true,build:true,pricing:true,troubleshoot:true,phchat:true};
+  const allowed={compatibility:true,build:true,comparison:true,pricing:true,troubleshoot:true,phchat:true};
   document.querySelectorAll('[data-nav-page]').forEach(function(link){link.classList.remove('active');});
   if(!allowed[navPage])return;
   document.querySelectorAll('[data-nav-page="'+navPage+'"]').forEach(function(link){link.classList.add('active');});
@@ -1632,6 +1632,43 @@ function renderBuilds(type){
         ${Array.isArray(b.parts) && b.parts.length ? `<button class="build-use-btn" onclick="useBuildRecommendation('${encodeURIComponent(JSON.stringify(b))}')">Use This Build</button>` : ''}
       </div>
     </div>`).join('');
+}
+function parseComparisonJson(text){
+  const source=String(text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+  try{return JSON.parse(source);}catch(error){const start=source.indexOf('{'),end=source.lastIndexOf('}');if(start>=0&&end>start){try{return JSON.parse(source.slice(start,end+1));}catch(ignore){}}return null;}
+}
+async function findPartPhoto(query){
+  const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent('filetype:bitmap '+query)+'&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url&iiurlwidth=640&format=json&origin=*';
+  const response=await fetch(url);if(!response.ok)throw new Error('Image search unavailable');
+  const data=await response.json();const pages=Object.values((data.query&&data.query.pages)||{});
+  const found=pages.find(page=>page.imageinfo&&page.imageinfo[0]&&(page.imageinfo[0].thumburl||page.imageinfo[0].url));
+  return found?{url:found.imageinfo[0].thumburl||found.imageinfo[0].url,title:String(found.title||'').replace(/^File:/,'')}:null;
+}
+async function comparePartsWithAI(){
+  const first=document.getElementById('comparison-item-a').value.trim(),second=document.getElementById('comparison-item-b').value.trim();
+  const result=document.getElementById('comparison-result'),button=document.getElementById('comparison-submit');
+  if(!first||!second){result.innerHTML='<p>Please enter both item names.</p>';return;}
+  if(first.length>160||second.length>160){result.innerHTML='<p>Keep each item name under 160 characters.</p>';return;}
+  button.disabled=true;button.textContent='Searching items and comparing…';
+  result.innerHTML='<p class="comparison-loading">Searching for item photos and checking current specifications…</p>';
+  const photoPromise=Promise.all([findPartPhoto(first),findPartPhoto(second)]).catch(function(){return [null,null];});
+  try{
+    const response=await fetch('gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({feature:'compare',message:'Compare these two PC parts: ITEM A: '+first+'; ITEM B: '+second+'. Use web search to verify their exact models and specs. Return only valid JSON with this shape: {"item_a":"verified full product name","item_b":"verified full product name","summary":"short practical verdict","rows":[{"fact":"spec name","item_a":"value","item_b":"value","difference":"plain-language explanation of the difference","winner":"A, B, or Tie"}],"sources":[{"title":"source title","url":"https://..."}]}. Include 5 to 8 useful measurable specifications for these product types, plus release date when verified. Compare equivalent specifications, never invent missing values, and mark unverified facts as "Not verified". Explain the practical difference in every row and which item is stronger. Use current reliable manufacturer or technical sources.' ,grounded_search:true,language_hint:detectChatLanguage(first+' '+second)})});
+    const data=await response.json();if(!response.ok||!data.reply)throw new Error(data.error||'AI comparison failed');
+    const comparison=parseComparisonJson(data.reply);const photos=await photoPromise;
+    renderAIComparison(result,first,second,comparison,photos,data.sources||[]);
+  }catch(error){result.innerHTML='<p>Could not complete the comparison: '+escapeHtml(error.message||'Please try again.')+'</p>';}
+  finally{button.disabled=false;button.textContent='Compare items with AI';}
+}
+function renderAIComparison(result,first,second,data,photos,sources){
+  if(!data||!Array.isArray(data.rows)){result.innerHTML='<p>'+escapeHtml('AI returned an unreadable comparison. Please try again.')+'</p>';return;}
+  const names=[String(data.item_a||first),String(data.item_b||second)];
+  const specRows=data.rows.slice(0,10);
+  const itemSpecs=function(key){return specRows.map(function(row){return '<div class="comparison-spec"><span>'+escapeHtml(row.fact||'Specification')+'</span><strong>'+escapeHtml(row[key]||'Not verified')+'</strong></div>';}).join('');};
+  const differenceRows=specRows.map(function(row){const winner=String(row.winner||'').toLowerCase();return '<div class="comparison-difference"><strong>'+escapeHtml(row.fact||'Specification')+'</strong><span>'+escapeHtml(row.difference||row.note||((row.item_a||'Not verified')+' vs '+(row.item_b||'Not verified')) )+'</span><small class="comparison-winner '+(winner==='a'?'winner-a':winner==='b'?'winner-b':'')+'">'+escapeHtml(row.winner||'Tie')+'</small></div>';}).join('');
+  const sourceLinks=(Array.isArray(sources)?sources:[]).map(function(source){if(!/^https:\/\//i.test(source.url||''))return '';return '<a href="'+escapeHtml(source.url)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(source.title||source.url)+'</a>';}).join('');
+  const itemCards=names.map(function(name,index){const photo=photos[index];const key=index?'item_b':'item_a';return '<section class="comparison-item-card item-card-'+(index?'b':'a')+'"><h4>'+(index?'SECOND ITEM':'FIRST ITEM')+'</h4>'+(photo?'<img src="'+escapeHtml(photo.url)+'" alt="'+escapeHtml(name)+'" loading="lazy" referrerpolicy="no-referrer">':'<div class="comparison-no-photo">Photo not found</div>')+'<strong class="comparison-item-name">'+escapeHtml(name)+'</strong>'+(photo?'<small class="comparison-photo-title">Photo: '+escapeHtml(photo.title)+'</small>':'')+'<div class="comparison-spec-list">'+itemSpecs(key)+'</div></section>';}).join('');
+  result.innerHTML='<h3 class="comparison-table-title">Item specifications</h3><div class="comparison-item-grid">'+itemCards+'</div><h3 class="comparison-table-title">Differences</h3><div class="comparison-difference-list">'+differenceRows+'</div><div class="comparison-summary"><strong>Overall difference</strong><p>'+escapeHtml(data.summary||'Review the differences above.')+'</p></div>'+(sourceLinks?'<div class="comparison-sources"><strong>Sources</strong>'+sourceLinks+'</div>':'')+'<p class="comparison-note">Specifications are based on the linked sources. Product photos are image-search matches and may show a similar variant; check the image title and exact model before relying on it.</p>';
 }
 loadRecommendedBuilds();
 startRecommendationRealtimeSync();
