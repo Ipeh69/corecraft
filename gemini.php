@@ -242,9 +242,15 @@ if ($compareTimeoutSeconds <= 0) $compareTimeoutSeconds = 90;
 
 $fastRequestBudgetSeconds = (float)corecraft_env('CORECRAFT_GEMINI_FAST_BUDGET_SECONDS', '');
 if ($fastRequestBudgetSeconds <= 0) $fastRequestBudgetSeconds = max(2.5, (float)$fastTimeoutSeconds - 1.0);
+if ($feature === 'compare') $fastRequestBudgetSeconds = max($fastRequestBudgetSeconds, (float)$compareTimeoutSeconds);
 $requestStartedAt = microtime(true);
 for ($attempt = 0; $attempt < 2; $attempt++) {
 if ($attempt === 1) {
+    if ($statusCode === 503) {
+        // One delayed retry after the grounded pass encounters temporary
+        // capacity exhaustion, before falling back to an ungrounded answer.
+        usleep(1000000 + mt_rand(0, 500000));
+    }
     // Live search failed (e.g. free-tier quota): retry as a plain, clearly labeled estimate.
     unset($requestBody['tools']);
     $useGoogleSearch = false;
@@ -256,6 +262,7 @@ if ($attempt === 1) {
     }
     $requestBody['system_instruction'] = array('parts' => array(array('text' => $fallbackNote)));
 }
+$modelIndex = 0;
 foreach ($models as $model) {
     // Keep non-search requests reasonably fast while still allowing fallback models.
     if (!$useGoogleSearch && microtime(true) - $requestStartedAt >= $fastRequestBudgetSeconds) break;
@@ -287,6 +294,13 @@ foreach ($models as $model) {
     $gemini = is_string($response) ? json_decode($response, true) : array();
     if ($response !== false && !$curlError && $statusCode >= 200 && $statusCode < 300) break;
     $lastError = isset($gemini['error']['message']) ? $gemini['error']['message'] : ($curlError ? $curlError : 'Model unavailable.');
+    // Capacity-related 503s are transient; briefly back off before trying the
+    // next configured model so failover requests are not sent as a burst.
+    if ($statusCode === 503 && $modelIndex < count($models) - 1) {
+        $backoffMicros = min(2000000, 500000 * (1 << min($modelIndex, 2)));
+        usleep($backoffMicros + mt_rand(0, 200000));
+    }
+    $modelIndex++;
 }
 $succeeded = $response !== false && !$curlError && $statusCode >= 200 && $statusCode < 300;
 if ($succeeded || !$useGoogleSearch) break;
@@ -299,7 +313,7 @@ if ($response === false || $curlError) {
 }
 
 if ($statusCode < 200 || $statusCode >= 300) {
-    setHttpStatus($statusCode === 429 ? 429 : 502);
+    setHttpStatus(in_array($statusCode, array(429, 503), true) ? $statusCode : 502);
     $quotaHint = ($useGoogleSearch && $statusCode === 429)
         ? ' Live web search (Google Search grounding) needs a Gemini API key on a paid/billing-enabled plan; the free tier has no grounding quota.'
         : '';
