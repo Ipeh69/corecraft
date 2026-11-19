@@ -1638,18 +1638,11 @@ function parseComparisonJson(text){
   try{return JSON.parse(source);}catch(error){const start=source.indexOf('{'),end=source.lastIndexOf('}');if(start>=0&&end>start){try{return JSON.parse(source.slice(start,end+1));}catch(ignore){}}return null;}
 }
 async function findPartPhoto(query){
-  try{
-    const pcxResponse=await fetch('comparison_photo.php?q='+encodeURIComponent(query),{cache:'no-store'});
-    const pcxData=await pcxResponse.json();
-    if(pcxResponse.ok&&pcxData.photo&&pcxData.photo.url){
-      return {url:pcxData.photo.url,title:pcxData.photo.title,source:pcxData.photo.source,productUrl:pcxData.photo.productUrl};
-    }
-  }catch(error){}
   const url='https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch='+encodeURIComponent('filetype:bitmap '+query)+'&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url&iiurlwidth=640&format=json&origin=*';
   const response=await fetch(url);if(!response.ok)throw new Error('Image search unavailable');
   const data=await response.json();const pages=Object.values((data.query&&data.query.pages)||{});
   const found=pages.find(page=>page.imageinfo&&page.imageinfo[0]&&(page.imageinfo[0].thumburl||page.imageinfo[0].url));
-  return found?{url:found.imageinfo[0].thumburl||found.imageinfo[0].url,title:String(found.title||'').replace(/^File:/,''),source:'Wikimedia Commons'}:null;
+  return found?{url:found.imageinfo[0].thumburl||found.imageinfo[0].url,title:String(found.title||'').replace(/^File:/,'')}:null;
 }
 async function comparePartsWithAI(){
   const first=document.getElementById('comparison-item-a').value.trim(),second=document.getElementById('comparison-item-b').value.trim();
@@ -1674,8 +1667,8 @@ function renderAIComparison(result,first,second,data,photos,sources){
   const itemSpecs=function(key){return specRows.map(function(row){return '<div class="comparison-spec"><span>'+escapeHtml(row.fact||'Specification')+'</span><strong>'+escapeHtml(row[key]||'Not verified')+'</strong></div>';}).join('');};
   const differenceRows=specRows.map(function(row){const winner=String(row.winner||'').toLowerCase();return '<div class="comparison-difference"><strong>'+escapeHtml(row.fact||'Specification')+'</strong><span>'+escapeHtml(row.difference||row.note||((row.item_a||'Not verified')+' vs '+(row.item_b||'Not verified')) )+'</span><small class="comparison-winner '+(winner==='a'?'winner-a':winner==='b'?'winner-b':'')+'">'+escapeHtml(row.winner||'Tie')+'</small></div>';}).join('');
   const sourceLinks=(Array.isArray(sources)?sources:[]).map(function(source){if(!/^https:\/\//i.test(source.url||''))return '';return '<a href="'+escapeHtml(source.url)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(source.title||source.url)+'</a>';}).join('');
-  const itemCards=names.map(function(name,index){const photo=photos[index];const key=index?'item_b':'item_a';const photoCredit=photo?(photo.productUrl?'<small class="comparison-photo-title">Photo: <a href="'+escapeHtml(photo.productUrl)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(photo.source||'Product listing')+' · '+escapeHtml(photo.title)+'</a></small>':'<small class="comparison-photo-title">Photo: '+escapeHtml(photo.source||'Image search')+' · '+escapeHtml(photo.title)+'</small>'):'';return '<section class="comparison-item-card item-card-'+(index?'b':'a')+'"><h4>'+(index?'SECOND ITEM':'FIRST ITEM')+'</h4>'+(photo?'<img src="'+escapeHtml(photo.url)+'" alt="'+escapeHtml(name)+'" loading="lazy" referrerpolicy="no-referrer">':'<div class="comparison-no-photo">Photo not found</div>')+'<strong class="comparison-item-name">'+escapeHtml(name)+'</strong>'+photoCredit+'<div class="comparison-spec-list">'+itemSpecs(key)+'</div></section>';}).join('');
-  result.innerHTML='<h3 class="comparison-table-title">Item specifications</h3><div class="comparison-item-grid">'+itemCards+'</div><h3 class="comparison-table-title">Differences</h3><div class="comparison-difference-list">'+differenceRows+'</div><div class="comparison-summary"><strong>Overall difference</strong><p>'+escapeHtml(data.summary||'Review the differences above.')+'</p></div>'+(sourceLinks?'<div class="comparison-sources"><strong>Sources</strong>'+sourceLinks+'</div>':'')+'<p class="comparison-note">Photos are searched from PC Express first, with Wikimedia Commons as a fallback. Check the linked product listing to confirm the pictured model.</p>';
+  const itemCards=names.map(function(name,index){const photo=photos[index];const key=index?'item_b':'item_a';return '<section class="comparison-item-card item-card-'+(index?'b':'a')+'"><h4>'+(index?'SECOND ITEM':'FIRST ITEM')+'</h4>'+(photo?'<img src="'+escapeHtml(photo.url)+'" alt="'+escapeHtml(name)+'" loading="lazy" referrerpolicy="no-referrer">':'<div class="comparison-no-photo">Photo not found</div>')+'<strong class="comparison-item-name">'+escapeHtml(name)+'</strong>'+(photo?'<small class="comparison-photo-title">Photo: '+escapeHtml(photo.title)+'</small>':'')+'<div class="comparison-spec-list">'+itemSpecs(key)+'</div></section>';}).join('');
+  result.innerHTML='<h3 class="comparison-table-title">Item specifications</h3><div class="comparison-item-grid">'+itemCards+'</div><h3 class="comparison-table-title">Differences</h3><div class="comparison-difference-list">'+differenceRows+'</div><div class="comparison-summary"><strong>Overall difference</strong><p>'+escapeHtml(data.summary||'Review the differences above.')+'</p></div>'+(sourceLinks?'<div class="comparison-sources"><strong>Sources</strong>'+sourceLinks+'</div>':'')+'<p class="comparison-note">Specifications are based on the linked sources. Product photos are image-search matches and may show a similar variant; check the image title and exact model before relying on it.</p>';
 }
 loadRecommendedBuilds();
 startRecommendationRealtimeSync();
