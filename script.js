@@ -1637,7 +1637,7 @@ function parseComparisonJson(text){
   const source=String(text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
   try{return JSON.parse(source);}catch(error){const start=source.indexOf('{'),end=source.lastIndexOf('}');if(start>=0&&end>start){try{return JSON.parse(source.slice(start,end+1));}catch(ignore){}}return null;}
 }
-9.4async function readComparisonApiResponse(response,endpointName){
+async function readComparisonApiResponse(response,endpointName){
   const body=await response.text();
   try{return JSON.parse(body);}catch(error){
     const isHtml=/^\s*(?:<!doctype\s+html|<html|<br\s*\/?\s*>|<b\s*>)/i.test(body);
