@@ -1,7 +1,7 @@
 <!-- NAV -->
 <nav>
   <a class="logo" onclick="if(document.getElementById('page-admin')&&document.getElementById('page-admin').classList.contains('active')){openAdminDashboard();}else{showPage('home');}">
-    <div class="logo-icon"><img src="corecraft-logo-mark.png" alt=""></div>
+    <div class="logo-icon"><img src="corecraft-logo-mark-red.png" alt=""></div>
     <div class="logo-text">Core<span>Craft</span></div>
   </a>
   <ul>
